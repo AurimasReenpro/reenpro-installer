@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>InstallerApp - Objektas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+        /* Hide scrollbar for tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#490891', 'primary-container': '#490891', 'on-primary': '#ffffff',
+                        'primary-light': '#8052b2', 'primary-fixed': '#ecdcff', 'on-primary-fixed': '#280056',
+                        'secondary-container': '#e2250a', 'on-tertiary-container': '#fd7461',
+                        notify: '#fc391d', 'avatar-accent': '#b71500', 'app-bg': '#f6f5fa',
+                        'surface-bright': '#ffffff', 'surface-container-low': '#fbf0ff', 'surface-container': '#f6e9ff',
+                        'surface-variant': '#eedbff', 'on-surface': '#1d033a', 'on-surface-variant': '#4b4452',
+                        'outline-variant': '#cdc3d4', outline: '#7c7484',
+                        success: '#10B981', 'success-bg': '#ECFDF5', warning: '#F59E0B',
+                        error: '#ba1a1a', 'error-container': '#ffdad6', 'sidebar-bg': '#1d033a',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: {
+                        card: '0px 4px 20px rgba(29,3,58,0.05)',
+                        elevated: '0px 12px 32px rgba(29,3,58,0.12)',
+                        upward: '0px -4px 16px rgba(29,3,58,0.1)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-app-bg text-on-surface font-sans antialiased pt-[56px] pb-[100px]">
+
+    <!-- Top Bar -->
+    <header class="fixed top-0 left-0 w-full h-[56px] bg-white flex items-center px-4 justify-between z-50 shadow-sm">
+        <a href="mobile-today.html" class="p-2 -ml-2 active:scale-95 transition-transform text-primary flex items-center">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <span class="text-primary-light text-[14px] font-semibold tracking-wider">SITE-2026-0001</span>
+        <button class="p-2 -mr-2 active:scale-95 transition-transform text-on-surface flex items-center">
+            <span class="material-symbols-outlined">map</span>
+        </button>
+    </header>
+
+    <!-- Sticky Tabs -->
+    <div class="fixed top-[56px] w-full bg-white z-40 border-b border-outline-variant/30 px-2 overflow-x-auto no-scrollbar shadow-sm">
+        <div class="flex whitespace-nowrap px-2">
+            <a href="#" class="px-4 py-3 text-[14px] font-bold text-primary border-b-4 border-primary">Apžvalga</a>
+            <a href="mobile-checklist.html" class="px-4 py-3 text-[14px] font-medium text-on-surface-variant opacity-80">Pre-checklist</a>
+            <a href="#" class="px-4 py-3 text-[14px] font-medium text-on-surface-variant opacity-80">Post-checklist</a>
+            <a href="mobile-photos.html" class="px-4 py-3 text-[14px] font-medium text-on-surface-variant opacity-80">Foto</a>
+            <a href="#" class="px-4 py-3 text-[14px] font-medium text-on-surface-variant opacity-80">Komentarai</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="mt-[50px]">
+        <!-- Hero Section -->
+        <section class="bg-surface-bright rounded-b-[16px] shadow-sm px-6 pt-4 pb-6 mb-4">
+            <h3 class="text-[24px] font-bold text-on-surface leading-tight mb-2">AB Žemaitijos pieninė</h3>
+            <p class="text-on-surface-variant flex items-center gap-1 text-[14px] mb-4">
+                <span class="material-symbols-outlined text-[16px] text-primary-light">location_on</span>
+                Vilniaus g. 14, 01112 Vilnius
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <span class="bg-primary text-white text-[12px] font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                     PV+BESS
+                </span>
+                <span class="bg-surface-container-low border border-outline-variant/50 text-on-surface text-[12px] font-semibold px-3 py-1 rounded-full">119.9 kWp</span>
+                <span class="bg-success-bg text-success text-[12px] font-bold px-3 py-1 rounded-full flex items-center gap-1 border border-success/20">
+                    <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+                    Vykdomas
+                </span>
+            </div>
+        </section>
+
+        <div class="px-4 space-y-6">
+            <!-- Quick Info Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <a href="tel:+37060012345" class="bg-surface-bright border border-[#b69cd3] rounded-[12px] p-3 hover:shadow-md active:scale-[0.98] transition-all">
+                    <p class="text-[12px] text-on-surface-variant uppercase tracking-wide font-semibold mb-1">Klientas</p>
+                    <p class="text-[14px] font-bold text-primary flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">call</span>
+                        +370 600 12345
+                    </p>
+                </a>
+                <div class="bg-surface-bright border border-[#b69cd3] rounded-[12px] p-3">
+                    <p class="text-[12px] text-on-surface-variant uppercase tracking-wide font-semibold mb-1">Sąmata</p>
+                    <p class="text-[14px] font-bold text-on-surface">6-8 val.</p>
+                </div>
+                <div class="col-span-2 bg-surface-bright border border-[#b69cd3] rounded-[12px] p-3 flex justify-between items-center">
+                    <div>
+                        <p class="text-[12px] text-on-surface-variant uppercase tracking-wide font-semibold mb-1">Komanda</p>
+                        <p class="text-[14px] font-bold text-on-surface">Tu + Petras (vadovas)</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[12px] text-on-surface-variant uppercase tracking-wide font-semibold mb-1">Pradėta</p>
+                        <p class="text-[14px] font-bold text-on-surface">Šiandien 08:30</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Section -->
+            <section>
+                <h4 class="text-[16px] font-bold text-on-surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-outline">sticky_note_2</span> Pastabos
+                </h4>
+                <div class="bg-[#FFF1F0] rounded-[12px] border-l-4 border-on-tertiary-container p-4 flex gap-3 shadow-sm">
+                    <span class="material-symbols-outlined text-on-tertiary-container mt-0.5">warning</span>
+                    <p class="text-[14px] text-on-surface leading-relaxed">
+                        Klientas paprašė vakare neveikti dėl gyvulių. <strong class="font-bold">Iki 18:00 baigti darbą.</strong>
+                    </p>
+                </div>
+            </section>
+
+            <!-- System Section -->
+            <section>
+                <h4 class="text-[16px] font-bold text-on-surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-outline">settings_input_component</span> Sistema
+                </h4>
+                <div class="space-y-3">
+                    <div class="bg-surface-bright rounded-[12px] p-3 flex items-center gap-4 shadow-sm border border-outline-variant/30">
+                        <div class="w-10 h-10 rounded-full bg-primary-fixed flex justify-center items-center text-primary shrink-0">
+                            <span class="material-symbols-outlined">solar_power</span>
+                        </div>
+                        <div>
+                            <p class="text-[12px] font-semibold text-primary uppercase letter-spacing-wider">PV moduliai</p>
+                            <p class="text-[15px] font-bold text-on-surface">SunPower Maxeon 3 (x240)</p>
+                        </div>
+                    </div>
+                    <div class="bg-surface-bright rounded-[12px] p-3 flex items-center gap-4 shadow-sm border border-outline-variant/30">
+                        <div class="w-10 h-10 rounded-full bg-primary-fixed flex justify-center items-center text-primary shrink-0">
+                            <span class="material-symbols-outlined">dynamic_form</span>
+                        </div>
+                        <div>
+                            <p class="text-[12px] font-semibold text-primary uppercase letter-spacing-wider">Inverteris</p>
+                            <p class="text-[15px] font-bold text-on-surface">SolarEdge SE100K</p>
+                        </div>
+                    </div>
+                    <div class="bg-surface-bright rounded-[12px] p-3 flex items-center gap-4 shadow-sm border border-outline-variant/30">
+                        <div class="w-10 h-10 rounded-full bg-primary-fixed flex justify-center items-center text-primary shrink-0">
+                            <span class="material-symbols-outlined">battery_charging_full</span>
+                        </div>
+                        <div>
+                            <p class="text-[12px] font-semibold text-primary uppercase letter-spacing-wider">BESS</p>
+                            <p class="text-[15px] font-bold text-on-surface">Tesla Powerpack 2</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Documents Section -->
+            <section>
+                <h4 class="text-[16px] font-bold text-on-surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-outline">folder</span> Dokumentai
+                </h4>
+                <div class="bg-surface-bright rounded-[12px] shadow-sm border border-outline-variant/30 divide-y divide-outline-variant/30">
+                    <a href="#" class="flex items-center justify-between p-4 active:bg-surface-variant transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-error">picture_as_pdf</span>
+                            <span class="text-[14px] font-medium text-on-surface">Sutartis.pdf</span>
+                        </div>
+                        <span class="material-symbols-outlined text-outline">download</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-between p-4 active:bg-surface-variant transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary-light">description</span>
+                            <span class="text-[14px] font-medium text-on-surface">Schema.pdf</span>
+                        </div>
+                        <span class="material-symbols-outlined text-outline">download</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-between p-4 active:bg-surface-variant transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-success">verified</span>
+                            <span class="text-[14px] font-medium text-on-surface">ESO leidimas.pdf</span>
+                        </div>
+                        <span class="material-symbols-outlined text-outline">download</span>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Bottom Action Bar (Sticky) -->
+    <div class="fixed bottom-0 w-full h-[100px] shadow-elevated z-50">
+        <!-- Top Half (Timer) -->
+        <div class="h-[40px] bg-gradient-to-r from-[#10B981] to-[#059669] flex justify-center items-center text-white gap-2">
+            <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span class="font-bold text-[18px] tracking-wide">⏱️ 2h 15min</span>
+        </div>
+        <!-- Bottom Half (Buttons) -->
+        <div class="h-[60px] bg-white flex items-center px-4 gap-3 border-t border-outline-variant/20">
+            <button class="flex-1 h-[48px] border-2 border-outline text-on-surface-variant font-bold text-[15px] rounded-[12px] active:scale-95 transition-transform">
+                PERTRAUKA
+            </button>
+            <button class="flex-[1.5] h-[48px] bg-success text-white font-bold text-[15px] rounded-[12px] shadow-sm active:scale-95 transition-transform">
+                BAIGTI
+            </button>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>InstallerApp - Mano laikas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#490891', 'primary-container': '#490891', 'on-primary': '#ffffff',
+                        'primary-light': '#8052b2', 'primary-fixed': '#ecdcff', 'on-primary-fixed': '#280056',
+                        'app-bg': '#f6f5fa', 'surface-bright': '#ffffff', 'surface-container-low': '#fbf0ff',
+                        'surface-variant': '#eedbff', 'on-surface': '#1d033a', 'on-surface-variant': '#4b4452',
+                        'outline-variant': '#cdc3d4', outline: '#7c7484'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: { card: '0px 4px 20px rgba(29,3,58,0.05)', upward: '0px -4px 16px rgba(29,3,58,0.1)' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-app-bg text-on-surface font-sans antialiased pt-[56px] pb-[80px]">
+
+    <!-- Top Bar -->
+    <header class="fixed top-0 left-0 w-full h-[56px] bg-white flex items-center px-4 justify-between z-50 border-b border-outline-variant/20">
+        <h1 class="text-[18px] font-bold text-on-surface w-full text-center">Mano laikas</h1>
+    </header>
+
+    <main class="p-4 space-y-6">
+        
+        <!-- Period Selector -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <button class="whitespace-nowrap px-4 py-2 rounded-full border border-outline-variant text-[14px] font-medium text-on-surface-variant active:bg-surface-variant">Šiandien</button>
+            <button class="whitespace-nowrap px-4 py-2 rounded-full bg-primary text-white text-[14px] font-semibold shadow-sm">Ši sav.</button>
+            <button class="whitespace-nowrap px-4 py-2 rounded-full border border-outline-variant text-[14px] font-medium text-on-surface-variant active:bg-surface-variant">Šis mėn.</button>
+            <button class="whitespace-nowrap px-4 py-2 rounded-full border border-outline-variant text-[14px] font-medium text-on-surface-variant active:bg-surface-variant">Custom</button>
+        </div>
+
+        <!-- Hero Stat Card -->
+        <div class="bg-surface-bright rounded-[16px] shadow-sm p-6 text-center border border-outline-variant/30 relative overflow-hidden">
+             <div class="absolute -top-10 -right-10 w-24 h-24 bg-primary-fixed opacity-50 rounded-full blur-2xl"></div>
+             
+             <p class="text-[14px] text-on-surface-variant uppercase tracking-wider font-semibold mb-2">Iš viso valandų</p>
+             <h2 class="text-[48px] font-bold text-primary leading-none mb-4">32h <span class="text-[32px]">15m</span></h2>
+             
+             <div class="flex justify-center gap-4 text-[14px] text-on-surface-variant font-medium">
+                 <div class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px] text-outline">location_city</span>
+                    8 objektai
+                 </div>
+                 <div class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px] text-outline">query_stats</span>
+                    Vid. 6h 27m / d.
+                 </div>
+             </div>
+        </div>
+
+        <!-- Daily Logs -->
+        <div class="space-y-5">
+            <!-- Group 1 -->
+            <section>
+                <div class="flex justify-between items-end mb-3 px-1">
+                    <h3 class="text-[14px] font-bold text-on-surface uppercase tracking-wide">Šiandien (02 gegužės)</h3>
+                    <span class="text-[14px] font-bold text-primary">8h 15min</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="bg-surface-bright rounded-[12px] p-4 shadow-sm border border-outline-variant/30 flex justify-between items-center">
+                        <div>
+                            <p class="text-[14px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                                <span class="text-[12px] text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-[4px]">SITE-001</span>
+                                Vilniaus g. 14
+                            </p>
+                            <p class="text-[13px] text-on-surface-variant flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">schedule</span> 08:30 - 12:45
+                            </p>
+                        </div>
+                        <div class="text-[16px] font-bold text-on-surface">4h 15m</div>
+                    </div>
+                    <div class="bg-surface-bright rounded-[12px] p-4 shadow-sm border border-outline-variant/30 flex justify-between items-center">
+                        <div>
+                            <p class="text-[14px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                                <span class="text-[12px] text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-[4px]">SITE-002</span>
+                                Kauno g. 5
+                            </p>
+                            <p class="text-[13px] text-on-surface-variant flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">schedule</span> 13:30 - 17:30
+                            </p>
+                        </div>
+                        <div class="text-[16px] font-bold text-on-surface">4h 00m</div>
+                    </div>
+                </div>
+            </section>
+
+             <!-- Group 2 -->
+             <section>
+                <div class="flex justify-between items-end mb-3 px-1 mt-6">
+                    <h3 class="text-[14px] font-bold text-on-surface uppercase tracking-wide">Vakar (01 gegužės)</h3>
+                    <span class="text-[14px] font-bold text-primary">7h 30min</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="bg-surface-bright rounded-[12px] p-4 shadow-sm border border-outline-variant/30 flex justify-between items-center opacity-80">
+                        <div>
+                            <p class="text-[14px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                                <span class="text-[12px] text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-[4px]">SITE-003</span>
+                                Klaipėdos pr. 10
+                            </p>
+                            <p class="text-[13px] text-on-surface-variant flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">schedule</span> 09:00 - 16:30
+                            </p>
+                        </div>
+                        <div class="text-[16px] font-bold text-on-surface">7h 30m</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Weekly Chart Mockup -->
+        <div class="bg-surface-bright rounded-[16px] p-5 shadow-sm border border-outline-variant/30 mt-6">
+            <h4 class="text-[14px] font-semibold text-on-surface mb-4">Praėjusios 7 dienos</h4>
+            <div class="flex items-end justify-between h-[120px] pb-2 border-b border-outline-variant/30 px-2 gap-2">
+                <div class="w-full bg-primary-fixed rounded-t-sm relative group h-[40%]" title="4h">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">Tr</div>
+                </div>
+                <div class="w-full bg-primary-fixed rounded-t-sm relative h-[60%]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">Kt</div>
+                </div>
+                <div class="w-full bg-primary-fixed rounded-t-sm relative h-[80%]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">Pn</div>
+                </div>
+                <div class="w-full bg-surface-variant rounded-t-sm relative h-[0%]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">Št</div>
+                </div>
+                <div class="w-full bg-surface-variant rounded-t-sm relative h-[10%]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">Sk</div>
+                </div>
+                <div class="w-full bg-primary rounded-t-sm relative h-[75%] shadow-[0_0_8px_rgba(73,8,145,0.4)]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] font-bold text-primary">Pr</div>
+                </div>
+                <div class="w-full bg-primary-fixed rounded-t-sm relative h-[85%]">
+                    <div class="absolute -bottom-6 w-full text-center text-[10px] text-on-surface-variant">An</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 w-full h-[64px] bg-white shadow-upward flex items-center justify-between px-6 z-50">
+        <a href="mobile-today.html" class="flex flex-col items-center justify-center text-outline w-16">
+            <span class="material-symbols-outlined mb-1">home</span>
+            <span class="text-[10px] font-medium">Šiandien</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center text-outline w-16">
+            <span class="material-symbols-outlined mb-1">list_alt</span>
+            <span class="text-[10px] font-medium">Visi</span>
+        </a>
+        <a href="mobile-time.html" class="flex flex-col items-center justify-center text-primary w-16 relative">
+            <span class="material-symbols-outlined icon-filled mb-1">schedule</span>
+            <span class="text-[10px] font-bold text-primary">Laikas</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center text-outline w-16">
+            <span class="material-symbols-outlined mb-1">payments</span>
+            <span class="text-[10px] font-medium">Bonus</span>
+        </a>
+        <a href="#" class="flex flex-col items-center justify-center text-outline w-16">
+            <span class="material-symbols-outlined mb-1">person</span>
+            <span class="text-[10px] font-medium">Profilis</span>
+        </a>
+    </nav>
+</body>
+</html>

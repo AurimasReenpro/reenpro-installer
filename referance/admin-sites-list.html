@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstallerApp Admin - Objektai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#490891', 'primary-container': '#490891', 'on-primary': '#ffffff',
+                        'primary-light': '#8052b2', 'primary-fixed': '#ecdcff', 'on-primary-fixed': '#280056',
+                        'secondary-container': '#e2250a', 'on-tertiary-container': '#fd7461',
+                        notify: '#fc391d', 'avatar-accent': '#b71500', 'app-bg': '#f6f5fa',
+                        'surface-bright': '#ffffff', 'surface-container-low': '#fbf0ff', 'surface-container': '#f6e9ff',
+                        'surface-variant': '#eedbff', 'on-surface': '#1d033a', 'on-surface-variant': '#4b4452',
+                        'outline-variant': '#cdc3d4', outline: '#7c7484',
+                        success: '#10B981', 'success-bg': '#ECFDF5', warning: '#F59E0B', 'warning-bg': '#FEF3C7',
+                        error: '#ba1a1a', 'error-container': '#ffdad6', 'sidebar-bg': '#1d033a',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: { card: '0px 4px 20px rgba(29,3,58,0.05)', elevated: '0px 12px 32px rgba(29,3,58,0.12)' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-app-bg text-on-surface font-sans antialiased h-screen overflow-hidden flex">
+
+    <!-- Sidebar -->
+    <aside class="w-[240px] bg-sidebar-bg flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
+        <div>
+            <!-- Logo -->
+            <div class="px-6 mb-8 flex items-center gap-2">
+                <span class="material-symbols-outlined icon-filled text-notify text-[24px]">sunny</span>
+                <span class="text-white font-bold text-[20px] tracking-tight">InstallerApp</span>
+            </div>
+            <!-- Nav Items -->
+            <nav class="px-3 space-y-1">
+                <a href="admin-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+                <a href="admin-sites-list.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary text-white font-semibold rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined icon-filled">dataset</span>
+                    Objektai
+                </a>
+                <!-- ... other items ... -->
+            </nav>
+        </div>
+        <div class="px-6 flex items-center gap-3 border-t border-white/10 pt-4">
+            <div class="w-8 h-8 rounded-full bg-avatar-accent text-white flex items-center justify-center font-bold text-[14px]">JP</div>
+            <span class="text-white font-medium text-[14px]">Jonas P.</span>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <header class="h-[60px] bg-surface-bright flex items-center justify-between px-6 flex-shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)] border-b border-outline-variant/30">
+            <div class="flex items-center gap-2">
+                 <!-- Hamburger for mobile, hidden on desktop -->
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative w-[36px] h-[36px] flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant">
+                    <span class="material-symbols-outlined">notifications</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-6 flex flex-col">
+            
+            <!-- Page Title Row -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[32px] font-bold text-on-surface tracking-tight">Objektai</h2>
+                <div class="flex gap-3">
+                    <button class="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] border-2 border-outline-variant text-on-surface hover:bg-surface-variant transition-colors active:scale-95 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">upload</span> Importuoti
+                    </button>
+                    <button class="h-[40px] px-5 font-semibold text-[14px] rounded-[8px] bg-primary text-white shadow-sm hover:bg-primary-light transition-colors active:scale-95 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">add</span> Naujas objektas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="bg-surface-bright p-4 rounded-t-[12px] border border-outline-variant/40 flex flex-wrap gap-4 items-center mb-0 border-b-0 shadow-sm">
+                <div class="relative flex-1 min-w-[240px]">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                    <input type="text" placeholder="Ieškoti pagal ID, klientą, adresą..." class="w-full bg-app-bg border border-outline-variant/50 rounded-[8px] h-[40px] pl-10 pr-4 text-[14px] text-on-surface focus:outline-none focus:border-primary transition-colors">
+                </div>
+                
+                <select class="h-[40px] px-3 border border-outline-variant/50 rounded-[8px] text-[14px] bg-app-bg focus:outline-none focus:border-primary text-on-surface min-w-[140px]">
+                    <option>Visi statusai</option>
+                    <option>Vykdomas</option>
+                    <option>Suplanuotas</option>
+                    <option>Baigtas</option>
+                </select>
+
+                <select class="h-[40px] px-3 border border-outline-variant/50 rounded-[8px] text-[14px] bg-app-bg focus:outline-none focus:border-primary text-on-surface min-w-[140px]">
+                    <option>Visi tipai</option>
+                    <option>PV+BESS</option>
+                    <option>PV Only</option>
+                </select>
+                
+                 <button class="h-[40px] px-3 font-semibold text-[14px] text-outline border border-outline-variant/50 rounded-[8px] bg-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">calendar_today</span> Datos
+                </button>
+            </div>
+
+            <!-- Data Table -->
+            <div class="flex-1 bg-surface-bright border border-outline-variant/40 rounded-b-[12px] shadow-sm overflow-hidden flex flex-col">
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse min-w-[1000px]">
+                        <thead>
+                            <tr class="bg-surface-container-low border-y border-outline-variant/40 text-[12px] uppercase text-on-surface-variant font-semibold tracking-wider">
+                                <th class="p-4 w-[48px]"><input type="checkbox" class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"></th>
+                                <th class="p-4 py-3">Code</th>
+                                <th class="p-4 py-3">Klientas</th>
+                                <th class="p-4 py-3">Sistema</th>
+                                <th class="p-4 py-3">kWp</th>
+                                <th class="p-4 py-3">Statusas</th>
+                                <th class="p-4 py-3">Datos</th>
+                                <th class="p-4 py-3">Monteriai</th>
+                                <th class="p-4 py-3 w-[64px]"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/20 text-[14px] text-on-surface">
+                            
+                            <!-- Row 1: In Progress -->
+                            <tr class="hover:bg-app-bg/50 transition-colors group cursor-pointer" onclick="window.location='admin-site-detail.html'">
+                                <td class="p-4 w-[48px]" onclick="event.stopPropagation()"><input type="checkbox" class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"></td>
+                                <td class="p-4 font-semibold text-primary">SITE-001</td>
+                                <td class="p-4">
+                                    <div class="font-bold">AB Žemaitijos pieninė</div>
+                                    <div class="text-[12px] text-on-surface-variant">Vilniaus g. 14</div>
+                                </td>
+                                <td class="p-4"><span class="bg-primary-fixed text-on-primary-fixed text-[12px] font-semibold px-2 py-1 rounded-full whitespace-nowrap">PV+BESS</span></td>
+                                <td class="p-4 font-medium">119.9</td>
+                                <td class="p-4">
+                                    <span class="inline-flex items-center gap-1.5 bg-success-bg text-success text-[12px] font-bold px-2.5 py-1 rounded-full border border-success/20">
+                                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span> Vykdomas
+                                    </span>
+                                </td>
+                                <td class="p-4 text-on-surface-variant text-[13px]">Geg 02 - Geg 05</td>
+                                <td class="p-4">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-7 h-7 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold z-20">TP</div>
+                                        <div class="w-7 h-7 rounded-full border-2 border-white bg-avatar-accent text-white flex items-center justify-center text-[10px] font-bold z-10">PK</div>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <button class="text-outline hover:text-primary transition-colors p-1" onclick="event.stopPropagation()"><span class="material-symbols-outlined">more_vert</span></button>
+                                </td>
+                            </tr>
+
+                            <!-- Row 2: Scheduled -->
+                            <tr class="hover:bg-app-bg/50 transition-colors group cursor-pointer">
+                                <td class="p-4 w-[48px]"><input type="checkbox" class="rounded border-outline-variant w-4 h-4"></td>
+                                <td class="p-4 font-semibold text-primary">SITE-002</td>
+                                <td class="p-4">
+                                    <div class="font-bold">UAB Saulės Energija</div>
+                                    <div class="text-[12px] text-on-surface-variant">Kauno g. 45</div>
+                                </td>
+                                <td class="p-4"><span class="bg-surface-variant text-on-surface text-[12px] font-semibold px-2 py-1 rounded-full whitespace-nowrap">PV Only</span></td>
+                                <td class="p-4 font-medium">60.0</td>
+                                <td class="p-4">
+                                    <span class="inline-flex items-center gap-1.5 bg-surface-variant text-on-surface-variant text-[12px] font-bold px-2.5 py-1 rounded-full">
+                                        <span class="w-2 h-2 rounded-full bg-primary"></span> Suplanuota
+                                    </span>
+                                </td>
+                                <td class="p-4 text-on-surface-variant text-[13px]">Geg 08 - Geg 10</td>
+                                <td class="p-4">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-7 h-7 rounded-full border-2 border-white bg-on-surface text-white flex items-center justify-center text-[10px] font-bold z-20">BR</div>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-right"><button class="text-outline hover:text-primary p-1"><span class="material-symbols-outlined">more_vert</span></button></td>
+                            </tr>
+                            
+                             <!-- Row 3: Paused -->
+                             <tr class="hover:bg-app-bg/50 transition-colors group cursor-pointer">
+                                <td class="p-4 w-[48px]"><input type="checkbox" class="rounded border-outline-variant w-4 h-4"></td>
+                                <td class="p-4 font-semibold text-primary">SITE-003</td>
+                                <td class="p-4">
+                                    <div class="font-bold">Kauno logistikos centras</div>
+                                    <div class="text-[12px] text-on-surface-variant">Taikos pr. 100</div>
+                                </td>
+                                <td class="p-4"><span class="bg-primary-fixed text-on-primary-fixed text-[12px] font-semibold px-2 py-1 rounded-full whitespace-nowrap">PV+BESS</span></td>
+                                <td class="p-4 font-medium">250.0</td>
+                                <td class="p-4">
+                                    <span class="inline-flex items-center gap-1.5 bg-warning-bg text-warning text-[12px] font-bold px-2.5 py-1 rounded-full border border-warning/20">
+                                        <span class="w-2 h-2 rounded-full bg-warning"></span> Sustabdyta
+                                    </span>
+                                </td>
+                                <td class="p-4 text-on-surface-variant text-[13px]">Bal 20 - ?</td>
+                                <td class="p-4 text-outline text-[13px] italic">Nepriskirta</td>
+                                <td class="p-4 text-right"><button class="text-outline hover:text-primary p-1"><span class="material-symbols-outlined">more_vert</span></button></td>
+                            </tr>
+
+                            <!-- Row 4: Completed -->
+                            <tr class="hover:bg-app-bg/50 transition-colors group cursor-pointer opacity-70">
+                                <td class="p-4 w-[48px]"><input type="checkbox" class="rounded border-outline-variant w-4 h-4"></td>
+                                <td class="p-4 font-semibold text-on-surface-variant">SITE-004</td>
+                                <td class="p-4">
+                                    <div class="font-bold text-on-surface-variant">UAB Maxima LT</div>
+                                    <div class="text-[12px] text-on-surface-variant">Savanorių pr. 247</div>
+                                </td>
+                                <td class="p-4"><span class="bg-surface-variant text-on-surface text-[12px] font-semibold px-2 py-1 rounded-full">PV Only</span></td>
+                                <td class="p-4 font-medium">85.5</td>
+                                <td class="p-4">
+                                    <span class="inline-flex items-center gap-1.5 bg-outline-variant text-on-surface-variant text-[12px] font-bold px-2.5 py-1 rounded-full">
+                                        <span class="material-symbols-outlined text-[14px]">check</span> Baigta
+                                    </span>
+                                </td>
+                                <td class="p-4 text-on-surface-variant text-[13px]">Bal 10 - Bal 15</td>
+                                <td class="p-4">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-7 h-7 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold z-20">TP</div>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-right"><button class="text-outline hover:text-primary p-1"><span class="material-symbols-outlined">more_vert</span></button></td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Bottom -->
+                <div class="h-[56px] border-t border-outline-variant/30 flex items-center justify-between px-4 bg-white shrink-0">
+                    <p class="text-[13px] text-on-surface-variant font-medium">1-50 iš 247 rezultatų</p>
+                    <div class="flex gap-2">
+                        <button class="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-outline disabled:opacity-50" disabled>
+                            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                        </button>
+                        <button class="w-8 h-8 rounded border border-primary bg-primary text-white flex items-center justify-center text-[14px] font-semibold">1</button>
+                        <button class="w-8 h-8 rounded border border-outline-variant text-on-surface hover:bg-surface-variant flex items-center justify-center text-[14px] font-medium">2</button>
+                        <button class="w-8 h-8 rounded border border-outline-variant text-on-surface hover:bg-surface-variant flex items-center justify-center text-[14px] font-medium">3</button>
+                        <span class="w-8 h-8 flex items-center justify-center text-outline">...</span>
+                        <button class="w-8 h-8 rounded border border-outline-variant text-on-surface hover:bg-surface-variant flex items-center justify-center text-[18px] font-medium">
+                             <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>InstallerApp - Pre-checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#490891', 'primary-container': '#490891', 'on-primary': '#ffffff',
+                        'primary-light': '#8052b2', 'primary-fixed': '#ecdcff', 'on-primary-fixed': '#280056',
+                        'secondary-container': '#e2250a', 'on-tertiary-container': '#fd7461',
+                        notify: '#fc391d', 'avatar-accent': '#b71500', 'app-bg': '#f6f5fa',
+                        'surface-bright': '#ffffff', 'surface-container-low': '#fbf0ff', 'surface-container': '#f6e9ff',
+                        'surface-variant': '#eedbff', 'on-surface': '#1d033a', 'on-surface-variant': '#4b4452',
+                        'outline-variant': '#cdc3d4', outline: '#7c7484',
+                        success: '#10B981', 'success-bg': '#ECFDF5', warning: '#F59E0B',
+                        error: '#ba1a1a', 'error-container': '#ffdad6', 'sidebar-bg': '#1d033a',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: { card: '0px 4px 20px rgba(29,3,58,0.05)', upward: '0px -4px 16px rgba(29,3,58,0.1)' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-app-bg text-on-surface font-sans antialiased pt-[64px] pb-[88px]">
+
+    <!-- Top Bar -->
+    <header class="fixed top-0 left-0 w-full h-[56px] bg-white flex items-center px-4 justify-between z-50 shadow-sm border-b border-outline-variant/20">
+        <div class="flex items-center">
+            <a href="mobile-site-detail.html" class="p-2 -ml-2 active:scale-95 transition-transform text-primary flex items-center">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <h1 class="text-[18px] font-bold text-on-surface ml-2">Pre-checklist</h1>
+        </div>
+        <span class="text-[14px] font-semibold text-primary">5/8 atlikta</span>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="fixed top-[56px] left-0 w-full h-[8px] bg-surface-variant z-40">
+        <div class="h-full bg-primary transition-all duration-500 ease-out" style="width: 62%;"></div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="p-4 space-y-4 pt-[16px]">
+        
+        <!-- Item 1 CHECKED -->
+        <div class="bg-surface-bright rounded-[16px] shadow-sm p-4 flex gap-4 opacity-70 border border-outline-variant/30">
+            <div class="pt-1">
+                <span class="material-symbols-outlined icon-filled text-success text-[28px]">check_circle</span>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-[16px] font-bold text-outline line-through mb-1">Susitikti su klientu</h4>
+                <p class="text-[12px] text-outline font-medium">Atlikta 08:35</p>
+            </div>
+        </div>
+
+        <!-- Item 2 CHECKED -->
+        <div class="bg-surface-bright rounded-[16px] shadow-sm p-4 flex gap-4 opacity-70 border border-outline-variant/30">
+            <div class="pt-1">
+                <span class="material-symbols-outlined icon-filled text-success text-[28px]">check_circle</span>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-[16px] font-bold text-outline line-through mb-1">Patikrinti komandos saugumą</h4>
+                <p class="text-[12px] text-outline font-medium">Atlikta 08:40</p>
+            </div>
+        </div>
+
+        <!-- Item 3 ACTIVE UNCHECKED -->
+        <div class="bg-surface-bright rounded-[16px] border-2 border-primary shadow-card p-4">
+            <div class="flex gap-4 mb-4">
+                <div class="pt-1 cursor-pointer">
+                    <div class="w-[28px] h-[28px] rounded-full border-2 border-primary flex items-center justify-center"></div>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <h4 class="text-[16px] font-bold text-on-surface leading-tight">Patikrinti įrangą sandėlyje</h4>
+                        <span class="bg-error-container text-error text-[10px] font-bold px-2 py-0.5 rounded-[4px] uppercase shrink-0">Privaloma</span>
+                    </div>
+                    <p class="text-[13px] text-on-surface-variant mb-2">Sutikrinti ar atvežti visi skydai ir inverteris.</p>
+                    <p class="text-[12px] font-semibold text-primary flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">photo_camera</span>
+                        Reikalauja 2 nuotraukas
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 pl-[44px]">
+                <button class="w-[80px] h-[80px] rounded-[12px] border-2 border-dashed border-primary-light bg-surface-container-low flex flex-col items-center justify-center text-primary-light active:bg-surface-variant transition-colors">
+                    <span class="material-symbols-outlined mb-1">add_a_photo</span>
+                </button>
+                <div class="w-[80px] h-[80px] rounded-[12px] border-2 border-dashed border-outline-variant bg-app-bg flex items-center justify-center opacity-50">
+                    <span class="material-symbols-outlined text-outline">image</span>
+                </div>
+            </div>
+            <div class="pl-[44px] mt-4">
+                 <button class="text-[14px] font-semibold text-primary bg-primary-fixed px-4 py-2 rounded-lg active:scale-95 inline-flex items-center gap-1 transition-transform">
+                    <span class="material-symbols-outlined text-[18px]">photo_camera</span> Įkelti nuotrauką
+                </button>
+            </div>
+        </div>
+
+        <!-- Item 4 UNCHECKED -->
+        <div class="bg-surface-bright rounded-[16px] shadow-sm border border-outline-variant/40 p-4 flex gap-4">
+            <div class="pt-1 cursor-pointer">
+                <div class="w-[28px] h-[28px] rounded-full border-2 border-outline flex items-center justify-center"></div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-start justify-between gap-2 mb-1">
+                    <h4 class="text-[16px] font-bold text-on-surface">Patikrinti stogo būklę</h4>
+                </div>
+                <p class="text-[12px] font-semibold text-error mb-3 flex items-center gap-1 uppercase">
+                    Privaloma <span class="text-outline mx-1">•</span> <span class="material-symbols-outlined text-[14px] text-primary">photo_camera</span> 1 nuotrauka
+                </p>
+                <div class="w-[64px] h-[64px] rounded-[8px] border-2 border-dashed border-outline-variant bg-app-bg flex items-center justify-center text-outline cursor-pointer active:bg-surface-variant">
+                    <span class="material-symbols-outlined text-[20px]">add</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item 5 UNCHECKED -->
+        <div class="bg-surface-bright rounded-[16px] shadow-sm border border-outline-variant/40 p-4 flex gap-4">
+            <div class="pt-1 cursor-pointer">
+                <div class="w-[28px] h-[28px] rounded-full border-2 border-outline flex items-center justify-center"></div>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-[16px] font-bold text-on-surface mb-1">Pasirašyti prieigos žurnalą</h4>
+                <p class="text-[13px] text-on-surface-variant">Jei reikalaujama objekto apsaugos.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Fixed Action -->
+    <div class="fixed bottom-0 w-full bg-white px-4 py-4 shadow-upward border-t border-outline-variant/20 z-50">
+        <button disabled class="w-full h-[56px] bg-surface-variant text-outline font-bold text-[16px] rounded-[12px] cursor-not-allowed">
+            Užbaigti checklist'ą
+        </button>
+    </div>
+
+</body>
+</html>

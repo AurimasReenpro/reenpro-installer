@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstallerApp Admin - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet" />
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#490891', 'primary-container': '#490891', 'on-primary': '#ffffff',
+                        'primary-light': '#8052b2', 'primary-fixed': '#ecdcff', 'on-primary-fixed': '#280056',
+                        'secondary-container': '#e2250a', 'on-tertiary-container': '#fd7461',
+                        notify: '#fc391d', 'avatar-accent': '#b71500', 'app-bg': '#f6f5fa',
+                        'surface-bright': '#ffffff', 'surface-container-low': '#fbf0ff', 'surface-container': '#f6e9ff',
+                        'surface-variant': '#eedbff', 'on-surface': '#1d033a', 'on-surface-variant': '#4b4452',
+                        'outline-variant': '#cdc3d4', outline: '#7c7484',
+                        success: '#10B981', 'success-bg': '#ECFDF5', warning: '#F59E0B',
+                        error: '#ba1a1a', 'error-container': '#ffdad6', 'sidebar-bg': '#1d033a',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: { card: '0px 4px 20px rgba(29,3,58,0.05)', elevated: '0px 12px 32px rgba(29,3,58,0.12)' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-app-bg text-on-surface font-sans antialiased h-screen overflow-hidden flex">
+
+    <!-- Sidebar -->
+    <aside class="w-[240px] bg-sidebar-bg flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
+        <div>
+            <!-- Logo -->
+            <div class="px-6 mb-8 flex items-center gap-2">
+                <span class="material-symbols-outlined icon-filled text-notify text-[24px]">sunny</span>
+                <span class="text-white font-bold text-[20px] tracking-tight">InstallerApp</span>
+            </div>
+            <!-- Nav Items -->
+            <nav class="px-3 space-y-1">
+                <a href="admin-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary text-white font-semibold rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined icon-filled">dashboard</span>
+                    Dashboard
+                </a>
+                <a href="admin-sites-list.html" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">dataset</span>
+                    Objektai
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">group</span>
+                    Montuotojai
+                </a>
+                <a href="admin-checklists.html" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">fact_check</span>
+                    Checklist'ai
+                </a>
+                <a href="admin-bonuses.html" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">payments</span>
+                    Bonusai
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    Ataskaitos
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-white/70 hover:text-white hover:bg-white/5 font-medium rounded-[8px] transition-colors mt-4">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    Importas
+                </a>
+            </nav>
+        </div>
+        <!-- Bottom Avatar -->
+        <div class="px-6 flex items-center gap-3 border-t border-white/10 pt-4">
+            <div class="w-8 h-8 rounded-full bg-avatar-accent text-white flex items-center justify-center font-bold text-[14px]">JP</div>
+            <span class="text-white font-medium text-[14px]">Jonas P.</span>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <!-- Top Bar -->
+        <header class="h-[60px] bg-surface-bright flex items-center justify-between px-6 flex-shrink-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.03)] border-b border-outline-variant/30">
+            <h2 class="text-[20px] font-bold text-on-surface">Dashboard</h2>
+            
+            <div class="relative w-[320px]">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                <input type="text" placeholder="Ieškoti objektų..." class="w-full bg-app-bg border border-outline-variant/50 rounded-full h-[36px] pl-10 pr-4 text-[14px] text-on-surface focus:outline-none focus:border-primary transition-colors">
+            </div>
+
+            <button class="relative w-[36px] h-[36px] flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant">
+                <span class="material-symbols-outlined">notifications</span>
+                <span class="absolute top-[8px] right-[8px] w-[8px] h-[8px] bg-notify rounded-full border-[1.5px] border-white"></span>
+            </button>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            <!-- Row 1: KPI Cards -->
+            <div class="grid grid-cols-4 gap-6">
+                <div class="bg-surface-bright rounded-[16px] shadow-card p-6 border border-outline-variant/20 relative">
+                    <div class="absolute top-6 right-6 w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">location_on</span>
+                    </div>
+                    <p class="text-[14px] font-medium text-on-surface-variant mb-2">Aktyvūs objektai</p>
+                    <div class="flex items-baseline gap-3">
+                        <h3 class="text-[32px] font-bold text-on-surface leading-none">8</h3>
+                        <span class="text-[14px] font-semibold text-success flex items-center gap-0.5">
+                            <span class="material-symbols-outlined text-[16px]">arrow_upward</span> 2 nuo vakar
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bg-surface-bright rounded-[16px] shadow-card p-6 border border-outline-variant/20 relative">
+                    <div class="absolute top-6 right-6 w-10 h-10 bg-success-bg rounded-full flex items-center justify-center text-success">
+                        <span class="material-symbols-outlined">group</span>
+                    </div>
+                    <p class="text-[14px] font-medium text-on-surface-variant mb-2">Dirba dabar</p>
+                    <h3 class="text-[32px] font-bold text-on-surface leading-none mb-1">12 <span class="text-[14px] font-bold text-on-surface-variant">monteriai</span></h3>
+                    <p class="text-[13px] text-on-surface-variant">5 brigados</p>
+                </div>
+
+                <div class="bg-surface-bright rounded-[16px] shadow-card p-6 border border-outline-variant/20 relative">
+                    <div class="absolute top-6 right-6 w-10 h-10 bg-surface-container rounded-full flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">check_circle</span>
+                    </div>
+                    <p class="text-[14px] font-medium text-on-surface-variant mb-2">Šiandien užbaigta</p>
+                    <h3 class="text-[32px] font-bold text-on-surface leading-none mb-1">3</h3>
+                    <p class="text-[13px] text-on-surface-variant">Vid. 5h 20min / objektas</p>
+                </div>
+
+                <div class="bg-surface-bright rounded-[16px] shadow-card p-6 border border-outline-variant/20 relative">
+                    <div class="absolute top-6 right-6 w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">timer</span>
+                    </div>
+                    <p class="text-[14px] font-medium text-on-surface-variant mb-2">Šios sav. valandos</p>
+                    <div class="flex items-baseline gap-3">
+                        <h3 class="text-[32px] font-bold text-on-surface leading-none">284h</h3>
+                    </div>
+                    <span class="text-[13px] font-semibold text-success flex items-center gap-0.5 mt-1">
+                        <span class="material-symbols-outlined text-[16px]">arrow_upward</span> 12% vs praėjusi sav.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Row 2: Split 60/40 -->
+            <div class="grid grid-cols-12 gap-6">
+                <!-- Left: Šiandien dirba -->
+                <div class="col-span-7 bg-surface-bright rounded-[16px] shadow-card border border-outline-variant/20 p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-[18px] font-bold text-on-surface">Šiandien dirba</h3>
+                        <a href="#" class="text-[14px] font-semibold text-primary hover:underline">Visi objektai →</a>
+                    </div>
+                    <div class="space-y-4">
+                        <!-- Item 1 -->
+                        <div class="flex items-center p-3 rounded-[12px] border border-outline-variant/40 hover:border-primary/30 transition-colors">
+                            <div class="w-3 h-3 bg-success rounded-full animate-pulse mr-4 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <div class="flex-1">
+                                <h4 class="text-[15px] font-bold text-on-surface">AB Žemaitijos pieninė</h4>
+                                <div class="flex gap-2 items-center mt-1">
+                                    <span class="bg-surface-container-low border border-outline-variant/50 text-[11px] font-semibold px-2 py-0.5 rounded-full text-on-surface-variant">SITE-2026-0001</span>
+                                    <span class="text-[13px] text-on-surface-variant font-medium flex items-center gap-1">
+                                         <span class="material-symbols-outlined text-[14px]">schedule</span> 2h 15min
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="flex -space-x-2 mr-2">
+                                    <div class="w-8 h-8 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold z-20">TP</div>
+                                    <div class="w-8 h-8 rounded-full border-2 border-white bg-avatar-accent text-white flex items-center justify-center text-[10px] font-bold z-10">PK</div>
+                                </div>
+                                <a href="admin-site-detail.html" class="text-primary font-semibold text-[14px] hover:underline">Žiūrėti</a>
+                            </div>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center p-3 rounded-[12px] border border-outline-variant/40 hover:border-primary/30 transition-colors">
+                            <div class="w-3 h-3 bg-success rounded-full animate-pulse mr-4 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <div class="flex-1">
+                                <h4 class="text-[15px] font-bold text-on-surface">UAB Saulės Energija</h4>
+                                <div class="flex gap-2 items-center mt-1">
+                                    <span class="bg-surface-container-low border border-outline-variant/50 text-[11px] font-semibold px-2 py-0.5 rounded-full text-on-surface-variant">SITE-2026-0002</span>
+                                    <span class="text-[13px] text-on-surface-variant font-medium flex items-center gap-1">
+                                         <span class="material-symbols-outlined text-[14px]">schedule</span> 4h 30min
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="flex -space-x-2 mr-2">
+                                    <div class="w-8 h-8 rounded-full border-2 border-white bg-on-surface text-white flex items-center justify-center text-[10px] font-bold">BR2</div>
+                                </div>
+                                <a href="#" class="text-primary font-semibold text-[14px] hover:underline">Žiūrėti</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Map -->
+                <div class="col-span-5 bg-surface-bright rounded-[16px] shadow-card border border-outline-variant/20 p-6 flex flex-col">
+                    <h3 class="text-[18px] font-bold text-on-surface mb-4">Aktyvūs objektai žemėlapyje</h3>
+                    <div class="flex-1 bg-app-bg rounded-[12px] border border-outline-variant/40 flex items-center justify-center relative min-h-[200px] overflow-hidden">
+                        <!-- Fake map background -->
+                        <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, #4b4452 10px, #4b4452 11px);"></div>
+                        <!-- Dots -->
+                        <div class="absolute top-[40%] left-[30%] w-3 h-3 bg-success rounded-full shadow-[0_0_0_4px_rgba(16,185,129,0.2)]"></div>
+                        <div class="absolute top-[60%] right-[40%] w-3 h-3 bg-notify rounded-full shadow-[0_0_0_4px_rgba(252,57,29,0.2)] animate-pulse"></div>
+                        <div class="absolute top-[70%] right-[20%] w-3 h-3 bg-primary rounded-full shadow-[0_0_0_4px_rgba(73,8,145,0.2)]"></div>
+                        <span class="text-on-surface-variant font-medium text-[14px] relative z-10 bg-white/80 px-3 py-1 rounded">Lietuvos žemėlapis (Placeholder)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Activity feed -->
+            <div class="bg-surface-bright rounded-[16px] shadow-card border border-outline-variant/20 p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <h3 class="text-[18px] font-bold text-on-surface">Veiklos žurnalas</h3>
+                    <span class="bg-[#FFF1F0] text-notify text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border border-notify/20 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-notify rounded-full animate-pulse"></span>
+                        LIVE
+                    </span>
+                </div>
+                
+                <div class="relative pl-[22px] space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant/40">
+                    
+                    <!-- Event 1 -->
+                    <div class="relative">
+                        <div class="absolute -left-[22px] w-6 h-6 bg-primary-fixed rounded-full border-[3px] border-surface-bright flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[14px] text-primary">login</span>
+                        </div>
+                        <p class="text-[14px] text-on-surface">
+                            <span class="font-bold">Tomas P.</span> 
+                            <span class="text-on-surface-variant text-[12px] ml-2">Prieš 2 min</span>
+                        </p>
+                        <p class="text-[14px] text-on-surface text-on-surface-variant mt-1">atvyko į objektą <a href="#" class="text-primary hover:underline font-medium">AB Žemaitijos pieninė</a></p>
+                    </div>
+
+                    <!-- Event 2 -->
+                    <div class="relative">
+                        <div class="absolute -left-[22px] w-6 h-6 bg-primary-fixed rounded-full border-[3px] border-surface-bright flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[14px] text-primary">photo_camera</span>
+                        </div>
+                        <p class="text-[14px] text-on-surface">
+                            <span class="font-bold">Petras K.</span> 
+                            <span class="text-on-surface-variant text-[12px] ml-2">Prieš 15 min</span>
+                        </p>
+                        <p class="text-[14px] text-on-surface text-on-surface-variant mt-1">įkėlė 3 nuotraukas į <a href="#" class="text-primary hover:underline font-medium">UAB Saulės Energija</a></p>
+                    </div>
+
+                    <!-- Event 3 -->
+                    <div class="relative">
+                        <div class="absolute -left-[22px] w-6 h-6 bg-success-bg rounded-full border-[3px] border-surface-bright flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[14px] text-success">done_all</span>
+                        </div>
+                        <p class="text-[14px] text-on-surface">
+                            <span class="font-bold">Brigada 2</span> 
+                            <span class="text-on-surface-variant text-[12px] ml-2">Prieš 45 min</span>
+                        </p>
+                        <p class="text-[14px] text-on-surface text-on-surface-variant mt-1">užbaigė montavimo darbus <a href="#" class="text-primary hover:underline font-medium">SITE-2023-140</a></p>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>
