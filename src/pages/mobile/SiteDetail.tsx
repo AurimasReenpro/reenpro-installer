@@ -13,13 +13,14 @@ export default function SiteDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('Apžvalga');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [uploadingCheckId, setUploadingCheckId] = useState<string | null>(null);
 
   const { data: site, isLoading } = useQuery({
     queryKey: ['site', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sites')
-        .select('*, site_assignments(*, user_profiles(full_name)), time_entries(*)')
+        .select('*, site_assignments(*, user_profiles(full_name)), time_entries(*), site_checklists(*), photos(*)')
         .eq('id', id as string)
         .single();
       if (error) throw error;
@@ -202,6 +203,65 @@ export default function SiteDetail() {
     }
   };
 
+  const handleToggleChecklist = async (checkId: string, currentStatus: boolean) => {
+    try {
+      await supabase
+        .from('site_checklists')
+        .update({ is_completed: !currentStatus })
+        .eq('id', checkId);
+
+      queryClient.invalidateQueries({ queryKey: ['site', id] });
+    } catch (error) {
+      console.error("Error updating checklist:", error);
+      alert("Nepavyko atnaujinti užduoties statuso.");
+    }
+  };
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id || !site) return;
+
+    setUploadingCheckId(checkId);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${site.id}/${checkId}/${Math.random()}.${fileExt}`;
+    const filePath = fileName;
+
+    try {
+      // 1. Upload to Supabase Storage bucket 'site-photos'
+      const { error: uploadError } = await supabase.storage
+        .from('site-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Insert record into 'photos' table
+      const { error: dbError } = await supabase
+        .from('photos')
+        .insert({
+          site_id: site.id,
+          checklist_id: checkId,
+          installer_id: profile.id,
+          storage_path: filePath
+        });
+
+      if (dbError) throw dbError;
+
+      // 3. Mark the checklist item as completed automatically
+      await supabase
+        .from('site_checklists')
+        .update({ is_completed: true })
+        .eq('id', checkId);
+
+      queryClient.invalidateQueries({ queryKey: ['site', id] });
+      alert("Nuotrauka sėkmingai įkelta!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Klaida įkeliant nuotrauką.");
+    } finally {
+      setUploadingCheckId(null);
+    }
+  };
+
   const openMaps = () => {
     if (site?.address) {
       window.open(`https://maps.google.com/?q=${encodeURIComponent(site.address)}`, '_blank');
@@ -328,6 +388,51 @@ export default function SiteDetail() {
               <p className="text-sm text-on-surface-variant">Nėra priskirtų montuotojų.</p>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'Pre-checklist' && (
+        <div className="px-4 pb-[120px] pt-4">
+          {site.site_checklists?.filter((c: any) => c.phase === 'pre').map((item: any) => (
+            <div 
+              key={item.id} 
+              className="bg-white rounded-xl p-4 shadow-sm mb-3 flex items-center justify-between"
+            >
+              <div className="flex items-center" onClick={() => handleToggleChecklist(item.id, item.is_completed)}>
+                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                  item.is_completed ? 'bg-[#10B981] border-[#10B981]' : 'border-outline-variant/50 bg-white'
+                }`}>
+                  {item.is_completed && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                </div>
+                <span className="text-[#1d033a] font-semibold text-sm ml-3">{item.task_name}</span>
+              </div>
+              {item.requires_photo && (
+                <div className="relative">
+                  {uploadingCheckId === item.id ? (
+                    <span className="material-symbols-outlined text-[#8052b2] animate-spin">progress_activity</span>
+                  ) : site.photos?.some((p: any) => p.checklist_id === item.id) ? (
+                    <span className="material-symbols-outlined text-success text-[24px]">check_circle</span>
+                  ) : (
+                    <label 
+                      className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-full bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[#8052b2] text-[20px]">photo_camera</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment" 
+                        className="hidden" 
+                        onChange={(e) => handleUploadPhoto(e, item.id)}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          {(!site.site_checklists || site.site_checklists.filter((c: any) => c.phase === 'pre').length === 0) && (
+            <div className="text-center text-on-surface-variant py-8">Pre-checklist užduočių nėra.</div>
+          )}
         </div>
       )}
 
