@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import FullPageSpinner from '../../components/ui/FullPageSpinner';
-import LiveTimer from '../../components/mobile/LiveTimer';
 
 export default function SiteDetail() {
   const { id } = useParams();
@@ -14,6 +13,7 @@ export default function SiteDetail() {
   const [activeTab, setActiveTab] = useState('Apžvalga');
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [uploadingCheckId, setUploadingCheckId] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{photo: any, checkId: string} | null>(null);
 
   const { data: site, isLoading } = useQuery({
     queryKey: ['site', id],
@@ -262,6 +262,38 @@ export default function SiteDetail() {
     }
   };
 
+  const handleDeletePhoto = async () => {
+    if (!selectedPhoto) return;
+    const confirmDelete = window.confirm("Ar tikrai norite ištrinti šią nuotrauką?");
+    if (!confirmDelete) return;
+
+    try {
+      // 1. Delete physical file from Storage
+      await supabase.storage
+        .from('site-photos')
+        .remove([selectedPhoto.photo.storage_path]);
+
+      // 2. Delete record from `photos` table
+      await supabase
+        .from('photos')
+        .delete()
+        .eq('id', selectedPhoto.photo.id);
+
+      // 3. Reset the checklist item to not completed
+      await supabase
+        .from('site_checklists')
+        .update({ is_completed: false })
+        .eq('id', selectedPhoto.checkId);
+
+      // 4. Refresh UI and close modal
+      queryClient.invalidateQueries({ queryKey: ['site', id] });
+      setSelectedPhoto(null);
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Nepavyko ištrinti nuotraukos.");
+    }
+  };
+
   const openMaps = () => {
     if (site?.address) {
       window.open(`https://maps.google.com/?q=${encodeURIComponent(site.address)}`, '_blank');
@@ -276,7 +308,7 @@ export default function SiteDetail() {
     return <div className="p-4 text-center mt-10">Objektas nerastas.</div>;
   }
 
-  const tabs = ['Apžvalga', 'Pre-checklist', 'Post-checklist', 'Foto'];
+  const tabs = ['Apžvalga', 'Darbai', 'Foto'];
 
   return (
     <div className="fixed inset-0 z-[60] bg-app-bg overflow-y-auto pb-[100px]">
@@ -391,47 +423,75 @@ export default function SiteDetail() {
         </div>
       )}
 
-      {activeTab === 'Pre-checklist' && (
+      {activeTab === 'Darbai' && (
         <div className="px-4 pb-[120px] pt-4">
-          {site.site_checklists?.filter((c: any) => c.phase === 'pre').map((item: any) => (
-            <div 
-              key={item.id} 
-              className="bg-white rounded-xl p-4 shadow-sm mb-3 flex items-center justify-between"
-            >
-              <div className="flex items-center" onClick={() => handleToggleChecklist(item.id, item.is_completed)}>
-                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                  item.is_completed ? 'bg-[#10B981] border-[#10B981]' : 'border-outline-variant/50 bg-white'
-                }`}>
-                  {item.is_completed && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                </div>
-                <span className="text-[#1d033a] font-semibold text-sm ml-3">{item.task_name}</span>
+          
+          {['pre', 'during', 'post'].map((phaseCode) => {
+            const phaseItems = site.site_checklists?.filter((c: any) => c.phase === phaseCode) || [];
+            if (phaseItems.length === 0) return null;
+            
+            let phaseTitle = 'Darbų eiga';
+            if (phaseCode === 'pre') phaseTitle = 'Pasiruošimas (Pre-checklist)';
+            if (phaseCode === 'post') phaseTitle = 'Užbaigimas (Post-checklist)';
+
+            return (
+              <div key={phaseCode} className="mb-6">
+                <h3 className="text-on-surface font-bold mb-3">{phaseTitle}</h3>
+                {phaseItems.map((item: any) => (
+                  <div 
+                    key={item.id} 
+                    className="bg-white rounded-xl p-4 shadow-sm mb-3 flex items-center justify-between border border-outline-variant/30"
+                  >
+                    <div className="flex items-center flex-1 cursor-pointer" onClick={() => handleToggleChecklist(item.id, item.is_completed)}>
+                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                        item.is_completed ? 'bg-[#10B981] border-[#10B981]' : 'border-outline-variant/50 bg-white'
+                      }`}>
+                        {item.is_completed && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                      </div>
+                      <span className={`text-[#1d033a] font-semibold text-sm ml-3 leading-snug ${item.is_completed ? 'opacity-60 line-through' : ''}`}>
+                        {item.task_name}
+                      </span>
+                    </div>
+                    {item.requires_photo && (
+                      <div className="relative ml-3 flex-shrink-0">
+                        {uploadingCheckId === item.id ? (
+                          <span className="material-symbols-outlined text-[#8052b2] animate-spin">progress_activity</span>
+                        ) : site.photos?.some((p: any) => p.checklist_id === item.id) ? (
+                          <img 
+                            src={supabase.storage.from('site-photos').getPublicUrl(site.photos.find((p: any) => p.checklist_id === item.id).storage_path).data.publicUrl} 
+                            alt="Uploaded photo"
+                            className="w-10 h-10 rounded-md object-cover border border-[#cdc3d4] cursor-pointer"
+                            onClick={() => setSelectedPhoto({
+                              photo: site.photos.find((p: any) => p.checklist_id === item.id), 
+                              checkId: item.id
+                            })}
+                          />
+                        ) : (
+                          <label 
+                            className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-full bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[#8052b2] text-[20px]">photo_camera</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              capture="environment" 
+                              className="hidden" 
+                              onChange={(e) => handleUploadPhoto(e, item.id)}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              {item.requires_photo && (
-                <div className="relative">
-                  {uploadingCheckId === item.id ? (
-                    <span className="material-symbols-outlined text-[#8052b2] animate-spin">progress_activity</span>
-                  ) : site.photos?.some((p: any) => p.checklist_id === item.id) ? (
-                    <span className="material-symbols-outlined text-success text-[24px]">check_circle</span>
-                  ) : (
-                    <label 
-                      className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-full bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[#8052b2] text-[20px]">photo_camera</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        capture="environment" 
-                        className="hidden" 
-                        onChange={(e) => handleUploadPhoto(e, item.id)}
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
+            );
+          })}
+          
+          {(!site.site_checklists || site.site_checklists.length === 0) && (
+            <div className="text-center text-on-surface-variant py-8 bg-white rounded-xl shadow-sm border border-outline-variant/30">
+              Užduočių nėra.
             </div>
-          ))}
-          {(!site.site_checklists || site.site_checklists.filter((c: any) => c.phase === 'pre').length === 0) && (
-            <div className="text-center text-on-surface-variant py-8">Pre-checklist užduočių nėra.</div>
           )}
         </div>
       )}
@@ -448,8 +508,7 @@ export default function SiteDetail() {
               <span className="material-symbols-outlined animate-spin mb-1 text-2xl">progress_activity</span>
             ) : (
               <>
-                <span className="material-symbols-outlined mb-1 text-2xl">location_on</span>
-                <span className="font-bold text-lg leading-tight">ATVYKAU</span>
+                <span className="font-bold text-lg leading-tight">PRADĖTI DARBĄ</span>
               </>
             )}
           </button>
@@ -457,18 +516,12 @@ export default function SiteDetail() {
 
         {site.status === 'in_progress' && (
           <div className="flex flex-col">
-            <div className="h-[40px] bg-gradient-to-r from-success to-[#059669] flex items-center justify-center">
-              <span className="material-symbols-outlined text-white mr-2 text-sm">timer</span>
-              <span className="text-white font-semibold text-sm">
-                <LiveTimer entries={site.time_entries || []} installerId={profile?.id as string} />
-              </span>
-            </div>
             <div className="h-[80px] bg-white flex gap-3 px-4 py-4 border-t border-outline-variant pb-6">
               <button onClick={handlePause} className="flex-1 rounded-xl text-on-surface font-semibold border-2 border-outline-variant flex items-center justify-center transition-transform active:bg-gray-50 h-[48px]">
-                PERTRAUKA
+                PAUZĖ
               </button>
               <button onClick={handleComplete} className="flex-1 rounded-xl bg-success text-white font-semibold flex items-center justify-center transition-transform active:bg-[#0f9e6d] h-[48px]">
-                BAIGTI
+                UŽBAIGTI DARBĄ
               </button>
             </div>
           </div>
@@ -484,12 +537,38 @@ export default function SiteDetail() {
                 TĘSTI
               </button>
               <button onClick={handleComplete} className="flex-1 rounded-xl text-on-surface font-semibold border-2 border-outline-variant flex items-center justify-center transition-transform active:bg-gray-50 h-[48px]">
-                BAIGTI
+                UŽBAIGTI DARBĄ
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* PHOTO VIEWER MODAL */}
+      {selectedPhoto && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <img 
+            src={supabase.storage.from('site-photos').getPublicUrl(selectedPhoto.photo.storage_path).data.publicUrl}
+            alt="Full size view"
+            className="w-full max-h-[70vh] object-contain"
+          />
+          <div className="absolute bottom-10 left-0 right-0 flex flex-col gap-3 px-6">
+            <button 
+              onClick={handleDeletePhoto}
+              className="w-full h-[50px] bg-[#ba1a1a] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#93000a] transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">delete</span>
+              Ištrinti nuotrauką
+            </button>
+            <button 
+              onClick={() => setSelectedPhoto(null)}
+              className="w-full h-[50px] bg-white text-[#1d033a] rounded-xl font-bold flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              Uždaryti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

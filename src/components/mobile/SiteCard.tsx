@@ -14,11 +14,10 @@ export interface Site {
 
 interface SiteCardProps {
   site: Site;
-  todayHours?: number;
-  todayMins?: number;
+  onStartWork?: () => void;
 }
 
-export default function SiteCard({ site, todayHours = 0, todayMins = 0 }: SiteCardProps) {
+export default function SiteCard({ site, onStartWork }: SiteCardProps) {
   const navigate = useNavigate();
 
   const getBorderColor = () => {
@@ -66,17 +65,21 @@ export default function SiteCard({ site, todayHours = 0, todayMins = 0 }: SiteCa
 
   const btnProps = getButtonProps();
 
+  const isOverdue = site.status === 'pending' && site.scheduled_start && new Date(site.scheduled_start) < new Date();
+
   return (
     <div className={`bg-white rounded-2xl mx-4 mb-3 p-5 shadow-sm ${getBorderColor()}`}>
       <div className="flex justify-between items-start">
-        <span className="rounded-full px-2.5 py-1 bg-app-bg text-primary text-xs font-semibold">
-          {site.code}
-        </span>
-        {site.status === 'in_progress' && (
-          <span className="bg-success-bg text-success text-xs font-semibold px-2.5 py-1 rounded-full">
-            ⏱️ {todayHours}h {todayMins}min šiandien
+        <div className="flex items-center gap-2">
+          <span className="rounded-full px-2.5 py-1 bg-app-bg text-primary text-xs font-semibold">
+            {site.code}
           </span>
-        )}
+          {isOverdue && (
+            <span className="bg-[#FFF1F0] text-[#fc391d] border border-[#fc391d]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+              Vėluoja
+            </span>
+          )}
+        </div>
       </div>
 
       <h3 className="text-on-surface font-bold text-lg mt-2">{site.client_name}</h3>
@@ -96,7 +99,14 @@ export default function SiteCard({ site, todayHours = 0, todayMins = 0 }: SiteCa
       </div>
 
       <button
-        onClick={() => !btnProps.disabled && navigate(`/m/sites/${site.id}`)}
+        onClick={() => {
+          if (btnProps.disabled) return;
+          if (site.status === 'pending' && onStartWork) {
+            onStartWork();
+          } else {
+            navigate(`/m/sites/${site.id}`);
+          }
+        }}
         disabled={btnProps.disabled}
         className={`mt-4 w-full h-[56px] rounded-xl font-semibold text-[15px] flex items-center justify-center transition-transform active:scale-[0.98] ${btnProps.bg} ${btnProps.text} ${btnProps.disabled ? 'cursor-not-allowed opacity-80' : ''}`}
       >

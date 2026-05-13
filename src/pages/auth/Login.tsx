@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../stores/authStore';
 
 const loginSchema = z.object({
   email: z.string().email('Neteisingas el. pašto formatas'),
@@ -24,26 +25,46 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
 
+  const { user, profile, loading } = useAuthStore();
+
   useEffect(() => {
-    // Redirect if already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate('/');
+    if (!loading && user && profile) {
+      if (profile.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (profile.role === 'installer') {
+        navigate('/m', { replace: true });
       }
-    });
-  }, [navigate]);
+    }
+  }, [user, profile, loading, navigate]);
 
   const onSubmit = async (data: LoginFormValues) => {
     setAuthError(null);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
     if (error) {
       setAuthError(error.message);
-    } else {
-      navigate('/');
+    } else if (authData.user) {
+      // Immediately fetch profile for fast redirection
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (!profileError && profileData) {
+        if (profileData.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (profileData.role === 'installer') {
+          navigate('/m', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
+      } else {
+        navigate('/', { replace: true });
+      }
     }
   };
 

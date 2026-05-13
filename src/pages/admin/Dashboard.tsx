@@ -1,11 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { supabase } from '../../lib/supabase';
-import LiveTimer from '../../components/mobile/LiveTimer';
+import LiveAdminTimer from '../../components/admin/LiveAdminTimer';
+import CreateSiteModal from '../../components/admin/CreateSiteModal';
 
 export default function Dashboard() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // 1. KPI Stats Query
   const { data: stats } = useQuery({
     queryKey: ['admin_dashboard_stats'],
@@ -31,7 +35,7 @@ export default function Dashboard() {
         .from('sites')
         .select(`
           id,
-          project_code,
+          code,
           client_name,
           address,
           status,
@@ -79,7 +83,7 @@ export default function Dashboard() {
           ),
           sites (
             client_name,
-            project_code
+            code
           )
         `)
         .order('start_time', { ascending: false })
@@ -109,6 +113,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Header Row */}
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-[24px] font-bold text-[#1d033a]">Apžvalga</h2>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          Sukurti naują objektą
+        </button>
+      </div>
+
       {/* Row 1: KPI Cards */}
       <div className="grid grid-cols-4 gap-6">
         {/* Card 1: Aktyvūs objektai */}
@@ -165,15 +181,14 @@ export default function Dashboard() {
               <h3 className="text-[18px] font-bold text-[#1d033a]">Šiandien dirba</h3>
               <div className="w-2 h-2 bg-[#fc391d] rounded-full animate-pulse"></div>
             </div>
-            <Link to="/admin/sites" className="text-[14px] font-semibold text-[#490891] hover:underline">Visi objektai →</Link>
+            <Link to="/admin" className="text-[14px] font-semibold text-[#490891] hover:underline">Visi objektai →</Link>
           </div>
           
           <div className="space-y-4">
             {activeSites?.map((site: any) => {
               // Find the lead installer or the first installer to use their ID for LiveTimer
               const assignments = site.site_assignments || [];
-              const leadAssignment = assignments.find((a: any) => a.is_lead) || assignments[0];
-              const leadInstallerId = leadAssignment?.installer_id;
+              const openTimeEntry = site.time_entries?.find((e: any) => !e.end_time);
 
               return (
                 <div key={site.id} className="flex items-center p-3 rounded-[12px] border border-[#cdc3d4]/40 hover:border-[#490891]/30 transition-colors">
@@ -182,12 +197,12 @@ export default function Dashboard() {
                     <h4 className="text-[15px] font-bold text-[#1d033a]">{site.client_name || 'Nežinomas klientas'}</h4>
                     <div className="flex gap-2 items-center mt-1">
                       <span className="bg-[#fbf0ff] border border-[#cdc3d4]/50 text-[11px] font-semibold px-2 py-0.5 rounded-full text-[#4b4452]">
-                        {site.project_code || 'B/N'}
+                        {site.code || 'B/N'}
                       </span>
                       <span className="text-[13px] text-[#4b4452] font-medium flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">schedule</span> 
-                        {leadInstallerId ? (
-                          <LiveTimer entries={site.time_entries || []} installerId={leadInstallerId} />
+                        {openTimeEntry?.start_time ? (
+                          <LiveAdminTimer startTime={openTimeEntry.start_time} />
                         ) : (
                           "0h 0min 0s"
                         )}
@@ -211,7 +226,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    <Link to={`/admin/sites/${site.id}`} className="text-[#490891] font-semibold text-[14px] hover:underline">
+                    <Link to="/admin" className="text-[#490891] font-semibold text-[14px] hover:underline" title="Funkcija ruošiama">
                       Žiūrėti
                     </Link>
                   </div>
@@ -259,7 +274,7 @@ export default function Dashboard() {
               locale: lt 
             });
             const name = entry.user_profiles?.full_name || 'Nežinomas montuotojas';
-            const siteName = entry.sites?.client_name || entry.sites?.project_code || 'Nežinomas objektas';
+            const siteName = entry.sites?.client_name || entry.sites?.code || 'Nežinomas objektas';
             
             return (
               <div key={entry.id} className="relative">
@@ -278,7 +293,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-[14px] text-[#4b4452] mt-1">
                   {isFinished ? 'užbaigė montavimo darbus' : 'pradėjo darbus objekte'}{' '}
-                  <Link to={`/admin/sites/${entry.site_id}`} className="text-[#490891] hover:underline font-medium">
+                  <Link to="/admin" className="text-[#490891] hover:underline font-medium" title="Funkcija ruošiama">
                     {siteName}
                   </Link>
                 </p>
@@ -292,6 +307,11 @@ export default function Dashboard() {
 
         </div>
       </div>
+
+      <CreateSiteModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 }

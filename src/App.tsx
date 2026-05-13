@@ -6,11 +6,13 @@ import RoleRedirect from './pages/RoleRedirect';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MobileLayout from './components/mobile/MobileLayout';
 import Today from './pages/mobile/Today';
+import MobileSites from './pages/mobile/Sites';
 import SiteDetail from './pages/mobile/SiteDetail';
 import Profile from './pages/mobile/Profile';
 
 import AdminLayout from './components/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
+import Sites from './pages/admin/Sites';
 import Checklists from './pages/admin/Checklists';
 
 const queryClient = new QueryClient();
@@ -33,6 +35,7 @@ function AppContent() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="sites" element={<Sites />} />
         <Route path="checklists" element={<Checklists />} />
       </Route>
       
@@ -45,7 +48,7 @@ function AppContent() {
         }
       >
         <Route index element={<Today />} />
-        <Route path="sites" element={<div className="p-4 pt-8">Visi objektai</div>} />
+        <Route path="sites" element={<MobileSites />} />
         <Route path="sites/:id" element={<SiteDetail />} />
         <Route path="time" element={<div className="p-4 pt-8">Laiko apskaita</div>} />
         <Route path="profile" element={<Profile />} />
