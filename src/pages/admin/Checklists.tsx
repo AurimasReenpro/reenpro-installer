@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import * as Sentry from "@sentry/react";
 
 type ChecklistTemplate = {
   id: string;
@@ -10,10 +11,6 @@ type ChecklistTemplate = {
   category: string;
 };
 
-type ChecklistCategory = {
-  id: string;
-  name: string;
-};
 
 export default function Checklists() {
   const queryClient = useQueryClient();
@@ -42,7 +39,7 @@ export default function Checklists() {
         .order('name', { ascending: true });
       
       if (error) throw error;
-      return data as ChecklistCategory[];
+      return data;
     }
   });
 
@@ -61,7 +58,7 @@ export default function Checklists() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (item: Partial<ChecklistTemplate>) => {
+    mutationFn: async (item: Omit<ChecklistTemplate, 'id'> & { id?: string }) => {
       if (editingItem?.id) {
         const { error } = await supabase
           .from('checklist_templates')
@@ -76,11 +73,11 @@ export default function Checklists() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
+      void queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
       closeModal();
     },
     onError: (err) => {
-      console.error("Save error:", err);
+      console.error("Save error:", err); Sentry.captureException(err, { extra: { context: "Save error:" } });
       alert("Nepavyko išsaugoti šablono.");
     }
   });
@@ -94,10 +91,10 @@ export default function Checklists() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
+      void queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
     },
     onError: (err) => {
-      console.error("Delete error:", err);
+      console.error("Delete error:", err); Sentry.captureException(err, { extra: { context: "Delete error:" } });
       alert("Nepavyko ištrinti šablono.");
     }
   });
@@ -108,11 +105,11 @@ export default function Checklists() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checklist_categories'] });
+      void queryClient.invalidateQueries({ queryKey: ['checklist_categories'] });
       setNewCategoryName('');
     },
     onError: (err) => {
-      console.error("Add category error:", err);
+      console.error("Add category error:", err); Sentry.captureException(err, { extra: { context: "Add category error:" } });
       alert("Nepavyko pridėti kategorijos.");
     }
   });
@@ -123,10 +120,10 @@ export default function Checklists() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checklist_categories'] });
+      void queryClient.invalidateQueries({ queryKey: ['checklist_categories'] });
     },
     onError: (err) => {
-      console.error("Delete category error:", err);
+      console.error("Delete category error:", err); Sentry.captureException(err, { extra: { context: "Delete category error:" } });
       alert("Nepavyko ištrinti kategorijos.");
     }
   });
@@ -146,7 +143,7 @@ export default function Checklists() {
         name: '',
         phase: 'pre',
         requires_photo: false,
-        category: categories && categories.length > 0 ? categories[0].name : '',
+        category: categories && categories.length > 0 ? categories[0]?.name || '' : '',
       });
     }
     setIsModalOpen(true);

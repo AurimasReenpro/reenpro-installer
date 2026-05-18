@@ -4,7 +4,7 @@ import { isSameWeek, isSameMonth } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
-import type { Site } from '../../components/mobile/SiteCard';
+import * as Sentry from "@sentry/react";
 
 export default function Sites() {
   const queryClient = useQueryClient();
@@ -26,18 +26,19 @@ export default function Sites() {
 
       if (error) throw error;
 
-      const assignedSites = data?.map((item: any) => item.sites) || [];
+      const assignedSites = data?.map((item) => item.sites) || [];
       
       // Sort locally by scheduled_start descending
-      assignedSites.sort((a: any, b: any) => {
+      assignedSites.sort((a, b) => {
         if (!a.scheduled_start) return 1;
         if (!b.scheduled_start) return -1;
         return new Date(b.scheduled_start).getTime() - new Date(a.scheduled_start).getTime();
       });
       
-      return assignedSites as Site[];
+      return assignedSites;
     },
-    enabled: !!profile?.id
+    enabled: !!profile?.id,
+    staleTime: 60_000,
   });
 
   const startWorkMutation = useMutation({
@@ -48,13 +49,11 @@ export default function Sites() {
         .eq('id', siteId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
-      queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] }); void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
       setStatusFilter('in_progress');
     },
     onError: (error) => {
-      console.error('Error starting work:', error);
+      console.error('Error starting work:', error); Sentry.captureException(error, { extra: { context: 'Error starting work:' } });
       alert('Nepavyko pradėti darbo.');
     }
   });

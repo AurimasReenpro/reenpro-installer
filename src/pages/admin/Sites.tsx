@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import CreateSiteModal from '../../components/admin/CreateSiteModal';
+import * as Sentry from "@sentry/react";
 
 export default function Sites() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,11 +33,12 @@ export default function Sites() {
         .order('scheduled_start', { ascending: false });
 
       if (error) {
-        console.error('Error fetching sites:', error);
+        console.error('Error fetching sites:', error); Sentry.captureException(error, { extra: { context: 'Error fetching sites:' } });
         return [];
       }
       return data;
-    }
+    },
+    staleTime: 60_000,
   });
 
   const getStatusBadge = (status: string) => {
@@ -91,8 +93,8 @@ export default function Sites() {
                   <td colSpan={7} className="py-12 text-center text-[#4b4452]">Objektų nerasta.</td>
                 </tr>
               ) : (
-                sites?.map((site: any) => {
-                  const leadAssignment = site.site_assignments?.find((a: any) => a.is_lead) || site.site_assignments?.[0];
+                sites?.map((site) => {
+                  const leadAssignment = site.site_assignments?.find((a) => a.is_lead) || site.site_assignments?.[0];
                   const installerName = leadAssignment?.user_profiles?.full_name || 'Nepriskirtas';
                   
                   return (
@@ -113,7 +115,7 @@ export default function Sites() {
                         {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd HH:mm') : '-'}
                       </td>
                       <td className="py-4 px-6">
-                        {getStatusBadge(site.status)}
+                        {getStatusBadge(site.status || '')}
                       </td>
                       <td className="py-4 px-6 text-[#4b4452] text-[14px] font-medium flex items-center gap-2">
                         {leadAssignment && (

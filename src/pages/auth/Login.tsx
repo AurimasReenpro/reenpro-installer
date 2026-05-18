@@ -30,9 +30,9 @@ export default function Login() {
   useEffect(() => {
     if (!loading && user && profile) {
       if (profile.role === 'admin') {
-        navigate('/admin', { replace: true });
+        void navigate('/admin', { replace: true });
       } else if (profile.role === 'installer') {
-        navigate('/m', { replace: true });
+        void navigate('/m', { replace: true });
       }
     }
   }, [user, profile, loading, navigate]);
@@ -56,14 +56,14 @@ export default function Login() {
         
       if (!profileError && profileData) {
         if (profileData.role === 'admin') {
-          navigate('/admin', { replace: true });
+          void navigate('/admin', { replace: true });
         } else if (profileData.role === 'installer') {
-          navigate('/m', { replace: true });
+          void navigate('/m', { replace: true });
         } else {
-          navigate('/', { replace: true });
+          void navigate('/', { replace: true });
         }
       } else {
-        navigate('/', { replace: true });
+        void navigate('/', { replace: true });
       }
     }
   };
@@ -88,7 +88,7 @@ export default function Login() {
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-on-surface">
               El. paštas

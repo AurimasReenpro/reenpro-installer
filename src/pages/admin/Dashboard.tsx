@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { supabase } from '../../lib/supabase';
 import LiveAdminTimer from '../../components/admin/LiveAdminTimer';
 import CreateSiteModal from '../../components/admin/CreateSiteModal';
+import * as Sentry from "@sentry/react";
 
 export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function Dashboard() {
         .single();
       
       if (error) {
-        console.error('Error fetching dashboard stats:', error);
+        console.error('Error fetching dashboard stats:', error); Sentry.captureException(error, { extra: { context: 'Error fetching dashboard stats:' } });
         return null;
       }
       return data;
@@ -59,7 +60,7 @@ export default function Dashboard() {
         .order('scheduled_start', { ascending: false });
 
       if (error) {
-        console.error('Error fetching active sites:', error);
+        console.error('Error fetching active sites:', error); Sentry.captureException(error, { extra: { context: 'Error fetching active sites:' } });
         return [];
       }
       return data;
@@ -71,30 +72,17 @@ export default function Dashboard() {
     queryKey: ['admin_activity_feed'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('time_entries')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          installer_id,
-          site_id,
-          user_profiles (
-            full_name
-          ),
-          sites (
-            client_name,
-            code
-          )
-        `)
-        .order('start_time', { ascending: false })
-        .limit(5);
+        .from('admin_activity_view')
+        .select('*')
+        .limit(15);
 
       if (error) {
-        console.error('Error fetching activity feed:', error);
+        console.error('Error fetching activity feed:', error); Sentry.captureException(error, { extra: { context: 'Error fetching activity feed:' } });
         return [];
       }
       return data;
-    }
+    },
+    staleTime: 10_000,
   });
 
   // Formatting hours
@@ -107,7 +95,7 @@ export default function Dashboard() {
   const getInitials = (name: string) => {
     if (!name) return '??';
     const parts = name.split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    if (parts.length >= 2) return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase();
     return name.substring(0, 2).toUpperCase();
   };
 
@@ -145,7 +133,7 @@ export default function Dashboard() {
           </div>
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Dirba dabar</p>
           <h3 className="text-[32px] font-bold text-[#1d033a] leading-none mb-1">
-            {stats?.working_now || 0} <span className="text-[14px] font-bold text-[#4b4452]">monteriai</span>
+            {stats?.installers_online || 0} <span className="text-[14px] font-bold text-[#4b4452]">monteriai</span>
           </h3>
         </div>
 
@@ -166,7 +154,7 @@ export default function Dashboard() {
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Šios sav. valandos</p>
           <div className="flex items-baseline gap-3">
             <h3 className="text-[32px] font-bold text-[#1d033a] leading-none">
-              {formatHours(stats?.weekly_hours || 0)}
+              {formatHours(stats?.weekly_minutes || 0)}
             </h3>
           </div>
         </div>
@@ -185,10 +173,10 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-4">
-            {activeSites?.map((site: any) => {
+            {activeSites?.map((site) => {
               // Find the lead installer or the first installer to use their ID for LiveTimer
               const assignments = site.site_assignments || [];
-              const openTimeEntry = site.time_entries?.find((e: any) => !e.end_time);
+              const openTimeEntry = site.time_entries?.find((e) => !e.end_time);
 
               return (
                 <div key={site.id} className="flex items-center p-3 rounded-[12px] border border-[#cdc3d4]/40 hover:border-[#490891]/30 transition-colors">
@@ -211,7 +199,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="flex -space-x-2 mr-2">
-                      {assignments.map((assignment: any, index: number) => {
+                      {assignments.map((assignment, index: number) => {
                         const name = assignment.user_profiles?.full_name || 'Vartotojas';
                         return (
                           <div 
@@ -267,14 +255,15 @@ export default function Dashboard() {
         
         <div className="relative pl-[22px] space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#cdc3d4]/40">
           
-          {activityFeed?.map((entry: any) => {
+          {activityFeed?.map((entry) => {
             const isFinished = !!entry.end_time;
-            const timeAgo = formatDistanceToNow(new Date(isFinished ? entry.end_time : entry.start_time), { 
+            const timeStr = entry.latest_action_time || (isFinished ? entry.end_time : entry.start_time);
+            const timeAgo = formatDistanceToNow(new Date(timeStr!), { 
               addSuffix: true, 
               locale: lt 
             });
-            const name = entry.user_profiles?.full_name || 'Nežinomas montuotojas';
-            const siteName = entry.sites?.client_name || entry.sites?.code || 'Nežinomas objektas';
+            const name = entry.installer_name || 'Nežinomas montuotojas';
+            const siteName = entry.client_name || entry.site_code || 'Nežinomas objektas';
             
             return (
               <div key={entry.id} className="relative">

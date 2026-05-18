@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
+import * as Sentry from "@sentry/react";
 
 export default function AdminLayout() {
   const { profile, signOut } = useAuthStore();
@@ -13,11 +14,11 @@ export default function AdminLayout() {
       await supabase.auth.signOut();
       queryClient.clear(); 
       signOut();
-      navigate('/login', { replace: true });
+      void navigate('/login', { replace: true });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error); Sentry.captureException(error, { extra: { context: 'Logout error:' } });
       signOut();
-      navigate('/login', { replace: true });
+      void navigate('/login', { replace: true });
     }
   };
 
@@ -79,7 +80,7 @@ export default function AdminLayout() {
             </span>
           </div>
           <button 
-            onClick={handleSignOut}
+            onClick={() => { void handleSignOut(); }}
             className="text-white/70 hover:text-white transition-colors"
             title="Atsijungti"
           >

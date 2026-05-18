@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './hooks/useAuth';
+import { queryClient } from './lib/queryClient';
 import Login from './pages/auth/Login';
 import RoleRedirect from './pages/RoleRedirect';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -14,8 +15,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import Sites from './pages/admin/Sites';
 import Checklists from './pages/admin/Checklists';
-
-const queryClient = new QueryClient();
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 function AppContent() {
   // Initialize auth listener
@@ -30,7 +30,9 @@ function AppContent() {
         path="/admin"
         element={
           <ProtectedRoute requiredRole="admin">
-            <AdminLayout />
+            <ErrorBoundary>
+              <AdminLayout />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       >
@@ -43,7 +45,9 @@ function AppContent() {
         path="/m"
         element={
           <ProtectedRoute requiredRole="installer">
-            <MobileLayout />
+            <ErrorBoundary>
+              <MobileLayout />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       >

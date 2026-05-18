@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import type { Database } from '../../types/database.types';
 
-export default function LiveTimer({ entries, installerId }: { entries: any[], installerId: string | undefined }) {
+type TimeEntry = Database['public']['Tables']['time_entries']['Row'];
+
+export default function LiveTimer({ entries, installerId }: { entries: TimeEntry[], installerId: string | undefined }) {
   const [elapsed, setElapsed] = useState('0h 0min 0s');
 
   useEffect(() => {

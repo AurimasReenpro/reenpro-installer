@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, startOfISOWeek } from 'date-fns';
+import { format } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
-import type { Site } from '../../components/mobile/SiteCard';
+import * as Sentry from "@sentry/react";
 
 export default function Today() {
   const queryClient = useQueryClient();
@@ -37,18 +36,19 @@ export default function Today() {
 
       if (error) throw error;
 
-      const assignedSites = data?.map((item: any) => item.sites) || [];
+      const assignedSites = data?.map((item) => item.sites) || [];
       
       // Sort by scheduled_start locally
-      assignedSites.sort((a: any, b: any) => {
+      assignedSites.sort((a, b) => {
         if (!a.scheduled_start) return 1;
         if (!b.scheduled_start) return -1;
         return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
       });
       
-      return assignedSites as Site[];
+      return assignedSites;
     },
-    enabled: !!profile?.id // ONLY run if we have a profile ID
+    enabled: !!profile?.id, // ONLY run if we have a profile ID
+    staleTime: 60_000,
   });
 
   const startWorkMutation = useMutation({
@@ -59,12 +59,11 @@ export default function Today() {
         .eq('id', siteId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
       setActiveTab('active');
     },
     onError: (error) => {
-      console.error('Error starting work:', error);
+      console.error('Error starting work:', error); Sentry.captureException(error, { extra: { context: 'Error starting work:' } });
       alert('Nepavyko pradėti darbo.');
     }
   });

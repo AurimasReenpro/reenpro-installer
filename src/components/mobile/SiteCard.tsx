@@ -1,16 +1,7 @@
 import { useNavigate } from 'react-router-dom';
+import type { Database } from '../../types/database.types';
 
-export interface Site {
-  id: string;
-  code: string;
-  client_name: string;
-  address: string;
-  system_type: 'PV+BESS' | 'PV' | 'BESS' | 'OTHER' | string;
-  kwp: number;
-  status: 'pending' | 'in_progress' | 'paused' | 'completed' | string;
-  scheduled_start?: string;
-  scheduled_end?: string;
-}
+export type Site = Database['public']['Tables']['sites']['Row'];
 
 interface SiteCardProps {
   site: Site;
@@ -104,7 +95,7 @@ export default function SiteCard({ site, onStartWork }: SiteCardProps) {
           if (site.status === 'pending' && onStartWork) {
             onStartWork();
           } else {
-            navigate(`/m/sites/${site.id}`);
+            void navigate(`/m/sites/${site.id}`);
           }
         }}
         disabled={btnProps.disabled}

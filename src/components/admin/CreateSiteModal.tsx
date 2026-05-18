@@ -1,15 +1,26 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import * as Sentry from "@sentry/react";
 
 interface CreateSiteModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface SiteFormData {
+  code: string;
+  name: string;
+  address: string;
+  scheduled_start: string;
+  installer_id: string;
+  category: string;
+  system_type: string;
+}
+
 export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SiteFormData>({
     code: '',
     name: '',
     address: '',
@@ -46,7 +57,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
 
   // Create site mutation
   const createSiteMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: SiteFormData) => {
       // 1. Insert into sites
       const { data: newSite, error: siteError } = await supabase
         .from('sites')
@@ -87,7 +98,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
         if (templates && templates.length > 0) {
           const newChecklists = templates.map(t => ({
             site_id: newSite.id,
-            phase: t.phase,
+            phase: t.phase || 'pre',
             task_name: t.name,
             requires_photo: t.requires_photo,
             category: t.category
@@ -101,10 +112,10 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
     },
     onSuccess: () => {
       alert('Objektas sėkmingai sukurtas!');
-      queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin_active_sites'] });
-      queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
-      queryClient.invalidateQueries({ queryKey: ['sites'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_active_sites'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
+      void queryClient.invalidateQueries({ queryKey: ['sites'] });
       onClose();
       setFormData({
         code: '',
@@ -116,8 +127,8 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
         system_type: 'PV'
       });
     },
-    onError: (error: any) => {
-      console.error('Error creating site:', error);
+    onError: (error: Error) => {
+      console.error('Error creating site:', error); Sentry.captureException(error, { extra: { context: 'Error creating site:' } });
       alert(`Nepavyko sukurti objekto: ${error.message || JSON.stringify(error)}`);
     }
   });
@@ -214,7 +225,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
               className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
             >
               <option value="">-- Pasirinkti --</option>
-              {installers?.map((user: any) => (
+              {installers?.map((user) => (
                 <option key={user.id} value={user.id}>{user.full_name || user.email}</option>
               ))}
             </select>
@@ -229,7 +240,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
               className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
             >
               <option value="">-- Pasirinkti --</option>
-              {categories?.map((cat: any) => (
+              {categories?.map((cat) => (
                 <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
             </select>
