@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 import type { Database } from '../../types/database.types';
 
 export type Site = Database['public']['Tables']['sites']['Row'];
@@ -76,7 +77,7 @@ export default function SiteCard({ site, onStartWork }: SiteCardProps) {
       <h3 className="text-on-surface font-bold text-lg mt-2">{site.client_name}</h3>
       
       <div className="flex items-center gap-1 text-primary-light text-sm mt-1">
-        <span className="material-symbols-outlined text-sm">location_on</span>
+        <MapPin className="w-4 h-4 text-primary-light" />
         <span>{site.address}</span>
       </div>
 

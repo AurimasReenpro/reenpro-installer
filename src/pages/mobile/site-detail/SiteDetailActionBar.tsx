@@ -1,3 +1,5 @@
+import { Loader2 } from 'lucide-react';
+
 interface SiteDetailActionBarProps {
   status: string | null;
   isCheckingIn: boolean;
@@ -26,7 +28,7 @@ export default function SiteDetailActionBar({
           className="h-[80px] w-full bg-success text-white flex flex-col items-center justify-center disabled:opacity-80 disabled:cursor-not-allowed transition-transform active:bg-[#0f9e6d]"
         >
           {isCheckingIn ? (
-            <span className="material-symbols-outlined animate-spin mb-1 text-2xl">progress_activity</span>
+            <Loader2 className="animate-spin mb-1 w-6 h-6 text-white" />
           ) : (
             <>
               <span className="font-bold text-lg leading-tight">PRADĖTI DARBĄ</span>

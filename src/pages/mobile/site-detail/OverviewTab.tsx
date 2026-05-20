@@ -1,4 +1,5 @@
 import type { SiteAssignment } from '../../../types/site.types';
+import { LayoutGrid, Cpu, BatteryCharging } from 'lucide-react';
 
 interface OverviewTabProps {
   assignments: SiteAssignment[];
@@ -11,7 +12,7 @@ export default function OverviewTab({ assignments }: OverviewTabProps) {
       
       <div className="bg-white rounded-xl p-4 mb-2 flex items-center gap-4 shadow-sm border border-outline-variant/30">
         <div className="w-10 h-10 bg-[#f6e9ff] text-primary rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined">grid_4x4</span>
+          <LayoutGrid className="w-5 h-5" />
         </div>
         <div>
           <p className="font-semibold text-on-surface">PV Moduliai</p>
@@ -21,7 +22,7 @@ export default function OverviewTab({ assignments }: OverviewTabProps) {
 
       <div className="bg-white rounded-xl p-4 mb-2 flex items-center gap-4 shadow-sm border border-outline-variant/30">
         <div className="w-10 h-10 bg-[#f6e9ff] text-primary rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined">electric_meter</span>
+          <Cpu className="w-5 h-5" />
         </div>
         <div>
           <p className="font-semibold text-on-surface">Inverteris</p>
@@ -31,7 +32,7 @@ export default function OverviewTab({ assignments }: OverviewTabProps) {
 
       <div className="bg-white rounded-xl p-4 mb-2 flex items-center gap-4 shadow-sm border border-outline-variant/30">
         <div className="w-10 h-10 bg-[#f6e9ff] text-primary rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined">battery_charging_full</span>
+          <BatteryCharging className="w-5 h-5" />
         </div>
         <div>
           <p className="font-semibold text-on-surface">BESS</p>

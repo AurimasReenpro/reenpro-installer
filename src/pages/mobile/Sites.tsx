@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSameWeek, isSameMonth } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { startWork } from '../../api/timeTracking';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
 import * as Sentry from "@sentry/react";
+import { toast } from 'sonner';
+import { FolderOpen } from 'lucide-react';
 
 export default function Sites() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { profile } = useAuthStore();
   
   const [statusFilter, setStatusFilter] = useState('all');
@@ -43,18 +48,21 @@ export default function Sites() {
 
   const startWorkMutation = useMutation({
     mutationFn: async (siteId: string) => {
-      const { error } = await supabase
-        .from('sites')
-        .update({ status: 'in_progress' })
-        .eq('id', siteId);
-      if (error) throw error;
+      await startWork(siteId);
+      return siteId;
     },
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] }); void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+    onSuccess: (_, siteId) => { 
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] }); 
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
       setStatusFilter('in_progress');
+      void navigate(`/m/sites/${siteId}`);
     },
     onError: (error) => {
       console.error('Error starting work:', error); Sentry.captureException(error, { extra: { context: 'Error starting work:' } });
-      alert('Nepavyko pradėti darbo.');
+      toast.error('Nepavyko pradėti darbo.');
     }
   });
 
@@ -186,9 +194,7 @@ export default function Sites() {
           ))
         ) : (
           <div className="mx-4 text-center py-12">
-            <span className="material-symbols-outlined text-5xl opacity-80" style={{ color: '#b69cd3' }}>
-              folder_open
-            </span>
+            <FolderOpen className="w-12 h-12 text-[#b69cd3] mx-auto opacity-80" />
             <p className="text-on-surface-variant mt-2 font-medium">
               Nerasta jokių objektų
             </p>

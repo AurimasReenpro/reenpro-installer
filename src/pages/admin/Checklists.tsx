@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import * as Sentry from "@sentry/react";
+import { toast } from 'sonner';
+import ConfirmModal from '../../components/ui/ConfirmModal';
+import { FolderCog, RefreshCw, Plus, Camera, Edit2, Trash2, X } from 'lucide-react';
 
 type ChecklistTemplate = {
   id: string;
@@ -21,6 +24,10 @@ export default function Checklists() {
   
   // Category Form State
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Confirmation States
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -78,7 +85,7 @@ export default function Checklists() {
     },
     onError: (err) => {
       console.error("Save error:", err); Sentry.captureException(err, { extra: { context: "Save error:" } });
-      alert("Nepavyko išsaugoti šablono.");
+      toast.error("Nepavyko išsaugoti šablono.");
     }
   });
 
@@ -95,7 +102,7 @@ export default function Checklists() {
     },
     onError: (err) => {
       console.error("Delete error:", err); Sentry.captureException(err, { extra: { context: "Delete error:" } });
-      alert("Nepavyko ištrinti šablono.");
+      toast.error("Nepavyko ištrinti šablono.");
     }
   });
 
@@ -110,7 +117,7 @@ export default function Checklists() {
     },
     onError: (err) => {
       console.error("Add category error:", err); Sentry.captureException(err, { extra: { context: "Add category error:" } });
-      alert("Nepavyko pridėti kategorijos.");
+      toast.error("Nepavyko pridėti kategorijos.");
     }
   });
 
@@ -124,7 +131,7 @@ export default function Checklists() {
     },
     onError: (err) => {
       console.error("Delete category error:", err); Sentry.captureException(err, { extra: { context: "Delete category error:" } });
-      alert("Nepavyko ištrinti kategorijos.");
+      toast.error("Nepavyko ištrinti kategorijos.");
     }
   });
 
@@ -157,16 +164,14 @@ export default function Checklists() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Prašome įvesti pavadinimą.');
+      toast.warning('Prašome įvesti pavadinimą.');
       return;
     }
     saveMutation.mutate(formData);
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm("Ar tikrai norite trinti šį šabloną?")) {
-      deleteMutation.mutate(id);
-    }
+    setTemplateToDelete(id);
   };
 
   const handleAddCategory = (e: React.FormEvent) => {
@@ -176,13 +181,11 @@ export default function Checklists() {
   };
 
   const handleDeleteCategory = (id: string) => {
-    if (window.confirm("Ar tikrai norite trinti šią kategoriją? Priskirti šablonai nebus ištrinti, bet liks be kategorijos.")) {
-      deleteCategoryMutation.mutate(id);
-    }
+    setCategoryToDelete(id);
   };
 
   const handleSync = () => {
-    alert('Ši funkcija bus pajungta vėliau, kartu su naujų objektų generavimo logika.');
+    toast.info('Ši funkcija bus pajungta vėliau, kartu su naujų objektų generavimo logika.');
   };
 
   const activeTabs = ['Visi', ...(categories?.map(c => c.name) || [])];
@@ -200,21 +203,21 @@ export default function Checklists() {
             onClick={() => setIsCategoryModalOpen(true)}
             className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#1d033a] bg-white hover:bg-[#f6f5fa] transition-colors flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">folder_managed</span>
+            <FolderCog size={18} />
             Valdyti grupes
           </button>
           <button 
             onClick={handleSync}
             className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#1d033a] bg-white hover:bg-[#f6f5fa] transition-colors flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">sync</span>
+            <RefreshCw size={18} />
             Pritaikyti naujiems objektams
           </button>
           <button 
             onClick={() => handleOpenModal()}
             className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <Plus size={18} />
             Pridėti naują punktą
           </button>
         </div>
@@ -277,7 +280,9 @@ export default function Checklists() {
                     </td>
                     <td className="py-4 px-6 text-center">
                       {item.requires_photo ? (
-                        <span className="material-symbols-outlined text-[#10B981] bg-[#ECFDF5] rounded-full p-1 border border-[#10B981]/20">photo_camera</span>
+                        <span className="bg-[#ECFDF5] rounded-full p-1 border border-[#10B981]/20 inline-flex items-center justify-center">
+                          <Camera className="text-[#10B981] w-4 h-4" />
+                        </span>
                       ) : (
                         <span className="text-[#cdc3d4] text-[14px]">-</span>
                       )}
@@ -289,14 +294,14 @@ export default function Checklists() {
                           className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-[#490891] hover:bg-[#ecdcff] transition-colors"
                           title="Redaguoti"
                         >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                          <Edit2 size={16} />
                         </button>
                         <button 
                           onClick={() => handleDelete(item.id)}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-[#e2250a] hover:bg-[#ffdad6] transition-colors"
                           title="Trinti"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -324,7 +329,7 @@ export default function Checklists() {
                 onClick={closeModal}
                 className="text-[#7c7484] hover:text-[#1d033a] transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
             
@@ -336,7 +341,7 @@ export default function Checklists() {
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="Pvz.: Patikrinti inverterio pajungimą"
+                  placeholder="Šablono užduotis..."
                   className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
                 />
               </div>
@@ -344,40 +349,40 @@ export default function Checklists() {
               <div>
                 <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Fazė</label>
                 <select 
+                  required
                   value={formData.phase}
                   onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'post'})}
                   className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
                 >
-                  <option value="pre">Pre-checklist</option>
-                  <option value="post">Post-checklist</option>
+                  <option value="pre">Pre (prieš pradžią)</option>
+                  <option value="post">Post (pabaigus darbus)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Kategorija</label>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Grupė / Kategorija</label>
                 <select 
+                  required
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
                   className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
                 >
-                  <option value="">-- Nepriskirta --</option>
-                  {categories?.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
+                  <option value="">-- Pasirinkti --</option>
+                  {categories?.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="relative flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.requires_photo}
-                    onChange={e => setFormData({...formData, requires_photo: e.target.checked})}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-[#cdc3d4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#10B981]"></div>
-                </label>
-                <span className="text-[14px] font-medium text-[#4b4452]">Reikalauja nuotraukos</span>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox"
+                  id="requires_photo"
+                  checked={formData.requires_photo}
+                  onChange={e => setFormData({...formData, requires_photo: e.target.checked})}
+                  className="w-4 h-4 text-[#490891] border-[#cdc3d4] rounded focus:ring-[#490891]"
+                />
+                <label htmlFor="requires_photo" className="text-[14px] font-medium text-[#1d033a]">Reikalauja nuotraukos</label>
               </div>
 
               <div className="pt-4 flex gap-3">
@@ -411,7 +416,7 @@ export default function Checklists() {
                 onClick={() => setIsCategoryModalOpen(false)}
                 className="text-[#7c7484] hover:text-[#1d033a] transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
             
@@ -428,7 +433,7 @@ export default function Checklists() {
                         className="text-[#7c7484] hover:text-[#e2250a] transition-colors p-1 rounded-full hover:bg-[#ffdad6]"
                         title="Trinti grupę"
                       >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))
@@ -458,6 +463,38 @@ export default function Checklists() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={templateToDelete !== null}
+        title="Ištrinti šabloną"
+        message="Ar tikrai norite trinti šį šabloną?"
+        confirmText="Ištrinti"
+        cancelText="Atšaukti"
+        variant="danger"
+        onConfirm={() => {
+          if (templateToDelete) {
+            deleteMutation.mutate(templateToDelete);
+          }
+          setTemplateToDelete(null);
+        }}
+        onCancel={() => setTemplateToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={categoryToDelete !== null}
+        title="Ištrinti kategoriją"
+        message="Ar tikrai norite trinti šią kategoriją? Priskirti šablonai nebus ištrinti, bet liks be kategorijos."
+        confirmText="Ištrinti"
+        cancelText="Atšaukti"
+        variant="danger"
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteCategoryMutation.mutate(categoryToDelete);
+          }
+          setCategoryToDelete(null);
+        }}
+        onCancel={() => setCategoryToDelete(null)}
+      />
     </div>
   );
 }

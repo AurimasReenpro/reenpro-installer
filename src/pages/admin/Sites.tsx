@@ -1,13 +1,46 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import CreateSiteModal from '../../components/admin/CreateSiteModal';
+import { useConfirm } from '../../hooks/useConfirm';
+import { toast } from 'sonner';
 import * as Sentry from "@sentry/react";
+import { Plus, MapPin, Trash2 } from 'lucide-react';
 
 export default function Sites() {
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleDeleteSite = async (siteId: string) => {
+    const ok = await confirm({
+      title: 'Ištrinti objektą',
+      message: 'Ar tikrai norite ištrinti šį objektą? Šis veiksmas ištrins visus susijusius duomenis ir yra negrįžtamas.',
+      confirmText: 'Ištrinti',
+      cancelText: 'Atšaukti',
+      variant: 'danger',
+    });
+
+    if (!ok) return;
+
+    try {
+      const { error } = await supabase
+        .from('sites')
+        .delete()
+        .eq('id', siteId);
+
+      if (error) throw error;
+
+      toast.success('Objektas ištrintas');
+      void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
+    } catch (err) {
+      console.error('Error deleting site:', err);
+      Sentry.captureException(err, { extra: { context: 'Error deleting site' } });
+      toast.error('Nepavyko ištrinti objekto');
+    }
+  };
 
   const { data: sites, isLoading } = useQuery({
     queryKey: ['admin_all_sites'],
@@ -64,7 +97,7 @@ export default function Sites() {
           onClick={() => setIsModalOpen(true)}
           className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <Plus size={18} />
           Sukurti naują objektą
         </button>
       </div>
@@ -107,7 +140,7 @@ export default function Sites() {
                       <td className="py-4 px-6 font-bold text-[#1d033a]">{site.client_name}</td>
                       <td className="py-4 px-6 text-[#4b4452] text-[14px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px] text-[#cdc3d4]">location_on</span>
+                          <MapPin size={16} className="text-[#cdc3d4]" />
                           {site.address}
                         </div>
                       </td>
@@ -126,9 +159,18 @@ export default function Sites() {
                         {installerName}
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <Link to={`/admin/sites/${site.id}`} className="text-[#490891] font-semibold text-[14px] hover:underline" title="Funkcija ruošiama">
-                          Žiūrėti
-                        </Link>
+                        <div className="flex items-center justify-end gap-3">
+                          <Link to={`/admin/sites/${site.id}`} className="text-[#490891] font-semibold text-[14px] hover:underline">
+                            Žiūrėti
+                          </Link>
+                          <button
+                            onClick={() => { void handleDeleteSite(site.id); }}
+                            className="text-red-500 hover:text-red-700 transition-colors p-1 cursor-pointer"
+                            title="Ištrinti objektą"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

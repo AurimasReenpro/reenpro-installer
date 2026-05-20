@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import * as Sentry from '@sentry/react';
+import { toast } from 'sonner';
 
 export function useChecklistActions(siteId: string) {
   const queryClient = useQueryClient();
@@ -16,7 +17,7 @@ export function useChecklistActions(siteId: string) {
     } catch (error) {
       console.error('Error updating checklist:', error);
       Sentry.captureException(error, { extra: { context: 'Error updating checklist:' } });
-      alert('Nepavyko atnaujinti užduoties statuso.');
+      toast.error('Nepavyko atnaujinti užduoties statuso.');
     }
   };
 

@@ -1,12 +1,12 @@
+import { Loader2 } from 'lucide-react';
+
 export default function FullPageSpinner() {
   return (
     <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
-      <span
-        className="material-symbols-outlined animate-spin"
-        style={{ color: 'var(--color-primary, #490891)', fontSize: '48px' }}
-      >
-        progress_activity
-      </span>
+      <Loader2
+        className="animate-spin text-primary"
+        size={48}
+      />
     </div>
   );
 }

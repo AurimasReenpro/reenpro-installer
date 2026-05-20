@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User } from 'lucide-react';
 import { FEATURES } from '../../config/features';
 
 export default function MobileLayout() {
@@ -14,16 +15,33 @@ export default function MobileLayout() {
     { path: '/m/profile', icon: 'person', label: 'Profilis' },
   ];
 
+  const getIconComponent = (icon: string) => {
+    switch (icon) {
+      case 'today':
+        return Calendar;
+      case 'list':
+        return List;
+      case 'schedule':
+        return Clock;
+      case 'payments':
+        return Coins;
+      case 'person':
+        return User;
+      default:
+        return Calendar;
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-app-bg relative">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 h-[56px] bg-surface-bright shadow-sm z-50 flex items-center justify-between px-4">
         <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px]">
-          <span className="material-symbols-outlined">menu</span>
+          <MenuIcon className="w-6 h-6" />
         </button>
         <h1 className="text-primary font-bold text-lg">InstallerApp</h1>
         <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px] relative">
-          <span className="material-symbols-outlined">notifications</span>
+          <Bell className="w-6 h-6" />
           <span className="absolute w-2 h-2 bg-[#fc391d] top-2 right-2 rounded-full border-2 border-surface-bright"></span>
         </button>
       </header>
@@ -40,6 +58,8 @@ export default function MobileLayout() {
             ? location.pathname === item.path
             : location.pathname.startsWith(item.path);
 
+          const Icon = getIconComponent(item.icon);
+
           return (
             <NavLink
               key={item.path}
@@ -48,12 +68,7 @@ export default function MobileLayout() {
                 isActive ? 'text-primary' : 'text-on-surface-variant'
               }`}
             >
-              <span
-                className="material-symbols-outlined"
-                style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
-              >
-                {item.icon}
-              </span>
+              <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
               <span
                 className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}
               >

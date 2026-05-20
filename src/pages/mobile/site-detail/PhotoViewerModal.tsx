@@ -1,4 +1,5 @@
 import SignedPhoto from '../../../components/ui/SignedPhoto';
+import { Trash2 } from 'lucide-react';
 
 interface PhotoViewerModalProps {
   storagePath: string;
@@ -19,7 +20,7 @@ export default function PhotoViewerModal({ storagePath, onClose, onDelete }: Pho
           onClick={onDelete}
           className="w-full h-[50px] bg-[#ba1a1a] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#93000a] transition-colors"
         >
-          <span className="material-symbols-outlined text-[20px]">delete</span>
+          <Trash2 className="w-5 h-5" />
           Ištrinti nuotrauką
         </button>
         <button 

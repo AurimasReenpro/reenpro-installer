@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import LiveAdminTimer from '../../components/admin/LiveAdminTimer';
 import CreateSiteModal from '../../components/admin/CreateSiteModal';
 import * as Sentry from "@sentry/react";
+import { Plus, MapPin, Users, CheckCircle2, Timer, Clock, CheckCheck, LogIn } from 'lucide-react';
 
 export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function Dashboard() {
 
   // 2. Active Sites Query ("Šiandien dirba")
   const { data: activeSites } = useQuery({
-    queryKey: ['admin_active_sites'],
+    queryKey: ['admin_active_sites_online'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sites')
@@ -64,7 +65,8 @@ export default function Dashboard() {
         return [];
       }
       return data;
-    }
+    },
+    refetchInterval: 10000
   });
 
   // 3. Activity Feed Query ("Veiklos žurnalas")
@@ -108,7 +110,7 @@ export default function Dashboard() {
           onClick={() => setIsModalOpen(true)}
           className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <Plus size={18} />
           Sukurti naują objektą
         </button>
       </div>
@@ -118,7 +120,7 @@ export default function Dashboard() {
         {/* Card 1: Aktyvūs objektai */}
         <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
           <div className="absolute top-6 right-6 w-10 h-10 bg-[#ecdcff] rounded-full flex items-center justify-center text-[#490891]">
-            <span className="material-symbols-outlined">location_on</span>
+            <MapPin size={20} />
           </div>
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Aktyvūs objektai</p>
           <div className="flex items-baseline gap-3">
@@ -129,7 +131,7 @@ export default function Dashboard() {
         {/* Card 2: Dirba dabar */}
         <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
           <div className="absolute top-6 right-6 w-10 h-10 bg-[#ECFDF5] rounded-full flex items-center justify-center text-[#10B981]">
-            <span className="material-symbols-outlined">groups</span>
+            <Users size={20} />
           </div>
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Dirba dabar</p>
           <h3 className="text-[32px] font-bold text-[#1d033a] leading-none mb-1">
@@ -140,7 +142,7 @@ export default function Dashboard() {
         {/* Card 3: Šiandien užbaigta */}
         <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
           <div className="absolute top-6 right-6 w-10 h-10 bg-[#f6e9ff] rounded-full flex items-center justify-center text-[#4b4452]">
-            <span className="material-symbols-outlined">task_alt</span>
+            <CheckCircle2 size={20} className="text-[#490891]" />
           </div>
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Šiandien užbaigta</p>
           <h3 className="text-[32px] font-bold text-[#1d033a] leading-none mb-1">{stats?.completed_today || 0}</h3>
@@ -149,7 +151,7 @@ export default function Dashboard() {
         {/* Card 4: Savaitės valandos */}
         <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
           <div className="absolute top-6 right-6 w-10 h-10 bg-[#ecdcff] rounded-full flex items-center justify-center text-[#490891]">
-            <span className="material-symbols-outlined">timer</span>
+            <Timer size={20} />
           </div>
           <p className="text-[14px] font-medium text-[#4b4452] mb-2">Šios sav. valandos</p>
           <div className="flex items-baseline gap-3">
@@ -174,7 +176,6 @@ export default function Dashboard() {
           
           <div className="space-y-4">
             {activeSites?.map((site) => {
-              // Find the lead installer or the first installer to use their ID for LiveTimer
               const assignments = site.site_assignments || [];
               const openTimeEntry = site.time_entries?.find((e) => !e.end_time);
 
@@ -188,7 +189,7 @@ export default function Dashboard() {
                         {site.code || 'B/N'}
                       </span>
                       <span className="text-[13px] text-[#4b4452] font-medium flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">schedule</span> 
+                        <Clock size={14} className="text-[#4b4452]" /> 
                         {openTimeEntry?.start_time ? (
                           <LiveAdminTimer startTime={openTimeEntry.start_time} />
                         ) : (
@@ -232,9 +233,7 @@ export default function Dashboard() {
         <div className="col-span-5 bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] border border-[#cdc3d4]/20 p-6 flex flex-col">
           <h3 className="text-[18px] font-bold text-[#1d033a] mb-4">Aktyvūs objektai žemėlapyje</h3>
           <div className="flex-1 bg-[#f6f5fa] rounded-[12px] border border-[#cdc3d4]/40 flex items-center justify-center relative min-h-[200px] overflow-hidden">
-            {/* Fake map background */}
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #4b4452 10px, #4b4452 11px)' }}></div>
-            {/* Dots */}
             <div className="absolute top-[40%] left-[30%] w-3 h-3 bg-[#10B981] rounded-full shadow-[0_0_0_4px_rgba(16,185,129,0.2)]"></div>
             <div className="absolute top-[60%] right-[40%] w-3 h-3 bg-[#fc391d] rounded-full shadow-[0_0_0_4px_rgba(252,57,29,0.2)] animate-pulse"></div>
             <div className="absolute top-[70%] right-[20%] w-3 h-3 bg-[#490891] rounded-full shadow-[0_0_0_4px_rgba(73,8,145,0.2)]"></div>
@@ -270,11 +269,11 @@ export default function Dashboard() {
                 <div className={`absolute -left-[22px] w-6 h-6 rounded-full border-[3px] border-white flex items-center justify-center ${
                   isFinished ? 'bg-[#ECFDF5]' : 'bg-[#ecdcff]'
                 }`}>
-                  <span className={`material-symbols-outlined text-[14px] ${
-                    isFinished ? 'text-[#10B981]' : 'text-[#490891]'
-                  }`}>
-                    {isFinished ? 'done_all' : 'login'}
-                  </span>
+                  {isFinished ? (
+                    <CheckCheck size={12} className="text-[#10B981]" />
+                  ) : (
+                    <LogIn size={12} className="text-[#490891]" />
+                  )}
                 </div>
                 <p className="text-[14px] text-[#1d033a]">
                   <span className="font-bold">{name}</span> 

@@ -1,5 +1,6 @@
-import React from "react";
-import * as Sentry from "@sentry/react";
+import React from 'react';
+import * as Sentry from '@sentry/react';
+import { AlertCircle } from 'lucide-react';
 
 interface FallbackProps {
   error: Error;
@@ -13,7 +14,7 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
     <div className="min-h-screen flex items-center justify-center bg-[#f6f5fa] p-4">
       <div className="bg-white p-8 rounded-[16px] shadow-[0_4px_20px_rgba(29,3,58,0.05)] max-w-md w-full text-center">
         <div className="w-16 h-16 bg-[#ffdad6] rounded-full flex items-center justify-center mx-auto mb-6 text-[#ba1a1a]">
-          <span className="material-symbols-outlined text-[32px]">error</span>
+          <AlertCircle className="w-8 h-8" />
         </div>
         
         <h1 className="text-[24px] font-bold text-[#1d033a] mb-4">Įvyko klaida</h1>

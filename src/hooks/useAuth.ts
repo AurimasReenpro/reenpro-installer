@@ -1,11 +1,17 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import type { User } from '@supabase/supabase-js';
 import * as Sentry from "@sentry/react";
+import { toast } from 'sonner';
+import { useSyncStore } from '../stores/useSyncStore';
 
 export function useAuth() {
   const { user, profile, loading, setUser, setLoading, signOut } = useAuthStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     async function fetchProfile(authUser: User) {
@@ -55,9 +61,25 @@ export function useAuth() {
     };
   }, [setUser, setLoading, signOut]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = async () => {
+    const isSyncing = useSyncStore.getState().isSyncing;
+    if (isSyncing) {
+      toast.error('Palaukite, dar keliami failai! Atsijungus duomenys bus prarasti.');
+      return;
+    }
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error during supabase signOut:', error);
+      Sentry.captureException(error, { extra: { context: 'Logout error during supabase signOut:' } });
+    } finally {
+      queryClient.clear();
+      signOut();
+      toast.success("Sėkmingai atsijungėte");
+      void navigate('/login', { replace: true });
+    }
   };
 
-  return { user, profile, loading, signOut: handleSignOut };
+  return { user, profile, loading, logout: handleLogout };
 }

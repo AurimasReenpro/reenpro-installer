@@ -1,25 +1,8 @@
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../stores/authStore';
-import * as Sentry from "@sentry/react";
+import { useAuth } from '../../hooks/useAuth';
+import { LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { profile } = useAuthStore();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      queryClient.clear(); // Wipe all cached user data
-      void navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('Logout error:', error); Sentry.captureException(error, { extra: { context: 'Logout error:' } });
-      // Force redirect anyway
-      void navigate('/login', { replace: true });
-    }
-  };
+  const { profile, logout } = useAuth();
 
   return (
     <div className="p-4 space-y-6">
@@ -49,10 +32,10 @@ export default function Profile() {
       </div>
 
       <button
-        onClick={() => { void handleLogout(); }}
-        className="w-full bg-[#FFF1F0] text-notify border border-notify/20 font-bold text-[15px] h-[48px] rounded-[12px] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        onClick={() => { void logout(); }}
+        className="w-full bg-[#FFF1F0] text-[#fc391d] border border-[#fc391d]/20 font-bold text-[15px] h-[48px] rounded-[12px] flex items-center justify-center gap-2 active:scale-95 transition-transform"
       >
-        <span className="material-symbols-outlined">logout</span>
+        <LogOut className="w-5 h-5" />
         Atsijungti
       </button>
     </div>

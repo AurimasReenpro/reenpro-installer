@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import * as Sentry from "@sentry/react";
+import { toast } from 'sonner';
+import { X, Loader2 } from 'lucide-react';
 
 interface CreateSiteModalProps {
   isOpen: boolean;
@@ -111,7 +113,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
       }
     },
     onSuccess: () => {
-      alert('Objektas sėkmingai sukurtas!');
+      toast.success('Objektas sėkmingai sukurtas!');
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
@@ -129,7 +131,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
     },
     onError: (error: Error) => {
       console.error('Error creating site:', error); Sentry.captureException(error, { extra: { context: 'Error creating site:' } });
-      alert(`Nepavyko sukurti objekto: ${error.message || JSON.stringify(error)}`);
+      toast.error(`Nepavyko sukurti objekto: ${error.message || JSON.stringify(error)}`);
     }
   });
 
@@ -149,7 +151,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
             onClick={onClose}
             className="text-[#7c7484] hover:text-[#1d033a] transition-colors"
           >
-            <span className="material-symbols-outlined">close</span>
+            <X className="w-5 h-5" />
           </button>
         </div>
         
@@ -260,7 +262,7 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
               className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors flex items-center justify-center disabled:opacity-70"
             >
               {createSiteMutation.isPending ? (
-                <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                <Loader2 className="animate-spin w-5 h-5" />
               ) : (
                 'Sukurti'
               )}

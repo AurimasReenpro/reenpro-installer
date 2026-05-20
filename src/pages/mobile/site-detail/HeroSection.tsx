@@ -1,3 +1,5 @@
+import { MapPin } from 'lucide-react';
+
 interface HeroSectionProps {
   clientName: string | null;
   address: string | null;
@@ -11,7 +13,7 @@ export default function HeroSection({ clientName, address, systemType, status }:
       <h2 className="text-on-surface font-bold text-2xl">{clientName || 'Nepateiktas pavadinimas'}</h2>
       
       <div className="flex items-center gap-1 mt-1">
-        <span className="material-symbols-outlined text-primary-light text-sm">location_on</span>
+        <MapPin className="text-primary-light w-4 h-4" />
         <span className="text-primary-light text-sm">{address || 'Adresas nenurodytas'}</span>
       </div>
 

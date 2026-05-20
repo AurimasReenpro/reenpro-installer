@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
+import { Sun, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Neteisingas el. pašto formatas'),
@@ -15,6 +16,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
+  const { user, profile, loading } = useAuthStore();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const {
@@ -25,8 +27,7 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
 
-  const { user, profile, loading } = useAuthStore();
-
+  // Redirect if already logged in
   useEffect(() => {
     if (!loading && user && profile) {
       if (profile.role === 'admin') {
@@ -74,12 +75,7 @@ export default function Login() {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-2">
-            <span
-              className="material-symbols-outlined"
-              style={{ color: '#fc391d', fontSize: '40px' }}
-            >
-              sunny
-            </span>
+            <Sun className="text-[#fc391d] w-10 h-10 fill-[#fc391d]" />
             <h1 className="text-on-surface font-bold text-xl">InstallerApp</h1>
           </div>
           <p className="text-primary-light text-sm mt-1">
@@ -132,12 +128,7 @@ export default function Login() {
           >
             {isSubmitting ? (
               <>
-                <span
-                  className="material-symbols-outlined animate-spin"
-                  style={{ fontSize: '20px' }}
-                >
-                  progress_activity
-                </span>
+                <Loader2 className="animate-spin w-5 h-5" />
                 Jungiamasi...
               </>
             ) : (

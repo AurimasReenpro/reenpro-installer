@@ -1,36 +1,56 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../stores/authStore';
-import * as Sentry from "@sentry/react";
+import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { toast } from 'sonner';
+import { useConfirm } from '../../hooks/useConfirm';
+import { motion } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  FolderKanban, 
+  Users, 
+  ClipboardCheck, 
+  Coins, 
+  BarChart3, 
+  Upload, 
+  Sun, 
+  LogOut, 
+  Search, 
+  Bell 
+} from 'lucide-react';
 
 export default function AdminLayout() {
-  const { profile, signOut } = useAuthStore();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      queryClient.clear(); 
-      signOut();
-      void navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('Logout error:', error); Sentry.captureException(error, { extra: { context: 'Logout error:' } });
-      signOut();
-      void navigate('/login', { replace: true });
-    }
-  };
+  const { profile, logout } = useAuth();
+  const confirm = useConfirm();
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: 'dashboard', end: true },
     { name: 'Objektai', path: '/admin/sites', icon: 'dataset', end: false },
-    { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false },
+    { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false, comingSoon: true },
     { name: 'Checklist\'ai', path: '/admin/checklists', icon: 'fact_check', end: false },
-    { name: 'Bonusai', path: '/admin/bonuses', icon: 'payments', end: false },
-    { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false },
-    { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4' },
+    { name: 'Bonusai', path: '/admin/bonuses', icon: 'payments', end: false, comingSoon: true },
+    { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false, comingSoon: true },
+    { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4', comingSoon: true },
   ];
+
+  const getIconComponent = (icon: string) => {
+    switch (icon) {
+      case 'dashboard':
+        return LayoutDashboard;
+      case 'dataset':
+        return FolderKanban;
+      case 'group':
+        return Users;
+      case 'fact_check':
+        return ClipboardCheck;
+      case 'payments':
+        return Coins;
+      case 'bar_chart':
+        return BarChart3;
+      case 'upload_file':
+        return Upload;
+      default:
+        return LayoutDashboard;
+    }
+  };
 
   return (
     <div className="bg-[#f6f5fa] text-[#1d033a] font-sans antialiased h-screen overflow-hidden flex">
@@ -39,34 +59,70 @@ export default function AdminLayout() {
         <div>
           {/* Logo */}
           <div className="px-6 mb-8 flex items-center gap-2">
-            <span className="material-symbols-outlined icon-filled text-[#fc391d] text-[24px]">sunny</span>
+            <Sun className="text-[#fc391d] w-6 h-6 fill-[#fc391d]" />
             <span className="text-white font-bold text-[20px] tracking-tight">InstallerApp</span>
           </div>
           {/* Nav Items */}
           <nav className="px-3 flex flex-col gap-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 font-medium rounded-[8px] transition-colors ${item.className || ''} ${
-                    isActive
-                      ? 'bg-[#490891] text-white font-semibold'
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span className={`material-symbols-outlined ${isActive ? 'icon-filled' : ''}`}>
-                      {item.icon}
-                    </span>
-                    {item.name}
-                  </>
-                )}
-              </NavLink>
-            ))}
+            {navItems.map((item) => {
+              const Icon = getIconComponent(item.icon);
+
+              if (item.comingSoon) {
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      void (async () => {
+                        const wantsNotification = await confirm({
+                          title: "Kuriame šią funkciją! 🚧",
+                          message: "Mes intensyviai dirbame ties šiuo moduliu. Ar norėtumėte gauti pranešimą elektroniniu paštu, kai jis bus aktyvuotas?",
+                          confirmText: "Taip, praneškite man!",
+                          cancelText: "Uždaryti",
+                          variant: 'primary'
+                        });
+                        if (wantsNotification) {
+                          toast.success("Ačiū! Informuosime jus elektroniniu paštu.");
+                        }
+                      })();
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 font-medium rounded-[8px] transition-colors ${item.className || ''} text-white/70 hover:text-white hover:bg-white/5 cursor-pointer text-left`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                    <motion.span 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 10 }}
+                      whileHover={{ scale: 1.1, rotate: 2 }}
+                      className="ml-auto text-[10px] font-bold uppercase tracking-wider text-[#fc391d] bg-[#fc391d]/15 px-2 py-0.5 rounded-full"
+                    >
+                      Beta
+                    </motion.span>
+                  </button>
+                );
+              }
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 font-medium rounded-[8px] transition-colors ${item.className || ''} ${
+                      isActive
+                        ? 'bg-[#490891] text-white font-semibold'
+                        : 'text-white/70 hover:text-white hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-white/70'}`} />
+                      {item.name}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
           </nav>
         </div>
         {/* Bottom Avatar */}
@@ -80,11 +136,11 @@ export default function AdminLayout() {
             </span>
           </div>
           <button 
-            onClick={() => { void handleSignOut(); }}
+            onClick={() => { void logout(); }}
             className="text-white/70 hover:text-white transition-colors"
             title="Atsijungti"
           >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </aside>
@@ -96,9 +152,7 @@ export default function AdminLayout() {
           <h2 className="text-[20px] font-bold text-[#1d033a]">Dashboard</h2>
           
           <div className="relative w-[320px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#7c7484] text-[20px]">
-              search
-            </span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7c7484] w-5 h-5" />
             <input 
               type="text" 
               placeholder="Ieškoti objektų..." 
@@ -107,7 +161,7 @@ export default function AdminLayout() {
           </div>
 
           <button className="relative w-[36px] h-[36px] flex items-center justify-center rounded-full hover:bg-[#eedbff] transition-colors text-[#4b4452]">
-            <span className="material-symbols-outlined">notifications</span>
+            <Bell className="w-5 h-5" />
             <span className="absolute top-[8px] right-[8px] w-[8px] h-[8px] bg-[#fc391d] rounded-full border-[1.5px] border-white"></span>
           </button>
         </header>
