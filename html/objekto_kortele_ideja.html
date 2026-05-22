@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InstallerApp – Objekto kortelė (idėja)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; background: #f4f5f7; color: #1a1a2e; min-height: 100vh; }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 200px; background: #1a1a2e; flex-shrink: 0; display: flex; flex-direction: column; padding: 16px 0; }
+  .sidebar-logo { padding: 8px 16px 20px; display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; font-size: 16px; }
+  .sidebar-logo i { font-size: 22px; color: #7F77DD; }
+  .sidebar-item { padding: 10px 16px; color: #9ca3af; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-left: 3px solid transparent; }
+  .sidebar-item:hover { background: #2a2a40; color: #fff; }
+  .sidebar-item.active { color: #fff; background: #2a2a40; border-left-color: #7F77DD; }
+  .sidebar-item i { font-size: 18px; }
+  .sidebar-item .badge-beta { font-size: 9px; padding: 2px 5px; background: #534AB7; color: #fff; border-radius: 3px; margin-left: auto; }
+  .sidebar-footer { margin-top: auto; padding: 12px 16px; border-top: 0.5px solid #2a2a40; display: flex; align-items: center; gap: 10px; }
+  .avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: #534AB7; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .sidebar-footer .name { color: #d1d5db; font-size: 13px; }
+  .sidebar-footer .logout { margin-left: auto; color: #6b7280; cursor: pointer; }
+
+  .main { flex: 1; overflow: auto; }
+
+  /* Topbar */
+  .topbar { background: #1a1a2e; padding: 10px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid #2a2a40; }
+  .topbar-back { color: #9ca3af; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; text-decoration: none; }
+  .topbar-back:hover { color: #fff; }
+  .topbar-title { color: #fff; font-weight: 500; font-size: 15px; }
+  .topbar-badges { display: flex; gap: 6px; margin-left: auto; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 4px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+  .badge-status-laukia { background: #fac775; color: #633806; }
+  .badge-status-aktyvus { background: #9FE1CB; color: #085041; }
+  .badge-type { background: #534AB7; color: #EEEDFE; }
+  .badge-person { background: #2a2a40; color: #9ca3af; }
+
+  /* Object header */
+  .obj-header { background: #fff; padding: 16px 24px; border-bottom: 1px solid #e8e8f0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .obj-avatar { width: 52px; height: 52px; border-radius: 12px; background: #EEEDFE; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .obj-avatar i { font-size: 26px; color: #534AB7; }
+  .obj-meta h1 { font-size: 18px; font-weight: 600; color: #1a1a2e; }
+  .obj-meta p { font-size: 13px; color: #6b7280; margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .obj-meta p i { font-size: 13px; }
+  .obj-stats { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat-pill { background: #f8f8fc; border: 1px solid #e0dff5; border-radius: 10px; padding: 7px 14px; text-align: center; min-width: 80px; }
+  .stat-pill .val { font-size: 18px; font-weight: 600; color: #534AB7; line-height: 1.2; }
+  .stat-pill .lbl { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+  .obj-actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; border: none; }
+  .btn-ghost { background: transparent; border: 1px solid #d1d5db; color: #374151; }
+  .btn-ghost:hover { background: #f9fafb; }
+  .btn-primary { background: #534AB7; color: #fff; border: none; }
+  .btn-primary:hover { background: #3C3489; }
+  .btn-danger { background: transparent; border: 1px solid #f0959b; color: #A32D2D; }
+
+  /* Tabs */
+  .tabs-bar { background: #fff; border-bottom: 1px solid #e8e8f0; padding: 0 24px; display: flex; gap: 0; overflow-x: auto; }
+  .tab { padding: 12px 18px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: #6b7280; display: flex; align-items: center; gap: 7px; white-space: nowrap; user-select: none; }
+  .tab:hover { color: #374151; }
+  .tab.active { color: #534AB7; border-bottom-color: #534AB7; font-weight: 500; }
+  .tab i { font-size: 15px; }
+  .tab .count { font-size: 10px; background: #e8e8f0; color: #6b7280; border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center; }
+  .tab.active .count { background: #EEEDFE; color: #534AB7; }
+
+  /* Content area */
+  .content { padding: 24px; max-width: 1100px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .span-2 { grid-column: span 2; }
+
+  /* Info fields */
+  .info-field { background: #f8f8fc; border: 1px solid #e8e8f0; border-radius: 8px; padding: 12px 14px; }
+  .info-field .lbl { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .info-field .val { font-size: 14px; font-weight: 500; color: #1a1a2e; }
+  .info-field .val.highlight { color: #534AB7; font-size: 16px; }
+
+  /* Card block */
+  .card { background: #fff; border: 1px solid #e8e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .card-header { padding: 12px 18px; background: #f8f8fc; border-bottom: 1px solid #e8e8f0; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: #374151; }
+  .card-header i { font-size: 17px; color: #534AB7; }
+  .card-header .card-actions { margin-left: auto; display: flex; gap: 8px; }
+  .card-body { padding: 18px; }
+  .card-body.no-pad { padding: 0; }
+
+  /* Equipment table */
+  .eq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .eq-table th { text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 500; color: #9ca3af; border-bottom: 1px solid #e8e8f0; background: #f8f8fc; text-transform: uppercase; letter-spacing: 0.03em; }
+  .eq-table td { padding: 11px 14px; border-bottom: 1px solid #f0f0f7; color: #374151; }
+  .eq-table tr:last-child td { border-bottom: none; }
+  .eq-table tr:hover td { background: #f8f8fc; }
+  .eq-table td .model { font-weight: 600; color: #1a1a2e; display: block; }
+  .eq-table td .note { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+  .cat-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .cat-inv { background: #EEEDFE; color: #3C3489; }
+  .cat-mod { background: #E1F5EE; color: #085041; }
+  .cat-bess { background: #FAEEDA; color: #633806; }
+  .cat-kab { background: #f1f0f8; color: #5F5E5A; }
+  .cat-laik { background: #f0f7f1; color: #3B6D11; }
+  .add-row-btn { padding: 11px 14px; font-size: 13px; color: #534AB7; cursor: pointer; display: flex; align-items: center; gap: 6px; border-top: 1px solid #f0f0f7; }
+  .add-row-btn:hover { background: #f8f8fc; }
+  .qty-badge { display: inline-block; background: #f0f0f7; border-radius: 5px; padding: 3px 9px; font-weight: 500; font-size: 13px; }
+
+  /* String layout */
+  .string-dark-box { background: #0f0f1a; border-radius: 10px; min-height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; padding: 24px; }
+  .string-placeholder { color: #4a4a6a; text-align: center; }
+  .string-placeholder i { font-size: 38px; margin-bottom: 8px; display: block; }
+  .string-placeholder p { font-size: 14px; color: #6b6b8a; }
+  .string-placeholder span { font-size: 12px; color: #4a4a6a; }
+  .upload-area { border: 2px dashed #d1c8ff; border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: background 0.15s; margin-bottom: 16px; }
+  .upload-area:hover { background: #f8f7ff; }
+  .upload-area i { font-size: 32px; color: #534AB7; margin-bottom: 8px; display: block; }
+  .upload-area p { font-size: 14px; color: #374151; font-weight: 500; }
+  .upload-area span { font-size: 12px; color: #9ca3af; }
+
+  /* File cards */
+  .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px; }
+  .file-card { border: 1px solid #e8e8f0; border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s; }
+  .file-card:hover { box-shadow: 0 2px 12px rgba(83,74,183,0.12); border-color: #c4bff5; }
+  .file-thumb { height: 95px; background: #f8f8fc; display: flex; align-items: center; justify-content: center; }
+  .file-thumb.dark { background: #1a1a2e; }
+  .file-thumb i { font-size: 34px; }
+  .file-info { padding: 9px 11px; background: #fff; }
+  .file-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1a1a2e; }
+  .file-size { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .file-add-card { border: 1.5px dashed #d1d5db; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 130px; gap: 7px; cursor: pointer; color: #9ca3af; }
+  .file-add-card:hover { background: #f8f7ff; border-color: #c4bff5; color: #534AB7; }
+
+  /* Checklist */
+  .checklist-section-title { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0; margin-bottom: 6px; margin-top: 8px; }
+  .check-item { display: flex; align-items: flex-start; gap: 11px; padding: 9px 12px; border-radius: 8px; cursor: pointer; }
+  .check-item:hover { background: #f8f8fc; }
+  .check-box { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #d1d5db; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .check-box.checked { background: #534AB7; border-color: #534AB7; }
+  .check-box.checked::after { content: ""; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); margin-top: -2px; display: block; }
+  .check-text { font-size: 13px; line-height: 1.4; color: #374151; }
+  .check-text.done { color: #9ca3af; text-decoration: line-through; }
+  .check-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+  .progress-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding: 12px 16px; background: #f8f8fc; border-radius: 10px; border: 1px solid #e8e8f0; }
+  .progress-bar { flex: 1; height: 6px; background: #e8e8f0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #534AB7, #7F77DD); border-radius: 3px; width: 33%; transition: width 0.4s; }
+  .progress-label { font-size: 13px; color: #374151; white-space: nowrap; }
+  .progress-pct { font-size: 13px; font-weight: 600; color: #534AB7; min-width: 36px; text-align: right; }
+
+  /* String params table */
+  .string-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .string-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 500; color: #9ca3af; border-bottom: 1px solid #e8e8f0; background: #f8f8fc; }
+  .string-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f7; }
+  .string-table tr:last-child td { border-bottom: none; }
+  .mppt-badge { display: inline-block; background: #EEEDFE; color: #3C3489; font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 500; }
+  .orient-badge { display: inline-block; background: #E1F5EE; color: #085041; font-size: 11px; padding: 2px 7px; border-radius: 4px; }
+
+  /* Textarea */
+  textarea { width: 100%; min-height: 85px; resize: vertical; font-size: 13px; padding: 11px 13px; border: 1px solid #e8e8f0; border-radius: 8px; background: #f8f8fc; color: #374151; font-family: inherit; }
+  textarea:focus { outline: none; border-color: #7F77DD; background: #fff; }
+
+  /* Info note */
+  .info-note { background: #f0effe; border: 1px solid #c4bff5; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #534AB7; display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .info-note i { font-size: 16px; flex-shrink: 0; }
+
+  @media (max-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .span-2 { grid-column: span 1; }
+    .obj-stats { display: none; }
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><i class="ti ti-solar-panel"></i> InstallerApp</div>
+    <div class="sidebar-item"><i class="ti ti-dashboard"></i> Dashboard</div>
+    <div class="sidebar-item active"><i class="ti ti-building-factory-2"></i> Objektai</div>
+    <div class="sidebar-item"><i class="ti ti-users"></i> Montuotojai</div>
+    <div class="sidebar-item"><i class="ti ti-list-check"></i> Checklist'ai</div>
+    <div class="sidebar-item"><i class="ti ti-gift"></i> Bonusai <span class="badge-beta">BETA</span></div>
+    <div class="sidebar-item"><i class="ti ti-chart-bar"></i> Ataskaitos <span class="badge-beta">BETA</span></div>
+    <div class="sidebar-item"><i class="ti ti-upload"></i> Importas <span class="badge-beta">BETA</span></div>
+    <div class="sidebar-footer">
+      <div class="avatar-sm">AU</div>
+      <span class="name">Aurimas</span>
+      <span class="logout"><i class="ti ti-logout" style="font-size:16px"></i></span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <a class="topbar-back" href="#"><i class="ti ti-arrow-left"></i> Grįžti prie objektų sąrašo</a>
+      <div style="width:1px;height:16px;background:#2a2a40"></div>
+      <div class="topbar-title">UAB SunPower – Kauno g. 12</div>
+      <div class="topbar-badges">
+        <span class="badge badge-status-laukia"><i class="ti ti-clock" style="font-size:11px"></i> Laukia</span>
+        <span class="badge badge-type"><i class="ti ti-solar-panel" style="font-size:11px"></i> PV</span>
+        <span class="badge badge-person"><i class="ti ti-users" style="font-size:11px"></i> Aurimas ir Tomas</span>
+      </div>
+    </div>
+
+    <!-- Object header -->
+    <div class="obj-header">
+      <div class="obj-avatar"><i class="ti ti-building-factory-2"></i></div>
+      <div class="obj-meta">
+        <h1>UAB SunPower – Kauno g. 12</h1>
+        <p>
+          <i class="ti ti-map-pin"></i> Kauno g. 12-5, Vilnius
+          &nbsp;·&nbsp;
+          <i class="ti ti-calendar"></i> Montavimas: 2026-06-04
+          &nbsp;·&nbsp;
+          <i class="ti ti-user"></i> Vadybininkas: Aurimas
+        </p>
+      </div>
+      <div class="obj-stats">
+        <div class="stat-pill"><div class="val">49,5</div><div class="lbl">kWp</div></div>
+        <div class="stat-pill"><div class="val">100</div><div class="lbl">kWh BESS</div></div>
+        <div class="stat-pill"><div class="val">3</div><div class="lbl">Montuotojai</div></div>
+        <div class="stat-pill"><div class="val" style="font-size:14px;color:#085041">33%</div><div class="lbl">Checklist</div></div>
+      </div>
+      <div class="obj-actions">
+        <button class="btn btn-ghost"><i class="ti ti-share"></i> Dalintis</button>
+        <button class="btn btn-ghost"><i class="ti ti-edit"></i> Redaguoti</button>
+        <button class="btn btn-primary"><i class="ti ti-device-floppy"></i> Išsaugoti</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <div class="tab active" data-tab="info"><i class="ti ti-info-circle"></i> Objekto info</div>
+      <div class="tab" data-tab="equip"><i class="ti ti-cpu"></i> Įranga <span class="count">5</span></div>
+      <div class="tab" data-tab="strings"><i class="ti ti-sitemap"></i> Stringavimas</div>
+      <div class="tab" data-tab="files"><i class="ti ti-folder-open"></i> Failai &amp; vizualizacijos <span class="count">5</span></div>
+      <div class="tab" data-tab="check"><i class="ti ti-list-check"></i> Checklist <span class="count">4/12</span></div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- === TAB: Objekto info === -->
+      <div class="tab-panel active" id="tab-info">
+        <div class="grid-2" style="margin-bottom:16px">
+
+          <div class="card">
+            <div class="card-header"><i class="ti ti-building"></i> Kliento informacija</div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div class="info-field"><div class="lbl">Įmonė / klientas</div><div class="val">UAB SunPower</div></div>
+                <div class="info-field"><div class="lbl">Kontaktinis asmuo</div><div class="val">Jonas Petraitis</div></div>
+                <div class="info-field"><div class="lbl">Tel. nr.</div><div class="val">+370 612 34567</div></div>
+                <div class="info-field"><div class="lbl">El. paštas</div><div class="val" style="font-size:13px">j.petraitis@sunpower.lt</div></div>
+                <div class="info-field span-2"><div class="lbl">Adresas</div><div class="val">Kauno g. 12-5, LT-01103 Vilnius</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><i class="ti ti-file-certificate"></i> Techniniai duomenys</div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div class="info-field"><div class="lbl">Įrengta galia</div><div class="val highlight">49,5 kWp</div></div>
+                <div class="info-field"><div class="lbl">BESS talpa</div><div class="val highlight">100 kWh</div></div>
+                <div class="info-field"><div class="lbl">Skaitiklio nr.</div><div class="val">EST-00241897</div></div>
+                <div class="info-field"><div class="lbl">Sutarties nr.</div><div class="val">REE-2026-0412</div></div>
+                <div class="info-field"><div class="lbl">ESO leidimo nr.</div><div class="val">LT-ES-2026-4471</div></div>
+                <div class="info-field"><div class="lbl">Perdavimo data</div><div class="val" style="color:#9ca3af">—</div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="card">
+          <div class="card-header"><i class="ti ti-note"></i> Pastabos / komentarai montuotojui</div>
+          <div class="card-body">
+            <textarea placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui...">Stogo dengimas – trapecinė skarda. Prieiga pro šiaurinį vartą, kodas: 4412. Montuotojai privalo nešioti šalmą visą darbo dieną.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- === TAB: Įranga === -->
+      <div class="tab-panel" id="tab-equip">
+        <div class="card">
+          <div class="card-header">
+            <i class="ti ti-cpu"></i> Įrangos sąrašas
+            <div class="card-actions">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px"><i class="ti ti-table-export"></i> Eksportuoti</button>
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 11px"><i class="ti ti-plus"></i> Pridėti</button>
+            </div>
+          </div>
+          <div class="card-body no-pad">
+            <table class="eq-table">
+              <thead>
+                <tr>
+                  <th style="width:130px">Kategorija</th>
+                  <th>Komponentas</th>
+                  <th>Modelis / specifikacija</th>
+                  <th style="width:90px;text-align:center">Kiekis</th>
+                  <th>Pastabos</th>
+                  <th style="width:50px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cat-badge cat-inv">Inverteris</span></td>
+                  <td>String inverteris</td>
+                  <td>
+                    <span class="model">Huawei SUN2000-50KTL-M3</span>
+                    <span class="note">Trifazis, 50 kW, IP65</span>
+                  </td>
+                  <td style="text-align:center"><span class="qty-badge">1 vnt</span></td>
+                  <td style="color:#9ca3af;font-size:12px">Lauko montavimas</td>
+                  <td><i class="ti ti-dots-vertical" style="color:#9ca3af;cursor:pointer"></i></td>
+                </tr>
+                <tr>
+                  <td><span class="cat-badge cat-mod">Moduliai</span></td>
+                  <td>Bifacial modulis</td>
+                  <td>
+                    <span class="model">JA Solar JAM72D40-580/MB</span>
+                    <span class="note">580 Wp, Mono PERC, bifacial</span>
+                  </td>
+                  <td style="text-align:center"><span class="qty-badge">85 vnt</span></td>
+                  <td style="color:#9ca3af;font-size:12px">580 × 85 = 49,3 kWp</td>
+                  <td><i class="ti ti-dots-vertical" style="color:#9ca3af;cursor:pointer"></i></td>
+                </tr>
+                <tr>
+                  <td><span class="cat-badge cat-bess">BESS</span></td>
+                  <td>Baterijų sistema</td>
+                  <td>
+                    <span class="model">SigenStor EC-100L</span>
+                    <span class="note">100 kWh, LFP chemija, 3-fazė</span>
+                  </td>
+                  <td style="text-align:center"><span class="qty-badge">1 vnt</span></td>
+                  <td style="color:#9ca3af;font-size:12px">BMS integruotas</td>
+                  <td><i class="ti ti-dots-vertical" style="color:#9ca3af;cursor:pointer"></i></td>
+                </tr>
+                <tr>
+                  <td><span class="cat-badge cat-kab">Kabeliai</span></td>
+                  <td>DC kabelis</td>
+                  <td>
+                    <span class="model">Prysmian PV-1F 4mm²</span>
+                    <span class="note">UV atsparus, 1kV DC</span>
+                  </td>
+                  <td style="text-align:center"><span class="qty-badge">420 m</span></td>
+                  <td style="color:#9ca3af;font-size:12px">Raudonas + juodas po 210 m</td>
+                  <td><i class="ti ti-dots-vertical" style="color:#9ca3af;cursor:pointer"></i></td>
+                </tr>
+                <tr>
+                  <td><span class="cat-badge cat-laik">Laikikliai</span></td>
+                  <td>Montavimo sistema</td>
+                  <td>
+                    <span class="model">K2 CrossRail CombiRail Pro</span>
+                    <span class="note">Trapec. skardai, aliuminis</span>
+                  </td>
+                  <td style="text-align:center"><span class="qty-badge">1 kompl.</span></td>
+                  <td style="color:#9ca3af;font-size:12px">Skaičiuoti pagal planą</td>
+                  <td><i class="ti ti-dots-vertical" style="color:#9ca3af;cursor:pointer"></i></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="add-row-btn"><i class="ti ti-plus"></i> Pridėti eilutę</div>
+          </div>
+        </div>
+        <div class="info-note"><i class="ti ti-info-circle"></i> Kategorija automatiškai nustatoma pagal objekto tipą. Galima laisvai pridėti bet kokių papildomų komponentų.</div>
+      </div>
+
+      <!-- === TAB: Stringavimas === -->
+      <div class="tab-panel" id="tab-strings">
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-header"><i class="ti ti-topology-star"></i> String layout (DC schema)</div>
+            <div class="card-body no-pad">
+              <div style="padding:16px">
+                <div class="string-dark-box">
+                  <div class="string-placeholder">
+                    <i class="ti ti-photo-up"></i>
+                    <p>String layout PNG</p>
+                    <span>Vilkite failą arba paspauskite įkelti</span>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:10px 16px;border-top:1px solid #e8e8f0">
+                <button class="btn btn-ghost" style="width:100%;justify-content:center"><i class="ti ti-upload"></i> Įkelti string schemą</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><i class="ti ti-home"></i> Stogo planas / aerial view</div>
+            <div class="card-body no-pad">
+              <div style="padding:16px">
+                <div class="string-dark-box">
+                  <div class="string-placeholder">
+                    <i class="ti ti-building-warehouse"></i>
+                    <p>Stogo planas – modulių išdėstymas</p>
+                    <span>PNG arba DWG formatas</span>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:10px 16px;border-top:1px solid #e8e8f0">
+                <button class="btn btn-ghost" style="width:100%;justify-content:center"><i class="ti ti-upload"></i> Įkelti stogo planą</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <i class="ti ti-chart-tree-map"></i> String parametrų lentelė
+            <div class="card-actions">
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 11px"><i class="ti ti-plus"></i> Pridėti string</button>
+            </div>
+          </div>
+          <div class="card-body no-pad">
+            <table class="string-table">
+              <thead>
+                <tr><th>String</th><th>Modulių sk.</th><th>Galia (kWp)</th><th>MPPT kanalas</th><th>Orientacija</th><th>Kampas</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>String 1</td><td>17 vnt</td><td>9,86 kWp</td><td><span class="mppt-badge">MPPT 1+</span></td><td><span class="orient-badge">Pietūs</span></td><td>20°</td></tr>
+                <tr><td>String 2</td><td>17 vnt</td><td>9,86 kWp</td><td><span class="mppt-badge">MPPT 1−</span></td><td><span class="orient-badge">Pietūs</span></td><td>20°</td></tr>
+                <tr><td>String 3</td><td>17 vnt</td><td>9,86 kWp</td><td><span class="mppt-badge">MPPT 2+</span></td><td><span class="orient-badge">Pietryčiai</span></td><td>20°</td></tr>
+                <tr><td>String 4</td><td>17 vnt</td><td>9,86 kWp</td><td><span class="mppt-badge">MPPT 2−</span></td><td><span class="orient-badge">Pietvakariai</span></td><td>20°</td></tr>
+                <tr><td>String 5</td><td>17 vnt</td><td>9,86 kWp</td><td><span class="mppt-badge">MPPT 3+</span></td><td><span class="orient-badge">Pietūs</span></td><td>20°</td></tr>
+              </tbody>
+            </table>
+            <div class="add-row-btn"><i class="ti ti-plus"></i> Pridėti string</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === TAB: Failai === -->
+      <div class="tab-panel" id="tab-files">
+        <div class="upload-area">
+          <i class="ti ti-cloud-upload"></i>
+          <p>Vilkite failus čia arba paspauskite įkelti</p>
+          <span>PNG, JPG, PDF, DWG, DXF, XLSX · maks. 50 MB vienam failui</span>
+        </div>
+        <div class="file-grid">
+          <div class="file-card">
+            <div class="file-thumb dark"><i class="ti ti-photo" style="color:#5DCAA5"></i></div>
+            <div class="file-info"><div class="file-name">vizualizacija_priekis.png</div><div class="file-size">2,4 MB · PNG</div></div>
+          </div>
+          <div class="file-card">
+            <div class="file-thumb dark"><i class="ti ti-photo" style="color:#5DCAA5"></i></div>
+            <div class="file-info"><div class="file-name">vizualizacija_galas.png</div><div class="file-size">1,9 MB · PNG</div></div>
+          </div>
+          <div class="file-card">
+            <div class="file-thumb dark"><i class="ti ti-photo" style="color:#85B7EB"></i></div>
+            <div class="file-info"><div class="file-name">stogo_planas_aerial.png</div><div class="file-size">3,1 MB · PNG</div></div>
+          </div>
+          <div class="file-card">
+            <div class="file-thumb"><i class="ti ti-file-type-pdf" style="color:#D85A30"></i></div>
+            <div class="file-info"><div class="file-name">ESO_leidimas.pdf</div><div class="file-size">0,8 MB · PDF</div></div>
+          </div>
+          <div class="file-card">
+            <div class="file-thumb"><i class="ti ti-file-type-pdf" style="color:#D85A30"></i></div>
+            <div class="file-info"><div class="file-name">PV_schema_DC.pdf</div><div class="file-size">1,1 MB · PDF</div></div>
+          </div>
+          <div class="file-card">
+            <div class="file-thumb"><i class="ti ti-file-spreadsheet" style="color:#1D9E75"></i></div>
+            <div class="file-info"><div class="file-name">sizing_matrica.xlsx</div><div class="file-size">0,3 MB · XLSX</div></div>
+          </div>
+          <div class="file-add-card">
+            <i class="ti ti-plus" style="font-size:26px"></i>
+            <span style="font-size:12px">Įkelti failą</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === TAB: Checklist === -->
+      <div class="tab-panel" id="tab-check">
+        <div class="progress-wrap">
+          <span class="progress-label"><i class="ti ti-list-check" style="font-size:15px;vertical-align:-2px;color:#534AB7"></i> Atlikta: 4 iš 12 užduočių</span>
+          <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+          <span class="progress-pct" id="prog-pct">33%</span>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px"><i class="ti ti-plus"></i> Pridėti</button>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+
+            <div class="checklist-section-title">Pasiruošimas</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box checked"></div><div><div class="check-text done">Patikrinta įranga sandėlyje</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Tomas &nbsp;·&nbsp; <i class="ti ti-clock" style="font-size:11px"></i> 2026-06-03 08:12</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box checked"></div><div><div class="check-text done">Transporto priemonė pakrauta</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Tomas &nbsp;·&nbsp; <i class="ti ti-clock" style="font-size:11px"></i> 2026-06-03 08:30</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box checked"></div><div><div class="check-text done">ESO leidimas patikrintas</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Aurimas &nbsp;·&nbsp; <i class="ti ti-clock" style="font-size:11px"></i> 2026-06-02 14:45</div></div></div>
+
+            <div class="checklist-section-title" style="margin-top:16px">Montavimas – mechanika</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box checked"></div><div><div class="check-text done">Laikiklių sistema sumontuota</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Tomas &nbsp;·&nbsp; <i class="ti ti-clock" style="font-size:11px"></i> 2026-06-04 11:00</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">Moduliai sumontuoti ant stogo</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Priskyrta: Tomas, Mindaugas</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">Inverterio tvirtinimas atliktas</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Priskyrta: Mindaugas</div></div></div>
+
+            <div class="checklist-section-title" style="margin-top:16px">Elektrika &amp; DC</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">String kabeliai sujungti pagal schemą</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Priskyrta: Tomas</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">DC izoliacijos pasipriešinimas patikrintas (≥1 MΩ)</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Priskyrta: Mindaugas</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">BESS DC kabeliai sujungti</div><div class="check-meta"><i class="ti ti-user" style="font-size:11px"></i> Priskyrta: Tomas</div></div></div>
+
+            <div class="checklist-section-title" style="margin-top:16px">Paleidimas &amp; perdavimas</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">Inverteris įjungtas, tikrinamas generavimas</div><div class="check-meta">—</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">Huawei FusionSolar sukonfigūruotas ir tikrinamas</div><div class="check-meta">—</div></div></div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-text">Perdavimo-priėmimo aktas pasirašytas</div><div class="check-meta">—</div></div></div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Checklist toggle
+  function toggleCheck(item) {
+    const box = item.querySelector('.check-box');
+    const text = item.querySelector('.check-text');
+    box.classList.toggle('checked');
+    text.classList.toggle('done');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = document.querySelectorAll('.check-item').length;
+    const done = document.querySelectorAll('.check-box.checked').length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent = pct + '%';
+    document.querySelector('[data-tab="check"] .count').textContent = done + '/' + total;
+  }
+</script>
+</body>
+</html>

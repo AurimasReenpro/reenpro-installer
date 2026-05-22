@@ -1,4 +1,8 @@
 import { Loader2 } from 'lucide-react';
+import LiveTimer from '../../../components/mobile/LiveTimer';
+import type { Database } from '../../../types/database.types';
+
+type TimeEntry = Database['public']['Tables']['time_entries']['Row'];
 
 interface SiteDetailActionBarProps {
   status: string | null;
@@ -8,6 +12,8 @@ interface SiteDetailActionBarProps {
   onPause: () => void;
   onResume: () => void;
   onComplete: () => void;
+  entries: TimeEntry[];
+  installerId: string | undefined;
 }
 
 export default function SiteDetailActionBar({
@@ -17,7 +23,9 @@ export default function SiteDetailActionBar({
   onCheckIn,
   onPause,
   onResume,
-  onComplete
+  onComplete,
+  entries,
+  installerId
 }: SiteDetailActionBarProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[70] drop-shadow-2xl">
@@ -39,6 +47,11 @@ export default function SiteDetailActionBar({
 
       {status === 'in_progress' && (
         <div className="flex flex-col">
+          <div className="h-[40px] bg-gradient-to-r from-success to-[#059669] flex items-center justify-center gap-1.5">
+            <span className="text-white font-semibold text-sm flex items-center gap-1.5">
+              ⏱️ <LiveTimer entries={entries} installerId={installerId} />
+            </span>
+          </div>
           <div className="h-[80px] bg-white flex gap-3 px-4 py-4 border-t border-outline-variant pb-6">
             <button onClick={onPause} disabled={isActionPending} className="flex-1 rounded-xl text-on-surface font-semibold border-2 border-outline-variant flex items-center justify-center transition-transform active:bg-gray-50 h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">
               PAUZĖ
@@ -52,8 +65,10 @@ export default function SiteDetailActionBar({
 
       {status === 'paused' && (
         <div className="flex flex-col">
-          <div className="h-[40px] bg-[#F59E0B] flex items-center justify-center">
-            <span className="text-white font-semibold text-sm">⏸️ Pertrauka</span>
+          <div className="h-[40px] bg-[#F59E0B] flex items-center justify-center gap-1.5">
+            <span className="text-white font-semibold text-sm flex items-center gap-1.5">
+              ⏸️ Pertrauka | <LiveTimer entries={entries} installerId={installerId} />
+            </span>
           </div>
           <div className="h-[80px] bg-white flex gap-3 px-4 py-4 border-t border-outline-variant pb-6">
             <button onClick={onResume} disabled={isActionPending} className="flex-1 rounded-xl bg-success text-white font-semibold flex items-center justify-center transition-transform active:bg-[#0f9e6d] h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">
@@ -68,3 +83,4 @@ export default function SiteDetailActionBar({
     </div>
   );
 }
+

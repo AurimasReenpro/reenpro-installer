@@ -15,6 +15,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_settings: {
+        Row: {
+          id: string
+          company_name: string | null
+          company_code: string | null
+          vat_code: string | null
+          iban: string | null
+          address: string | null
+          phone: string | null
+          email: string | null
+          logo_url: string | null
+          primary_color: string | null
+          base_lat: number | null
+          base_lng: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_name?: string | null
+          company_code?: string | null
+          vat_code?: string | null
+          iban?: string | null
+          address?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_name?: string | null
+          company_code?: string | null
+          vat_code?: string | null
+          iban?: string | null
+          address?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          base_lat?: number | null
+          base_lng?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment_catalog: {
+
+        Row: {
+          id: string
+          category: string
+          brand: string
+          model: string
+          specifications: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          brand?: string
+          model: string
+          specifications?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          brand?: string
+          model?: string
+          specifications?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       checklist_categories: {
         Row: {
           created_at: string | null
@@ -199,6 +278,7 @@ export type Database = {
           code: string
           created_at: string
           estimated_hours: number | null
+          equipment_details: import('../types/equipment.types').EquipmentItem[] | Record<string, string> | null
           id: string
           kwp: number | null
           latitude: number | null
@@ -206,7 +286,9 @@ export type Database = {
           notes: string | null
           scheduled_start: string | null
           status: string | null
+          stringing_details: any | null
           system_type: string
+          team_id: string | null
         }
         Insert: {
           actual_end?: string | null
@@ -216,6 +298,7 @@ export type Database = {
           client_phone?: string | null
           code: string
           created_at?: string
+          equipment_details?: Record<string, string> | null
           estimated_hours?: number | null
           id?: string
           kwp?: number | null
@@ -224,7 +307,9 @@ export type Database = {
           notes?: string | null
           scheduled_start?: string | null
           status?: string | null
+          stringing_details?: any | null
           system_type: string
+          team_id?: string | null
         }
         Update: {
           actual_end?: string | null
@@ -234,6 +319,7 @@ export type Database = {
           client_phone?: string | null
           code?: string
           created_at?: string
+          equipment_details?: Record<string, string> | null
           estimated_hours?: number | null
           id?: string
           kwp?: number | null
@@ -242,7 +328,9 @@ export type Database = {
           notes?: string | null
           scheduled_start?: string | null
           status?: string | null
+          stringing_details?: any | null
           system_type?: string
+          team_id?: string | null
         }
         Relationships: []
       }
@@ -307,6 +395,7 @@ export type Database = {
           id: string
           phone: string | null
           role: string | null
+          team_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -317,6 +406,7 @@ export type Database = {
           id: string
           phone?: string | null
           role?: string | null
+          team_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -327,6 +417,25 @@ export type Database = {
           id?: string
           phone?: string | null
           role?: string | null
+          team_id?: string | null
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -342,6 +451,8 @@ export type Database = {
           latest_action_time: string | null
           site_code: string | null
           site_id: string | null
+          site_status: string | null
+          site_actual_end: string | null
           start_time: string | null
         }
         Relationships: [

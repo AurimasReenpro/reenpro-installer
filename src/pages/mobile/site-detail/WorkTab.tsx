@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import SignedPhoto from '../../../components/ui/SignedPhoto';
 import type { SiteChecklist, SitePhoto } from '../../../types/site.types';
-import { Check, Loader2, Camera } from 'lucide-react';
+import { Check, Loader2, Camera, Image, X } from 'lucide-react';
 
 interface WorkTabProps {
   checklists: SiteChecklist[];
@@ -11,6 +11,99 @@ interface WorkTabProps {
   onToggleChecklist: (checkId: string, currentStatus: boolean) => void;
   onUploadPhoto: (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => void;
   onSelectPhoto: (photo: SitePhoto, checkId: string) => void;
+}
+
+function PhotoPickerButton({
+  checkId,
+  onUploadPhoto,
+}: {
+  checkId: string;
+  onUploadPhoto: (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => void;
+}) {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>, ref: React.RefObject<HTMLInputElement | null>) => {
+    void onUploadPhoto(e, checkId);
+    if (ref.current) ref.current.value = '';
+  };
+
+  return (
+    <>
+      {/* Hidden inputs */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => handleFile(e, cameraInputRef)}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFile(e, galleryInputRef)}
+      />
+
+      {/* Camera icon button */}
+      <button
+        onClick={() => setShowPicker(true)}
+        className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-full bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors"
+      >
+        <Camera className="text-[#8052b2] w-5 h-5" />
+      </button>
+
+      {/* Bottom sheet picker */}
+      {showPicker && (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col justify-end"
+          onClick={() => setShowPicker(false)}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative bg-white rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto mb-2" />
+            <p className="text-center text-[#1d033a] font-bold text-base mb-1">Pridėti nuotrauką</p>
+
+            <button
+              onClick={() => {
+                setShowPicker(false);
+                setTimeout(() => cameraInputRef.current?.click(), 50);
+              }}
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md"
+            >
+              <Camera className="w-5 h-5 shrink-0" />
+              Fotografuoti
+            </button>
+
+            <button
+              onClick={() => {
+                setShowPicker(false);
+                setTimeout(() => galleryInputRef.current?.click(), 50);
+              }}
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] text-primary font-semibold text-base active:scale-95 transition-all"
+            >
+              <Image className="w-5 h-5 shrink-0" />
+              Pasirinkti iš galerijos
+            </button>
+
+            <button
+              onClick={() => setShowPicker(false)}
+              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] text-[#4b4452] font-semibold text-sm active:scale-95 transition-all mt-1"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Atšaukti
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function WorkTab({
@@ -73,18 +166,7 @@ export default function WorkTab({
                         )}
                       />
                     ) : (
-                      <label 
-                        className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-full bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors"
-                      >
-                        <Camera className="text-[#8052b2] w-5 h-5" />
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          capture="environment" 
-                          className="hidden" 
-                          onChange={(e) => { void onUploadPhoto(e, item.id); }}
-                        />
-                      </label>
+                      <PhotoPickerButton checkId={item.id} onUploadPhoto={onUploadPhoto} />
                     )}
                   </div>
                 )}

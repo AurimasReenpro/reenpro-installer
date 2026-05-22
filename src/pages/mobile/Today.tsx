@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { useNavigate } from 'react-router-dom';
 import { startWork } from '../../api/timeTracking';
-import { supabase } from '../../lib/supabase';
+import { getInstallerSites } from '../../api/sites';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
 import * as Sentry from "@sentry/react";
@@ -30,27 +30,17 @@ export default function Today() {
   const { data: sitesData, isLoading: isLoadingSites } = useQuery({
     queryKey: ['my-sites-today', profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('site_assignments')
-        .select(`
-          is_lead,
-          sites!inner (*)
-        `)
-        .eq('installer_id', profile?.id as string)
-        .in('sites.status', ['pending', 'in_progress']);
-
-      if (error) throw error;
-
-      const assignedSites = data?.map((item) => item.sites) || [];
+      const assignedSites = await getInstallerSites(profile?.id as string);
       
       // Sort by scheduled_start locally
-      assignedSites.sort((a, b) => {
+      const sorted = [...assignedSites];
+      sorted.sort((a, b) => {
         if (!a.scheduled_start) return 1;
         if (!b.scheduled_start) return -1;
         return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
       });
       
-      return assignedSites;
+      return sorted;
     },
     enabled: !!profile?.id, // ONLY run if we have a profile ID
     staleTime: 60_000,
@@ -62,7 +52,10 @@ export default function Today() {
       return siteId;
     },
     onSuccess: (_, siteId) => {
+      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
@@ -75,8 +68,8 @@ export default function Today() {
     }
   });
 
-  const activeSites = sitesData?.filter(s => s.status === 'in_progress') || [];
-  const pendingSites = sitesData?.filter(s => s.status === 'pending') || [];
+  const activeSites = sitesData?.filter(s => s.status === 'in_progress' || s.status === 'paused') || [];
+  const pendingSites = sitesData?.filter(s => s.status !== 'in_progress' && s.status !== 'paused') || [];
   const currentViewSites = activeTab === 'active' ? activeSites : pendingSites;
 
   return (

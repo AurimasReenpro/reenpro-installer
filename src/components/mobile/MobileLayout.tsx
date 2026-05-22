@@ -1,9 +1,11 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User } from 'lucide-react';
 import { FEATURES } from '../../config/features';
+import { useBranding } from '../../hooks/useBranding';
 
 export default function MobileLayout() {
   const location = useLocation();
+  const { logoUrl, companyName } = useBranding();
 
   const navItems = [
     { path: '/m', icon: 'today', label: 'Šiandien', exact: true },
@@ -39,7 +41,11 @@ export default function MobileLayout() {
         <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px]">
           <MenuIcon className="w-6 h-6" />
         </button>
-        <h1 className="text-primary font-bold text-lg">InstallerApp</h1>
+        {logoUrl ? (
+          <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-8 w-auto max-w-[140px] object-contain" />
+        ) : (
+          <h1 className="text-primary font-bold text-lg truncate px-2">{companyName || 'InstallerApp'}</h1>
+        )}
         <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px] relative">
           <Bell className="w-6 h-6" />
           <span className="absolute w-2 h-2 bg-[#fc391d] top-2 right-2 rounded-full border-2 border-surface-bright"></span>

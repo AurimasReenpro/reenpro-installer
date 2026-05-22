@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSameWeek, isSameMonth } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { startWork } from '../../api/timeTracking';
-import { supabase } from '../../lib/supabase';
+import { getInstallerSites } from '../../api/sites';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
 import * as Sentry from "@sentry/react";
@@ -21,26 +21,17 @@ export default function Sites() {
   const { data: sitesData, isLoading } = useQuery({
     queryKey: ['my-sites-all', profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('site_assignments')
-        .select(`
-          is_lead,
-          sites!inner (*)
-        `)
-        .eq('installer_id', profile?.id as string);
-
-      if (error) throw error;
-
-      const assignedSites = data?.map((item) => item.sites) || [];
+      const assignedSites = await getInstallerSites(profile?.id as string);
       
       // Sort locally by scheduled_start descending
-      assignedSites.sort((a, b) => {
+      const sortedSites = [...assignedSites];
+      sortedSites.sort((a, b) => {
         if (!a.scheduled_start) return 1;
         if (!b.scheduled_start) return -1;
         return new Date(b.scheduled_start).getTime() - new Date(a.scheduled_start).getTime();
       });
       
-      return assignedSites;
+      return sortedSites;
     },
     enabled: !!profile?.id,
     staleTime: 60_000,
@@ -52,8 +43,10 @@ export default function Sites() {
       return siteId;
     },
     onSuccess: (_, siteId) => { 
+      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] }); 
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });

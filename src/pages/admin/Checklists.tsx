@@ -215,7 +215,7 @@ export default function Checklists() {
           </button>
           <button 
             onClick={() => handleOpenModal()}
-            className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
+            className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors shadow-sm flex items-center gap-2"
           >
             <Plus size={18} />
             Pridėti naują punktą
@@ -231,7 +231,7 @@ export default function Checklists() {
             onClick={() => setActiveCategory(tab)}
             className={`py-3 text-[14px] font-bold transition-colors border-b-2 -mb-[1px] whitespace-nowrap ${
               activeCategory === tab 
-                ? 'border-[#490891] text-[#490891]' 
+                ? 'border-primary text-primary' 
                 : 'border-transparent text-[#4b4452] hover:text-[#1d033a]'
             }`}
           >
@@ -267,7 +267,7 @@ export default function Checklists() {
                     <td className="py-4 px-6">
                       <span className={`px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border ${
                         item.phase === 'pre' 
-                          ? 'bg-[#ecdcff] text-[#490891] border-[#490891]/20' 
+                          ? 'bg-[#ecdcff] text-primary border-primary/20' 
                           : 'bg-[#ffdad6] text-[#ba1a1a] border-[#ba1a1a]/20'
                       }`}>
                         {item.phase}
@@ -291,7 +291,7 @@ export default function Checklists() {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleOpenModal(item)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-[#490891] hover:bg-[#ecdcff] transition-colors"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-primary hover:bg-[#ecdcff] transition-colors"
                           title="Redaguoti"
                         >
                           <Edit2 size={16} />
@@ -342,7 +342,7 @@ export default function Checklists() {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="Šablono užduotis..."
-                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -352,7 +352,7 @@ export default function Checklists() {
                   required
                   value={formData.phase}
                   onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'post'})}
-                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="pre">Pre (prieš pradžią)</option>
                   <option value="post">Post (pabaigus darbus)</option>
@@ -365,7 +365,7 @@ export default function Checklists() {
                   required
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="">-- Pasirinkti --</option>
                   {categories?.map((cat) => (
@@ -380,7 +380,7 @@ export default function Checklists() {
                   id="requires_photo"
                   checked={formData.requires_photo}
                   onChange={e => setFormData({...formData, requires_photo: e.target.checked})}
-                  className="w-4 h-4 text-[#490891] border-[#cdc3d4] rounded focus:ring-[#490891]"
+                  className="w-4 h-4 text-primary border-[#cdc3d4] rounded focus:ring-primary"
                 />
                 <label htmlFor="requires_photo" className="text-[14px] font-medium text-[#1d033a]">Reikalauja nuotraukos</label>
               </div>
@@ -396,7 +396,7 @@ export default function Checklists() {
                 <button 
                   type="submit" 
                   disabled={saveMutation.isPending}
-                  className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors flex items-center justify-center disabled:opacity-70"
+                  className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors flex items-center justify-center disabled:opacity-70"
                 >
                   {saveMutation.isPending ? 'Saugoma...' : 'Išsaugoti'}
                 </button>
@@ -449,12 +449,12 @@ export default function Checklists() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Naujos grupės pavadinimas"
-                  className="flex-1 h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] focus:ring-1 focus:ring-[#490891]"
+                  className="flex-1 h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
                 <button 
                   type="submit"
                   disabled={addCategoryMutation.isPending || !newCategoryName.trim()}
-                  className="h-[44px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors disabled:opacity-70 flex-shrink-0"
+                  className="h-[44px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors disabled:opacity-70 flex-shrink-0"
                 >
                   {addCategoryMutation.isPending ? '...' : 'Pridėti'}
                 </button>

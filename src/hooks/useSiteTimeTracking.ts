@@ -7,23 +7,32 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { SiteDetailData } from '../types/site.types';
 
-export function useSiteTimeTracking(siteId: string, site: SiteDetailData | undefined, profileId: string | undefined) {
+export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | undefined, profileId: string | undefined) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
 
   const handleCheckIn = async () => {
-    if (!profileId || !site?.id) return;
+    if (!profileId || !siteId) return;
     
     setIsCheckingIn(true);
     try {
-      const pos = await getCurrentPositionWithTimeout(10000);
-      await startWork(site.id, pos?.lat, pos?.lng);
+      let pos = null;
+      try {
+        pos = await getCurrentPositionWithTimeout(10000);
+      } catch (geoError) {
+        console.warn('Check-in geolocation warning:', geoError);
+      }
+      await startWork(siteId, pos?.lat, pos?.lng);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
+      toast.success('Darbas pradėtas!');
     } catch (error) {
       console.error('Check-in error:', error);
       Sentry.captureException(error, { extra: { context: 'Check-in error:' } });
@@ -34,16 +43,24 @@ export function useSiteTimeTracking(siteId: string, site: SiteDetailData | undef
   };
 
   const handleResume = async () => {
-    if (!profileId || !site?.id || isActionPending) return;
+    if (!profileId || !siteId || isActionPending) return;
     setIsActionPending(true);
     try {
-      const pos = await getCurrentPositionWithTimeout(10000);
-      await resumeWork(site.id, pos?.lat, pos?.lng);
+      let pos = null;
+      try {
+        pos = await getCurrentPositionWithTimeout(10000);
+      } catch (geoError) {
+        console.warn('Resume geolocation warning:', geoError);
+      }
+      await resumeWork(siteId, pos?.lat, pos?.lng);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
+      toast.success('Darbas pratęstas!');
     } catch (error) {
       console.error('Resume error:', error);
       Sentry.captureException(error, { extra: { context: 'Resume error:' } });
@@ -54,15 +71,18 @@ export function useSiteTimeTracking(siteId: string, site: SiteDetailData | undef
   };
 
   const handlePause = async () => {
-    if (!profileId || !site?.id || isActionPending) return;
+    if (!profileId || !siteId || isActionPending) return;
     setIsActionPending(true);
     try {
-      await pauseWork(site.id);
+      await pauseWork(siteId);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
+      toast.success('Darbas pristabdytas!');
     } catch (error) {
       console.error('Pause error:', error);
       Sentry.captureException(error, { extra: { context: 'Pause error:' } });
@@ -73,16 +93,19 @@ export function useSiteTimeTracking(siteId: string, site: SiteDetailData | undef
   };
 
   const handleComplete = async () => {
-    if (!profileId || !site?.id || isActionPending) return;
+    if (!profileId || !siteId || isActionPending) return;
 
     setIsActionPending(true);
     try {
-      await completeWork(site.id);
+      await completeWork(siteId);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
+      void queryClient.invalidateQueries({ queryKey: ['installer_sites'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       void queryClient.invalidateQueries({ queryKey: ['admin_active_sites_online'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_activity_feed'] });
+      toast.success('Montavimo darbai sėkmingai užbaigti!');
       void navigate('/m'); // Return to today's list
     } catch (error) {
       console.error('Complete error:', error);

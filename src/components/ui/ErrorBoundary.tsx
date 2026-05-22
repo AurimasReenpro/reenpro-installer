@@ -24,15 +24,15 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
         </p>
 
         {isDev && (
-          <div className="bg-[#fbf0ff] p-4 rounded-[8px] mb-8 text-left overflow-auto border border-[#490891]/20">
-            <p className="text-[13px] font-mono text-[#490891]">{error.message}</p>
+          <div className="bg-[#fbf0ff] p-4 rounded-[8px] mb-8 text-left overflow-auto border border-primary/20">
+            <p className="text-[13px] font-mono text-primary">{error.message}</p>
           </div>
         )}
 
         <div className="flex flex-col gap-3">
           <button
             onClick={resetError}
-            className="w-full h-[48px] bg-[#490891] text-white rounded-[12px] font-bold text-[15px] hover:bg-[#8052b2] transition-colors active:scale-[0.98]"
+            className="w-full h-[48px] bg-primary text-white rounded-[12px] font-bold text-[15px] hover:bg-primary/80 transition-colors active:scale-[0.98]"
           >
             Bandyti iš naujo
           </button>

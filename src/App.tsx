@@ -14,12 +14,19 @@ import Profile from './pages/mobile/Profile';
 import AdminLayout from './components/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import Sites from './pages/admin/Sites';
+import SiteDetails from './pages/admin/SiteDetails';
 import Checklists from './pages/admin/Checklists';
+import Installers from './pages/admin/Installers';
+import EquipmentCatalog from './pages/admin/EquipmentCatalog';
+import AdminSettings from './pages/admin/Settings';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Toaster } from 'sonner';
 import { ConfirmProvider } from './providers/ConfirmProvider';
+import { useBranding } from './hooks/useBranding';
 
 function AppContent() {
+  // Initialize branding (updates CSS variables)
+  useBranding();
   // Initialize auth listener
   useAuth();
   const location = useLocation();
@@ -55,7 +62,11 @@ function AppContent() {
         >
           <Route index element={<Dashboard />} />
           <Route path="sites" element={<Sites />} />
+          <Route path="sites/:id" element={<SiteDetails />} />
           <Route path="checklists" element={<Checklists />} />
+          <Route path="installers" element={<Installers />} />
+          <Route path="catalog" element={<EquipmentCatalog />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
         
         <Route

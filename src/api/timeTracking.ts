@@ -6,17 +6,28 @@ export async function startWork(siteId: string, lat?: number | null, lng?: numbe
 
   const nowStr = new Date().toISOString();
 
-  // Insert time entry
-  const { error: insertError } = await supabase
+  // Check if there's already an active entry for this user and site
+  const { data: existingActive, error: checkError } = await supabase
     .from('time_entries')
-    .insert({
-      site_id: siteId,
-      installer_id: user.id,
-      start_time: nowStr,
-      start_lat: lat ?? null,
-      start_lng: lng ?? null
-    });
-  if (insertError) throw insertError;
+    .select('id')
+    .match({ site_id: siteId, installer_id: user.id })
+    .is('end_time', null);
+
+  if (checkError) throw checkError;
+
+  if (!existingActive || existingActive.length === 0) {
+    // Insert time entry
+    const { error: insertError } = await supabase
+      .from('time_entries')
+      .insert({
+        site_id: siteId,
+        installer_id: user.id,
+        start_time: nowStr,
+        start_lat: lat ?? null,
+        start_lng: lng ?? null
+      });
+    if (insertError) throw insertError;
+  }
 
   // Get current site to check actual_start
   const { data: site, error: siteError } = await supabase
@@ -45,20 +56,20 @@ export async function pauseWork(siteId: string) {
   if (!user) throw new Error("User not authenticated");
 
   // Close active time entry
-  const { data: activeEntry, error: activeError } = await supabase
+  const { data: activeEntries, error: activeError } = await supabase
     .from('time_entries')
     .select('id')
     .match({ site_id: siteId, installer_id: user.id })
-    .is('end_time', null)
-    .maybeSingle();
+    .is('end_time', null);
 
   if (activeError) throw activeError;
 
-  if (activeEntry) {
+  if (activeEntries && activeEntries.length > 0) {
     const { error: updateTimeError } = await supabase
       .from('time_entries')
       .update({ end_time: new Date().toISOString() })
-      .eq('id', activeEntry.id);
+      .match({ site_id: siteId, installer_id: user.id })
+      .is('end_time', null);
     if (updateTimeError) throw updateTimeError;
   }
 
@@ -95,22 +106,22 @@ export async function completeWork(siteId: string) {
   }
 
   // Check if there is an active time entry for this user and site
-  const { data: activeEntry, error: activeError } = await supabase
+  const { data: activeEntries, error: activeError } = await supabase
     .from('time_entries')
     .select('id')
     .match({ site_id: siteId, installer_id: user.id })
-    .is('end_time', null)
-    .maybeSingle();
+    .is('end_time', null);
 
   if (activeError) throw activeError;
 
   const nowStr = new Date().toISOString();
-  if (activeEntry) {
+  if (activeEntries && activeEntries.length > 0) {
     // If active entry exists, close it
     const { error: updateTimeError } = await supabase
       .from('time_entries')
       .update({ end_time: nowStr })
-      .eq('id', activeEntry.id);
+      .match({ site_id: siteId, installer_id: user.id })
+      .is('end_time', null);
     
     if (updateTimeError) throw updateTimeError;
   } else {

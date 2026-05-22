@@ -55,13 +55,8 @@ export default function Sites() {
           status,
           scheduled_start,
           system_type,
-          site_assignments (
-            installer_id,
-            is_lead,
-            user_profiles (
-              full_name
-            )
-          )
+          team_id,
+          team:teams(name)
         `)
         .order('scheduled_start', { ascending: false });
 
@@ -95,7 +90,7 @@ export default function Sites() {
         <h2 className="text-[24px] font-bold text-[#1d033a]">Visi Objektai</h2>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-[#490891] text-white hover:bg-[#8052b2] transition-colors shadow-sm flex items-center gap-2"
+          className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors shadow-sm flex items-center gap-2"
         >
           <Plus size={18} />
           Sukurti naują objektą
@@ -112,7 +107,7 @@ export default function Sites() {
                 <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Adresas</th>
                 <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Planuojama pradžia</th>
                 <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Statusas</th>
-                <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Montuotojas</th>
+                <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Komanda</th>
                 <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider text-right">Veiksmai</th>
               </tr>
             </thead>
@@ -127,13 +122,10 @@ export default function Sites() {
                 </tr>
               ) : (
                 sites?.map((site) => {
-                  const leadAssignment = site.site_assignments?.find((a) => a.is_lead) || site.site_assignments?.[0];
-                  const installerName = leadAssignment?.user_profiles?.full_name || 'Nepriskirtas';
-                  
                   return (
                     <tr key={site.id} className="border-b border-[#cdc3d4]/20 hover:bg-[#f6f5fa]/30 transition-colors">
                       <td className="py-4 px-6">
-                        <span className="bg-[#fbf0ff] border border-[#cdc3d4]/50 text-[12px] font-bold px-2.5 py-1 rounded-md text-[#490891]">
+                        <span className="bg-[#fbf0ff] border border-[#cdc3d4]/50 text-[12px] font-bold px-2.5 py-1 rounded-md text-primary">
                           {site.code}
                         </span>
                       </td>
@@ -150,17 +142,21 @@ export default function Sites() {
                       <td className="py-4 px-6">
                         {getStatusBadge(site.status || '')}
                       </td>
-                      <td className="py-4 px-6 text-[#4b4452] text-[14px] font-medium flex items-center gap-2">
-                        {leadAssignment && (
-                          <div className="w-6 h-6 rounded-full bg-[#490891] text-white flex items-center justify-center text-[10px] font-bold">
-                            {installerName.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        {installerName}
+                      <td className="py-4 px-6">
+                        {(() => {
+                          const team = site.team as unknown as { name: string } | null;
+                          return team ? (
+                            <span className="bg-[#f0fdf4] text-[#16a34a] border border-[#16a34a]/20 px-2.5 py-1 rounded-[6px] text-[12px] font-bold">
+                              {team.name}
+                            </span>
+                          ) : (
+                            <span className="text-[#cdc3d4] text-[13px]">Nepriskirta</span>
+                          );
+                        })()}
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-3">
-                          <Link to={`/admin/sites/${site.id}`} className="text-[#490891] font-semibold text-[14px] hover:underline">
+                          <Link to={`/admin/sites/${site.id}`} className="text-primary font-semibold text-[14px] hover:underline">
                             Žiūrėti
                           </Link>
                           <button

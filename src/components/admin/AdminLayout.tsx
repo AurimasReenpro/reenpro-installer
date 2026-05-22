@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useBranding } from '../../hooks/useBranding';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
 import { motion } from 'framer-motion';
@@ -14,22 +15,28 @@ import {
   Sun, 
   LogOut, 
   Search, 
-  Bell 
+  Bell,
+  Package,
+  Settings
 } from 'lucide-react';
 
 export default function AdminLayout() {
   const { profile, logout } = useAuth();
+  const { logoUrl, companyName } = useBranding();
   const confirm = useConfirm();
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: 'dashboard', end: true },
     { name: 'Objektai', path: '/admin/sites', icon: 'dataset', end: false },
-    { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false, comingSoon: true },
+    { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false },
     { name: 'Checklist\'ai', path: '/admin/checklists', icon: 'fact_check', end: false },
+    { name: 'Įrangos katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
     { name: 'Bonusai', path: '/admin/bonuses', icon: 'payments', end: false, comingSoon: true },
     { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false, comingSoon: true },
     { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4', comingSoon: true },
   ];
+
+  const settingsItem = { name: 'Nustatymai', path: '/admin/settings', icon: 'settings', end: false };
 
   const getIconComponent = (icon: string) => {
     switch (icon) {
@@ -41,6 +48,10 @@ export default function AdminLayout() {
         return Users;
       case 'fact_check':
         return ClipboardCheck;
+      case 'catalog':
+        return Package;
+      case 'settings':
+        return Settings;
       case 'payments':
         return Coins;
       case 'bar_chart':
@@ -58,9 +69,17 @@ export default function AdminLayout() {
       <aside className="w-[240px] bg-[#1d033a] flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
         <div>
           {/* Logo */}
-          <div className="px-6 mb-8 flex items-center gap-2">
-            <Sun className="text-[#fc391d] w-6 h-6 fill-[#fc391d]" />
-            <span className="text-white font-bold text-[20px] tracking-tight">InstallerApp</span>
+          <div className="px-6 mb-8 flex items-center min-h-[48px]">
+            {logoUrl ? (
+              <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-10 w-auto max-w-[180px] object-contain" />
+            ) : (
+              <>
+                <Sun className="text-[#fc391d] w-6 h-6 flex-shrink-0" fill="currentColor" />
+                <span className="text-white font-bold text-[18px] tracking-tight truncate">
+                  {companyName || 'InstallerApp'}
+                </span>
+              </>
+            )}
           </div>
           {/* Nav Items */}
           <nav className="px-3 flex flex-col gap-1">
@@ -109,7 +128,7 @@ export default function AdminLayout() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 font-medium rounded-[8px] transition-colors ${item.className || ''} ${
                       isActive
-                        ? 'bg-[#490891] text-white font-semibold'
+                        ? 'bg-primary text-white font-semibold'
                         : 'text-white/70 hover:text-white hover:bg-white/5'
                     }`
                   }
@@ -125,8 +144,30 @@ export default function AdminLayout() {
             })}
           </nav>
         </div>
+        {/* Settings + Bottom Avatar */}
+        <div className="px-3 border-t border-white/10 pt-3 pb-0 flex flex-col gap-1 mb-0">
+          {/* Settings link */}
+          <NavLink
+            to={settingsItem.path}
+            end={settingsItem.end}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 font-medium rounded-[8px] transition-colors ${
+                isActive
+                  ? 'bg-primary text-white font-semibold'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Settings className={`w-5 h-5 ${isActive ? 'text-white' : 'text-white/70'}`} />
+                {settingsItem.name}
+              </>
+            )}
+          </NavLink>
+        </div>
         {/* Bottom Avatar */}
-        <div className="px-6 flex items-center justify-between border-t border-white/10 pt-4">
+        <div className="px-6 flex items-center justify-between border-t border-white/10 pt-4 mt-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#b71500] text-white flex items-center justify-center font-bold text-[14px]">
               {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : 'AD'}
@@ -156,7 +197,7 @@ export default function AdminLayout() {
             <input 
               type="text" 
               placeholder="Ieškoti objektų..." 
-              className="w-full bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-full h-[36px] pl-10 pr-4 text-[14px] text-[#1d033a] focus:outline-none focus:border-[#490891] transition-colors"
+              className="w-full bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-full h-[36px] pl-10 pr-4 text-[14px] text-[#1d033a] focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 

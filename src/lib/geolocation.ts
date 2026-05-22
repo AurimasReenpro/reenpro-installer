@@ -18,27 +18,36 @@ export async function getCurrentPositionWithTimeout(timeoutMs = 10000): Promise<
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (!hasReturned) {
-          hasReturned = true;
-          clearTimeout(timeoutId);
-          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!hasReturned) {
+            hasReturned = true;
+            clearTimeout(timeoutId);
+            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
+        },
+        (err) => {
+          if (!hasReturned) {
+            hasReturned = true;
+            clearTimeout(timeoutId);
+            console.warn("Geolocation error:", err);
+            resolve(null);
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: timeoutMs,
+          maximumAge: 0,
         }
-      },
-      (err) => {
-        if (!hasReturned) {
-          hasReturned = true;
-          clearTimeout(timeoutId);
-          console.warn("Geolocation error:", err);
-          resolve(null);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: timeoutMs,
-        maximumAge: 0,
+      );
+    } catch (e) {
+      if (!hasReturned) {
+        hasReturned = true;
+        clearTimeout(timeoutId);
+        console.warn("Geolocation synchronous error:", e);
+        resolve(null);
       }
-    );
+    }
   });
 }

@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import FullPageSpinner from '../../components/ui/FullPageSpinner';
 import { getSiteDetailQuery } from '../../types/site.types';
 import type { SitePhoto } from '../../types/site.types';
+import { supabase } from '../../lib/supabase';
 
 // Custom Hooks
 import { useSiteTimeTracking } from '../../hooks/useSiteTimeTracking';
@@ -42,6 +43,20 @@ export default function SiteDetail() {
     enabled: !!id,
   });
 
+  const { data: teamMembers } = useQuery({
+    queryKey: ['team_members', site?.team_id],
+    queryFn: async () => {
+      if (!site?.team_id) return [];
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('team_id', site.team_id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!site?.team_id,
+  });
+
   const {
     isCheckingIn,
     isActionPending,
@@ -76,6 +91,15 @@ export default function SiteDetail() {
 
   const tabs = ['Apžvalga', 'Darbai', 'Foto'];
 
+  const isActive = site?.time_entries?.some((e) => !e.end_time) ?? false;
+  const displayStatus = site.status === 'completed'
+    ? 'completed'
+    : (isActive
+      ? 'in_progress'
+      : (site.time_entries && site.time_entries.length > 0
+        ? 'paused'
+        : site.status));
+
   return (
     <div className="fixed inset-0 z-[60] bg-app-bg overflow-y-auto pb-[100px]">
       <SiteDetailHeader 
@@ -98,7 +122,10 @@ export default function SiteDetail() {
       />
 
       {activeTab === 'Apžvalga' && (
-        <OverviewTab assignments={site.site_assignments || []} />
+        <OverviewTab
+          teamMembers={teamMembers || []}
+          equipmentDetails={site.equipment_details}
+        />
       )}
 
       {activeTab === 'Darbai' && (
@@ -114,17 +141,24 @@ export default function SiteDetail() {
       )}
 
       {activeTab === 'Foto' && (
-        <PhotosTab photos={site.photos || []} />
+        <PhotosTab
+          photos={site.photos || []}
+          siteId={id as string}
+          profileId={profile?.id}
+          siteData={site}
+        />
       )}
 
       <SiteDetailActionBar 
-        status={site.status}
+        status={displayStatus}
         isCheckingIn={isCheckingIn}
         isActionPending={isActionPending}
         onCheckIn={() => { void handleCheckIn(); }}
         onPause={() => { void handlePause(); }}
         onResume={() => { void handleResume(); }}
         onComplete={() => setIsConfirmCompleteOpen(true)}
+        entries={site.time_entries || []}
+        installerId={profile?.id}
       />
 
       {selectedPhoto && (
