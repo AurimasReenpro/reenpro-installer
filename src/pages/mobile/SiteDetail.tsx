@@ -66,7 +66,7 @@ export default function SiteDetail() {
     handleComplete
   } = useSiteTimeTracking(id as string, site, profile?.id);
 
-  const { handleToggleChecklist } = useChecklistActions(id as string);
+  const { handleSetStatus, handleSaveComment } = useChecklistActions(id as string);
 
   const {
     compressingCheckId,
@@ -129,12 +129,13 @@ export default function SiteDetail() {
       )}
 
       {activeTab === 'Darbai' && (
-        <WorkTab 
-          checklists={site.site_checklists || []}
+        <WorkTab
+          checklists={(site.site_checklists?.[0]?.site_checklist_items) ?? []}
           photos={site.photos || []}
           compressingCheckId={compressingCheckId}
           uploadingCheckId={uploadingCheckId}
-          onToggleChecklist={(checkId, status) => { void handleToggleChecklist(checkId, status); }}
+          onSetStatus={(itemId, status) => { void handleSetStatus(itemId, status); }}
+          onSaveComment={handleSaveComment}
           onUploadPhoto={(e, checkId) => { void handleUploadPhoto(e, checkId); }}
           onSelectPhoto={(photo, checkId) => setSelectedPhoto({ photo, checkId })}
         />

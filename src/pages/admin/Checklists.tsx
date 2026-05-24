@@ -9,7 +9,7 @@ import { FolderCog, RefreshCw, Plus, Camera, Edit2, Trash2, X } from 'lucide-rea
 type ChecklistTemplate = {
   id: string;
   name: string;
-  phase: 'pre' | 'post';
+  phase: 'pre' | 'during' | 'post';
   requires_photo: boolean;
   category: string;
 };
@@ -32,7 +32,7 @@ export default function Checklists() {
   // Form State
   const [formData, setFormData] = useState({
     name: '',
-    phase: 'pre' as 'pre' | 'post',
+    phase: 'pre' as 'pre' | 'during' | 'post',
     requires_photo: false,
     category: '',
   });
@@ -266,8 +266,10 @@ export default function Checklists() {
                     <td className="py-4 px-6 text-[14px] font-medium text-[#1d033a]">{item.name}</td>
                     <td className="py-4 px-6">
                       <span className={`px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border ${
-                        item.phase === 'pre' 
-                          ? 'bg-[#ecdcff] text-primary border-primary/20' 
+                        item.phase === 'pre'
+                          ? 'bg-[#ecdcff] text-primary border-primary/20'
+                          : item.phase === 'during'
+                          ? 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]/20'
                           : 'bg-[#ffdad6] text-[#ba1a1a] border-[#ba1a1a]/20'
                       }`}>
                         {item.phase}
@@ -288,20 +290,21 @@ export default function Checklists() {
                       )}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
+                      <div className="flex justify-end gap-2">
+                        <button
                           onClick={() => handleOpenModal(item)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-primary hover:bg-[#ecdcff] transition-colors"
+                          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-primary bg-[#f6f5fa] hover:bg-[#ecdcff] border border-[#cdc3d4]/40 hover:border-primary/20 transition-colors cursor-pointer"
                           title="Redaguoti"
                         >
-                          <Edit2 size={16} />
+                          <Edit2 size={13} />
+                          Redaguoti
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(item.id)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[#7c7484] hover:text-[#e2250a] hover:bg-[#ffdad6] transition-colors"
+                          className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center text-[#7c7484] hover:text-[#e2250a] hover:bg-[#ffdad6] border border-[#cdc3d4]/40 hover:border-[#e2250a]/20 transition-colors cursor-pointer"
                           title="Trinti"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -351,10 +354,11 @@ export default function Checklists() {
                 <select 
                   required
                   value={formData.phase}
-                  onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'post'})}
+                  onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'during' | 'post'})}
                   className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="pre">Pre (prieš pradžią)</option>
+                  <option value="during">During (darbų eigoje)</option>
                   <option value="post">Post (pabaigus darbus)</option>
                 </select>
               </div>

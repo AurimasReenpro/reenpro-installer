@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import * as Sentry from "@sentry/react";
@@ -46,6 +47,7 @@ interface SiteFormData {
 
 export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<SiteFormData>({
     code: '',
     name: '',
@@ -89,73 +91,127 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
       }
 
       // 2. Insert into sites
+      // Guard against RangeError from new Date('').toISOString()
+      const startDate = new Date(data.scheduled_start);
+      if (isNaN(startDate.getTime())) {
+        throw new Error(`Neteisinga pradžios data: "${data.scheduled_start}"`);
+      }
+
       const { data: newSite, error: siteError } = await supabase
         .from('sites')
         .insert({
-          code: data.code,
-          client_name: data.name,
-          address: data.address,
-          latitude:  coords?.latitude  ?? null,
-          longitude: coords?.longitude ?? null,
-          scheduled_start: new Date(data.scheduled_start).toISOString(),
-          system_type: data.system_type,
-          status: 'pending',
-          team_id: data.team_id || null,
+          code:            data.code.trim(),
+          client_name:     data.name.trim(),
+          address:         data.address.trim(),
+          latitude:        coords?.latitude  ?? null,
+          longitude:       coords?.longitude ?? null,
+          scheduled_start: startDate.toISOString(),
+          system_type:     data.system_type,
+          status:          'pending',
+          team_id:         data.team_id || null,
         })
         .select()
         .single();
         
       if (siteError) throw siteError;
 
-      // 3. Checklist Sync
+      // 3. Checklist Sync — Session model (SolarGrade Phase 8A)
       if (data.category) {
         const { data: templates, error: templatesError } = await supabase
           .from('checklist_templates')
           .select('*')
-          .eq('category', data.category);
-          
+          .eq('category', data.category)
+          .order('phase', { ascending: true })
+          .order('name', { ascending: true });
+
         if (templatesError) throw templatesError;
-        
+
         if (templates && templates.length > 0) {
-          const newChecklists = templates.map(t => ({
-            site_id: newSite.id,
-            phase: t.phase || 'pre',
-            task_name: t.name,
-            requires_photo: t.requires_photo,
-            category: t.category
-          }));
-          const { error: checklistError } = await supabase
+          // 3a. Create one session record
+          const { data: session, error: sessionError } = await supabase
             .from('site_checklists')
-            .insert(newChecklists);
-          if (checklistError) throw checklistError;
+            .insert({ site_id: newSite.id, status: 'pending' })
+            .select()
+            .single();
+          if (sessionError) throw sessionError;
+
+          // 3b. Snapshot each template item into site_checklist_items
+          const items = templates.map(t => ({
+            site_checklist_id: session.id,
+            question_text: t.name,
+            category: t.category ?? null,
+            phase: t.phase ?? null,
+            is_required: t.requires_photo ?? false,
+            status: 'pending' as const,
+          }));
+          const { error: itemsError } = await supabase
+            .from('site_checklist_items')
+            .insert(items);
+          if (itemsError) throw itemsError;
         }
       }
+
+      // Return the new site so onSuccess receives its id
+      return newSite;
     },
-    onSuccess: () => {
+    onSuccess: (newSite) => {
       toast.success('Objektas sėkmingai sukurtas!');
-      void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin_active_sites'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
-      void queryClient.invalidateQueries({ queryKey: ['sites'] });
-      onClose();
-      setFormData({
-        code: '',
-        name: '',
-        address: '',
-        scheduled_start: '',
-        category: '',
-        system_type: 'PV',
-        team_id: ''
-      });
+      const siteId = newSite.id;
+      setTimeout(() => {
+        void navigate(`/admin/sites/${siteId}`);
+        onClose();
+        void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+        void queryClient.invalidateQueries({ queryKey: ['admin_active_sites'] });
+        void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
+        void queryClient.invalidateQueries({ queryKey: ['sites'] });
+        setFormData({
+          code: '',
+          name: '',
+          address: '',
+          scheduled_start: '',
+          category: '',
+          system_type: 'PV',
+          team_id: '',
+        });
+      }, 0);
     },
-    onError: (error: Error) => {
-      console.error('Error creating site:', error); Sentry.captureException(error, { extra: { context: 'Error creating site:' } });
-      toast.error(`Nepavyko sukurti objekto: ${error.message || JSON.stringify(error)}`);
+    onError: (err) => {
+      // err can be a PostgrestError, RangeError, or generic Error — handle all
+      const message = err instanceof Error ? err.message : JSON.stringify(err);
+      console.error('[CreateSite] Failed:', err);
+      Sentry.captureException(err, { extra: { context: 'Error creating site' } });
+      toast.error(`Klaida kuriant objektą: ${message}`);
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ── Explicit JS validation ─────────────────────────────────────────────
+    // Browser's native validation bubbles are clipped by the modal's
+    // overflow-hidden wrapper and are invisible to the user, so we validate
+    // here and surface errors as toasts instead.
+    if (!formData.code.trim()) {
+      toast.error('Įveskite objekto kodą.');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.error('Įveskite objekto pavadinimą (kliento vardą).');
+      return;
+    }
+    if (!formData.address.trim()) {
+      toast.error('Įveskite objekto adresą.');
+      return;
+    }
+    if (!formData.scheduled_start) {
+      toast.error('Pasirinkite planuojamą pradžios datą.');
+      return;
+    }
+    if (!formData.category) {
+      toast.error('Pasirinkite checklist kategoriją.');
+      return;
+    }
+
     createSiteMutation.mutate(formData);
   };
 
@@ -174,7 +230,9 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
+        {/* noValidate: browser tooltip bubbles are clipped by overflow-hidden;
+            validation is handled explicitly in handleSubmit with toast feedback */}
+        <form onSubmit={handleSubmit} noValidate className="p-6 overflow-y-auto space-y-4 flex-1">
           <div>
             <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Objekto kodas</label>
             <input 

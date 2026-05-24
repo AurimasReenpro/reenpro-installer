@@ -6,16 +6,93 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Loader2, Plus, Trash2, Save,
   Upload, FileText, Image as ImageIcon, X, Pencil,
-  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Calendar, Circle, Building, ChevronDown, Package
+  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Calendar, Circle, Building, ChevronDown, Package,
+  CheckCircle2, XCircle, MinusCircle, ClipboardList, ChevronRight, AlertTriangle, Phone, Mail, User,
+  Download,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import {
   getSiteById, updateEquipment, updateSiteDetails, uploadSiteFile, getSiteFiles, deleteSiteFile,
+  getSiteChecklistSession, assignChecklistToSite, updateClientInfo, getSiteInstallerPhotos,
 } from '../../api/sites';
+import type { InstallerPhoto } from '../../api/sites';
+import { useSignedPhotoUrl } from '../../hooks/useSignedPhotoUrl';
+import { supabase } from '../../lib/supabase';
 import { getCatalogItems } from '../../api/catalog';
 import { parseEquipmentDetails, EQUIPMENT_CATEGORIES, EQUIPMENT_UNITS } from '../../types/equipment.types';
 import type { EquipmentItem } from '../../types/equipment.types';
 import { format } from 'date-fns';
+
+// ── Shared photo helpers ──────────────────────────────────────────────────────
+
+/**
+ * Derives the relative storage path from either a bare path or a full
+ * Supabase storage URL (public or signed).
+ *   "abc/def/photo.jpg"                       → "abc/def/photo.jpg"
+ *   "https://.../object/public/site-photos/abc/def/photo.jpg"  → "abc/def/photo.jpg"
+ */
+function extractStoragePath(value: string): string {
+  if (!value.startsWith('http')) return value;
+  const match = /site-photos\/([^?]+)/.exec(value);
+  return match?.[1] ?? value;
+}
+
+/**
+ * Force-downloads a signed URL as a file rather than opening it in a new tab.
+ * Uses blob + object URL so the browser respects the `download` attribute even
+ * for cross-origin URLs.
+ */
+async function forceDownload(signedUrl: string, storagePath: string): Promise<void> {
+  const fileName = storagePath.split('/').pop() ?? 'photo.jpg';
+  const res = await fetch(signedUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
+}
+
+/**
+ * Removes a photo from all three locations:
+ *  1. `photos` DB table   (matched by storage_path)
+ *  2. `site_checklist_items.photo_url` (reset to null / 'pending')
+ *  3. `site-photos` storage bucket
+ *
+ * Pass `checklistItemId` when you know the exact item so the UPDATE is precise;
+ * otherwise falls back to matching by the photo_url value.
+ */
+async function deletePhotoFromAllSources(
+  storagePath: string,
+  checklistItemId?: string,
+): Promise<void> {
+  const { error: dbErr } = await supabase
+    .from('photos')
+    .delete()
+    .eq('storage_path', storagePath);
+  if (dbErr) throw new Error(`Įrašo klaida: ${dbErr.message}`);
+
+  if (checklistItemId) {
+    await supabase
+      .from('site_checklist_items')
+      .update({ photo_url: null, status: 'pending' })
+      .eq('id', checklistItemId);
+  } else {
+    await supabase
+      .from('site_checklist_items')
+      .update({ photo_url: null, status: 'pending' })
+      .eq('photo_url', storagePath);
+  }
+
+  const { error: storageErr } = await supabase.storage
+    .from('site-photos')
+    .remove([storagePath]);
+  if (storageErr) throw new Error(`Saugyklos klaida: ${storageErr.message}`);
+}
 
 interface SiteWithTeam {
   id: string;
@@ -32,6 +109,8 @@ interface SiteWithTeam {
   team: { name: string } | null;
   kwp: number | null;
   client_phone: string | null;
+  contact_person: string | null;
+  client_email: string | null;
 }
 
 type TabId = 'info' | 'equip' | 'strings' | 'files' | 'check';
@@ -43,6 +122,472 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'files', label: 'Failai', icon: FolderOpen },
   { id: 'check', label: 'Checklist', icon: ListChecks },
 ];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SolarGrade Checklist Tab
+// ══════════════════════════════════════════════════════════════════════════════
+
+type ItemStatus = 'pending' | 'pass' | 'fail' | 'n_a';
+
+const STATUS_ITEM: Record<ItemStatus, { label: string; icon: React.ElementType; className: string; dotClass: string }> = {
+  pending: { label: 'Laukia',     icon: Circle,       className: 'bg-[#f6f5fa] text-[#7c7484] border-[#cdc3d4]/50',  dotClass: 'bg-[#cdc3d4]' },
+  pass:    { label: 'Praėjo',     icon: CheckCircle2, className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20',   dotClass: 'bg-[#059669]' },
+  fail:    { label: 'Brokas',     icon: XCircle,      className: 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20',   dotClass: 'bg-[#DC2626]' },
+  n_a:     { label: 'Netaikoma', icon: MinusCircle,  className: 'bg-[#FFFBEB] text-[#D97706] border-[#D97706]/20',   dotClass: 'bg-[#D97706]' },
+};
+
+/**
+ * Renders a checklist item photo with Download + Delete action buttons.
+ * `value` may be a bare storage path (new data) or a full https:// URL (legacy).
+ */
+function ChecklistPhoto({
+  value,
+  siteId,
+  checklistItemId,
+}: {
+  value: string;
+  siteId: string;
+  checklistItemId: string;
+}) {
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const [downloading, setDownloading] = useState(false);
+  const [deleting,    setDeleting]    = useState(false);
+
+  const storagePath = extractStoragePath(value);
+  const isPath = !value.startsWith('http');
+  const { url: signedUrl, isLoading } = useSignedPhotoUrl(isPath ? storagePath : undefined);
+  const displayUrl = isPath ? (signedUrl ?? '') : value;
+
+  const handleDownload = async () => {
+    if (!displayUrl) return;
+    setDownloading(true);
+    try {
+      await forceDownload(displayUrl, storagePath);
+    } catch (err) {
+      toast.error(`Atsisiuntimo klaida: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Ištrinti nuotrauką?',
+      message: 'Ar tikrai norite ištrinti šią nuotrauką? Veiksmas neatšaukiamas.',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    setDeleting(true);
+    try {
+      await deletePhotoFromAllSources(storagePath, checklistItemId);
+      void queryClient.invalidateQueries({ queryKey: ['site_checklist_session', siteId] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_site_photos',      siteId] });
+      toast.success('Nuotrauka ištrinta.');
+    } catch (err) {
+      toast.error(`Klaida trinant: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-28 w-28 rounded-[8px] bg-[#f6f5fa] border border-[#cdc3d4]/30 flex items-center justify-center">
+        <Loader2 className="w-5 h-5 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!displayUrl) return null;
+
+  return (
+    <div className="inline-flex flex-col gap-2">
+      {/* Thumbnail */}
+      <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+        <img
+          src={displayUrl}
+          alt="Nuotrauka"
+          className="h-28 w-auto rounded-[8px] border border-[#cdc3d4]/30 object-cover hover:opacity-90 transition-opacity cursor-zoom-in"
+        />
+      </a>
+      {/* Action bar */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => void handleDownload()}
+          disabled={downloading || deleting}
+          title="Atsisiųsti"
+          className="flex-1 flex items-center justify-center gap-1.5 h-[28px] rounded-[6px] bg-[#f6f5fa] border border-[#cdc3d4]/40 text-[#4b4452] hover:bg-[#ede8f5] hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-50 text-[11px] font-semibold cursor-pointer"
+        >
+          {downloading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+          Siųsti
+        </button>
+        <button
+          onClick={() => void handleDelete()}
+          disabled={downloading || deleting}
+          title="Ištrinti nuotrauką"
+          className="flex items-center justify-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChecklistItemRow({ item, siteId }: { item: { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean }; siteId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const s = STATUS_ITEM[item.status];
+  const StatusIcon = s.icon;
+
+  return (
+    <div className={`rounded-[10px] border transition-all duration-200 ${item.status === 'fail' ? 'border-[#DC2626]/30 bg-[#FEF2F2]/30' : 'border-[#cdc3d4]/30 bg-white hover:border-[#cdc3d4]/60'}`}>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer"
+      >
+        <StatusIcon size={18} className={item.status === 'pass' ? 'text-[#059669]' : item.status === 'fail' ? 'text-[#DC2626]' : item.status === 'n_a' ? 'text-[#D97706]' : 'text-[#cdc3d4]'} />
+        <span className="flex-1 text-[13px] font-semibold text-[#1d033a] leading-snug">{item.question_text}</span>
+        {item.is_required && item.status === 'pending' && (
+          <span className="text-[10px] font-bold text-[#DC2626] border border-[#DC2626]/30 bg-[#FEF2F2] px-1.5 py-0.5 rounded">REQ</span>
+        )}
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-[6px] border ${s.className}`}>{s.label}</span>
+        <ChevronRight size={14} className={`text-[#cdc3d4] transition-transform ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-[#cdc3d4]/20 p-4 space-y-3">
+              {/* Comment */}
+              {item.comment ? (
+                <div>
+                  <p className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-1">Komentaras</p>
+                  <p className="text-[13px] text-[#1d033a] bg-[#f6f5fa] rounded-[8px] px-3 py-2 border border-[#cdc3d4]/30">{item.comment}</p>
+                </div>
+              ) : (
+                <p className="text-[12px] text-[#7c7484] italic">Komentaro nėra.</p>
+              )}
+
+              {/* Photo */}
+              {item.photo_url && (
+                <div>
+                  <p className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-2">Nuotrauka</p>
+                  <ChecklistPhoto
+                    value={item.photo_url}
+                    siteId={siteId}
+                    checklistItemId={item.id}
+                  />
+                </div>
+              )}
+
+              {item.status === 'fail' && !item.photo_url && (
+                <div className="flex items-center gap-2 text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/20 rounded-[8px] px-3 py-2">
+                  <AlertTriangle size={14} />
+                  <span className="text-[12px] font-semibold">Reikia nuotraukos — laukiama montuotojo įkėlimo.</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ChecklistTabContent({ siteId }: { siteId: string }) {
+  const queryClient = useQueryClient();
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  // ── Add custom item state ────────────────────────────────────────────────
+  const [showAddItem,    setShowAddItem]    = useState(false);
+  const [newItemText,    setNewItemText]    = useState('');
+  const [newItemRequired, setNewItemRequired] = useState(true);
+
+  // Fetch checklist session
+  const { data: session, isLoading } = useQuery({
+    queryKey: ['site_checklist_session', siteId],
+    queryFn: () => getSiteChecklistSession(siteId),
+  });
+
+  // Fetch categories for assignment dropdown
+  const { data: categories } = useQuery({
+    queryKey: ['checklist_categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('checklist_categories')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !session,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: () => assignChecklistToSite(siteId, selectedCategory),
+    onSuccess: () => {
+      toast.success('Checklist priskirtas!');
+      void queryClient.invalidateQueries({ queryKey: ['site_checklist_session', siteId] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  // ── Add custom checklist item mutation ───────────────────────────────────
+  const addItemMutation = useMutation({
+    mutationFn: async () => {
+      if (!session?.id) throw new Error('Aktyvi sesija nerasta.');
+      if (!newItemText.trim()) throw new Error('Darbo aprašymas negali būti tuščias.');
+      const { error } = await supabase
+        .from('site_checklist_items')
+        .insert({
+          site_checklist_id: session.id,
+          question_text:     newItemText.trim(),
+          is_required:       newItemRequired,
+          status:            'pending',
+          category:          'Papildomi darbai',
+          phase:             null,
+        });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success('Papildomas darbas pridėtas!');
+      setShowAddItem(false);
+      setNewItemText('');
+      setNewItemRequired(true);
+      // Refresh admin checklist view + mobile work tab
+      void queryClient.invalidateQueries({ queryKey: ['site_checklist_session', siteId] });
+      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-7 h-7 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // ── No session: show assignment UI ───────────────────────────────────────
+  if (!session) {
+    return (
+      <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm p-8 flex flex-col items-center gap-5">
+        <div className="w-16 h-16 rounded-[16px] bg-[#f6f5fa] flex items-center justify-center border border-[#cdc3d4]/30">
+          <ClipboardList size={32} className="text-[#cdc3d4]" />
+        </div>
+        <div className="text-center">
+          <p className="font-bold text-[16px] text-[#1d033a] mb-1">Checklist nepriskirtas</p>
+          <p className="text-[13px] text-[#7c7484]">Priskirk šablono kategoriją, kad sukurtum šio objekto QC sesiją.</p>
+        </div>
+        <div className="w-full max-w-sm flex gap-2">
+          <select
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+            className="flex-1 h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary"
+          >
+            <option value="">-- Pasirinkti kategoriją --</option>
+            {categories?.map(cat => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => assignMutation.mutate()}
+            disabled={!selectedCategory || assignMutation.isPending}
+            className="h-[44px] px-5 rounded-[8px] bg-primary text-white font-semibold text-[14px] hover:bg-primary/80 transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          >
+            {assignMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus size={16} />}
+            Priskirti
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Session exists: show QC dashboard ────────────────────────────────────
+  const items = session.items ?? [];
+  const total = items.length;
+  const passed = items.filter(i => i.status === 'pass').length;
+  const failed = items.filter(i => i.status === 'fail').length;
+  const naCount = items.filter(i => i.status === 'n_a').length;
+  const resolved = passed + naCount;
+  const pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+  // Group items by category
+  const grouped = items.reduce<Record<string, typeof items>>((acc, item) => {
+    const key = item.category || 'Kita';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const SESSION_STATUS: Record<'pending' | 'in_progress' | 'completed', { label: string; className: string }> = {
+    pending:     { label: 'Laukia',      className: 'bg-[#f6f5fa] text-[#7c7484] border-[#cdc3d4]/50' },
+    in_progress: { label: 'Vykdoma',     className: 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]/20' },
+    completed:   { label: 'Baigta',      className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20' },
+  };
+  const ss = SESSION_STATUS[session.status];
+
+  return (
+    <>
+    <div className="space-y-5">
+      {/* Progress header */}
+      <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[10px] bg-[#fbf0ff] flex items-center justify-center border border-primary/10">
+              <ListChecks size={20} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold text-[15px] text-[#1d033a]">QC Sesija</h3>
+              <p className="text-[12px] text-[#7c7484]">{total} klausimai · {format(new Date(session.created_at!), 'yyyy-MM-dd')}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-[6px] border ${ss.className}`}>{ss.label}</span>
+            {failed > 0 && (
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] border bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20 flex items-center gap-1">
+                <AlertTriangle size={11} /> {failed} brokas
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {[
+            { label: 'Iš viso',    value: total,    cls: 'text-[#1d033a]' },
+            { label: 'Praėjo',     value: passed,   cls: 'text-[#059669]' },
+            { label: 'Brokas',     value: failed,   cls: 'text-[#DC2626]' },
+            { label: 'Netaikoma', value: naCount,   cls: 'text-[#D97706]' },
+          ].map(s => (
+            <div key={s.label} className="bg-[#f6f5fa] rounded-[10px] p-3 border border-[#cdc3d4]/30 text-center">
+              <span className={`text-[20px] font-bold block ${s.cls}`}>{s.value}</span>
+              <span className="text-[10px] font-semibold text-[#7c7484] uppercase tracking-wider">{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Progress bar */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2.5 bg-[#cdc3d4]/20 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-[#7c3aed]"
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            />
+          </div>
+          <span className="text-[14px] font-bold text-primary w-10 text-right">{pct}%</span>
+        </div>
+
+        {/* Add custom item button */}
+        <div className="flex justify-end mt-4 pt-3 border-t border-[#cdc3d4]/20">
+          <button
+            onClick={() => setShowAddItem(true)}
+            className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-[#f6f5fa] text-primary font-semibold text-[13px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+            Pridėti papildomą darbą
+          </button>
+        </div>
+      </div>
+
+      {/* Grouped items */}
+      {Object.entries(grouped).map(([category, groupItems]) => {
+        const groupPassed = groupItems.filter(i => i.status === 'pass').length;
+        const groupTotal = groupItems.length;
+        return (
+          <div key={category} className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
+            {/* Group header */}
+            <div className="px-5 py-3.5 bg-[#f6f5fa]/70 border-b border-[#cdc3d4]/20 flex items-center justify-between">
+              <h4 className="text-[12px] font-bold text-[#7c7484] uppercase tracking-wider">{category}</h4>
+              <span className="text-[12px] font-semibold text-[#7c7484]">{groupPassed}/{groupTotal}</span>
+            </div>
+            <div className="p-4 space-y-2">
+              {groupItems.map(item => (
+                <ChecklistItemRow key={item.id} item={item as { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean }} siteId={siteId} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* ── Add custom checklist item modal ── */}
+    {showAddItem && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/30">
+            <h3 className="text-[16px] font-bold text-[#1d033a]">Papildomas darbas</h3>
+            <button
+              onClick={() => setShowAddItem(false)}
+              className="cursor-pointer text-[#7c7484] hover:text-[#1d033a] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">
+                Darbo aprašymas <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={newItemText}
+                onChange={(e) => setNewItemText(e.target.value)}
+                placeholder="Pvz.: Patikrinti DC jungčių sandarumą..."
+                rows={3}
+                autoFocus
+                className="w-full px-3 py-2 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+              />
+            </div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newItemRequired}
+                onChange={(e) => setNewItemRequired(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <span className="text-[14px] text-[#1d033a] font-medium">Reikalinga nuotrauka kaip įrodymas</span>
+            </label>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 pb-6 flex gap-3">
+            <button
+              onClick={() => { setShowAddItem(false); setNewItemText(''); }}
+              disabled={addItemMutation.isPending}
+              className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] hover:bg-[#f6f5fa] transition-colors disabled:opacity-60 cursor-pointer"
+            >
+              Atšaukti
+            </button>
+            <button
+              onClick={() => addItemMutation.mutate()}
+              disabled={addItemMutation.isPending || !newItemText.trim()}
+              className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors flex items-center justify-center disabled:opacity-70 cursor-pointer"
+            >
+              {addItemMutation.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : 'Pridėti'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
+  );
+}
+
+// ── End SolarGrade Checklist Tab ─────────────────────────────────────────────
 
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 const isImage = (name: string) => IMAGE_EXTS.includes(name.split('.').pop()?.toLowerCase() ?? '');
@@ -323,6 +868,216 @@ function EquipmentTabContent({
   );
 }
 
+// ── Installer Photos Section ──────────────────────────────────────────────────
+
+function InstallerPhotosSection({
+  photos,
+  isLoading,
+  siteId,
+}: {
+  photos: InstallerPhoto[];
+  isLoading: boolean;
+  siteId: string;
+}) {
+  const confirm      = useConfirm();
+  const queryClient  = useQueryClient();
+
+  const [lightboxPhoto, setLightboxPhoto] = useState<InstallerPhoto | null>(null);
+  const [deletingId,    setDeletingId]    = useState<string | null>(null);
+  const [downloading,   setDownloading]   = useState(false);
+
+  const handleDownload = async (photo: InstallerPhoto) => {
+    if (!photo.signedUrl) return;
+    setDownloading(true);
+    try {
+      await forceDownload(photo.signedUrl, photo.storage_path);
+    } catch (err) {
+      toast.error(`Atsisiuntimo klaida: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDelete = async (photo: InstallerPhoto) => {
+    const ok = await confirm({
+      title: 'Ištrinti nuotrauką?',
+      message: 'Ar tikrai norite ištrinti šią nuotrauką? Veiksmas neatšaukiamas.',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    setDeletingId(photo.id);
+    if (lightboxPhoto?.id === photo.id) setLightboxPhoto(null);
+    try {
+      await deletePhotoFromAllSources(photo.storage_path);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site_photos',      siteId] });
+      void queryClient.invalidateQueries({ queryKey: ['site_checklist_session', siteId] });
+      toast.success('Nuotrauka ištrinta.');
+    } catch (err) {
+      toast.error(`Klaida trinant: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        <span className="ml-3 text-[14px] text-[#7c7484]">Kraunamos nuotraukos...</span>
+      </div>
+    );
+  }
+
+  if (photos.length === 0) return null;
+
+  return (
+    <>
+      <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
+          <ImageIcon size={18} className="text-primary" />
+          <h3 className="font-semibold text-[#1d033a] text-[14px]">Montuotojų nuotraukos</h3>
+          <span className="ml-auto text-[12px] text-[#7c7484]">
+            {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
+          </span>
+        </div>
+
+        {/* Grid */}
+        <div className="p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {photos.map((photo) => {
+              const isDeleting = deletingId === photo.id;
+              return (
+                <div
+                  key={photo.id}
+                  className="group relative aspect-square rounded-[10px] overflow-hidden bg-[#f6f5fa] border border-[#cdc3d4]/20 hover:border-primary/40 transition-colors"
+                >
+                  {/* Thumbnail (click → lightbox) */}
+                  <button
+                    onClick={() => setLightboxPhoto(photo)}
+                    className="w-full h-full focus:outline-none"
+                    disabled={isDeleting}
+                  >
+                    {photo.signedUrl ? (
+                      <img
+                        src={photo.signedUrl}
+                        alt="Objekto nuotrauka"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={24} className="text-[#cdc3d4]" />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Hover action overlay — clicking the overlay itself opens the lightbox;
+                      individual action buttons stopPropagation so they don't trigger this. */}
+                  <div
+                    onClick={() => setLightboxPhoto(photo)}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto flex flex-col justify-between p-2 cursor-pointer"
+                  >
+                    {/* Top-right action buttons */}
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); void handleDownload(photo); }}
+                        disabled={downloading || isDeleting}
+                        title="Atsisiųsti"
+                        className="w-8 h-8 rounded-[6px] bg-white/90 text-[#1d033a] flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                      >
+                        {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); void handleDelete(photo); }}
+                        disabled={isDeleting || downloading}
+                        title="Ištrinti"
+                        className="w-8 h-8 rounded-[6px] bg-red-500/90 text-white flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                      >
+                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      </button>
+                    </div>
+                    {/* Center hint */}
+                    <div className="flex justify-center">
+                      <span className="text-white/90 text-[11px] font-semibold bg-black/30 px-2 py-0.5 rounded-full">
+                        Peržiūrėti
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Deleting spinner overlay */}
+                  {isDeleting && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Full-screen lightbox ─────────────────────────────────────────── */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 animate-in fade-in duration-150"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          {/* Image — fills the entire overlay; tiny padding keeps it off screen edges */}
+          <img
+            src={lightboxPhoto.signedUrl}
+            alt="Didelis rodinys"
+            className="w-full h-full object-contain p-2"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Floating action toolbar — pinned top-right, sits over the photo */}
+          <div
+            className="absolute top-4 right-4 flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Download */}
+            <button
+              onClick={() => void handleDownload(lightboxPhoto)}
+              disabled={downloading || deletingId === lightboxPhoto.id}
+              title="Atsisiųsti"
+              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-[#1d033a] font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+            >
+              {downloading
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Download size={14} />}
+              Siųsti
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={() => void handleDelete(lightboxPhoto)}
+              disabled={deletingId === lightboxPhoto.id || downloading}
+              title="Ištrinti nuotrauką"
+              className="h-[38px] px-4 rounded-[8px] bg-red-500/90 backdrop-blur-sm text-white font-semibold text-[13px] flex items-center gap-2 hover:bg-red-500 transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+            >
+              {deletingId === lightboxPhoto.id
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Trash2 size={14} />}
+              Trinti
+            </button>
+
+            {/* Close */}
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              title="Uždaryti"
+              className="w-[38px] h-[38px] rounded-[8px] bg-white/10 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/25 transition-colors cursor-pointer shadow-lg"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function SiteDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -344,6 +1099,14 @@ export default function SiteDetails() {
     queryFn: () => getSiteFiles(id!),
     enabled: !!id,
     staleTime: 30_000,
+  });
+
+  // Installer photos (uploaded from mobile) — separate from admin site_files
+  const { data: installerPhotos, isLoading: photosLoading } = useQuery({
+    queryKey: ['admin_site_photos', id],
+    queryFn: () => getSiteInstallerPhotos(id!),
+    enabled: !!id && activeTab === 'files',
+    staleTime: 60_000,
   });
 
   /* ── Notes State ── */
@@ -389,6 +1152,43 @@ export default function SiteDetails() {
     onSuccess: () => {
       toast.success('Failas ištrintas');
       void queryClient.invalidateQueries({ queryKey: ['admin_site_files', id] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  /* ── Client info editing ── */
+  const [editingClient, setEditingClient] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    client_name: '',
+    contact_person: '',
+    client_phone: '',
+    client_email: '',
+    address: '',
+  });
+
+  const startEditingClient = () => {
+    setClientForm({
+      client_name:    site?.client_name    ?? '',
+      contact_person: site?.contact_person ?? '',
+      client_phone:   site?.client_phone   ?? '',
+      client_email:   site?.client_email   ?? '',
+      address:        site?.address        ?? '',
+    });
+    setEditingClient(true);
+  };
+
+  const saveClientMutation = useMutation({
+    mutationFn: () => updateClientInfo(id!, {
+      client_name:    clientForm.client_name,
+      contact_person: clientForm.contact_person || null,
+      client_phone:   clientForm.client_phone   || null,
+      client_email:   clientForm.client_email   || null,
+      address:        clientForm.address,
+    }),
+    onSuccess: () => {
+      toast.success('Kliento informacija išsaugota!');
+      setEditingClient(false);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -536,30 +1336,133 @@ export default function SiteDetails() {
           >
             <div className="space-y-6">
               <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
-                  <Building2 size={18} className="text-primary" />
-                  <h3 className="font-semibold text-[#1d033a] text-[14px]">Kliento informacija</h3>
+                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Building2 size={18} className="text-primary" />
+                    <h3 className="font-semibold text-[#1d033a] text-[14px]">Kliento informacija</h3>
+                  </div>
+                  {!editingClient ? (
+                    <button
+                      onClick={startEditingClient}
+                      className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-[#f6f5fa] text-primary font-semibold text-[12px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 transition-colors cursor-pointer"
+                    >
+                      <Pencil size={13} />
+                      Redaguoti
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingClient(false)}
+                        disabled={saveClientMutation.isPending}
+                        className="h-[28px] px-3 rounded-[6px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[12px] hover:bg-[#f6f5fa] transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        Atšaukti
+                      </button>
+                      <button
+                        onClick={() => saveClientMutation.mutate()}
+                        disabled={saveClientMutation.isPending}
+                        className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-primary text-white font-semibold text-[12px] hover:bg-primary/80 transition-colors cursor-pointer disabled:opacity-70"
+                      >
+                        {saveClientMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save size={13} />}
+                        Išsaugoti
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Įmonė / Klientas</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_name}</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <User size={11} className="text-[#7c7484]" />
+                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Įmonė / Klientas</span>
+                    </div>
+                    {editingClient ? (
+                      <input
+                        type="text"
+                        value={clientForm.client_name}
+                        onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
+                        disabled={saveClientMutation.isPending}
+                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_name}</span>
+                    )}
                   </div>
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Kontaktinis asmuo</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">-</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <User size={11} className="text-[#7c7484]" />
+                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Kontaktinis asmuo</span>
+                    </div>
+                    {editingClient ? (
+                      <input
+                        type="text"
+                        value={clientForm.contact_person}
+                        onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
+                        disabled={saveClientMutation.isPending}
+                        placeholder="Vardas Pavardė"
+                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.contact_person || '-'}</span>
+                    )}
                   </div>
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Tel. numeris</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_phone || '-'}</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Phone size={11} className="text-[#7c7484]" />
+                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Tel. numeris</span>
+                    </div>
+                    {editingClient ? (
+                      <input
+                        type="tel"
+                        value={clientForm.client_phone}
+                        onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
+                        disabled={saveClientMutation.isPending}
+                        placeholder="+370 600 00000"
+                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_phone || '-'}</span>
+                    )}
                   </div>
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">El. paštas</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">-</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Mail size={11} className="text-[#7c7484]" />
+                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">El. paštas</span>
+                    </div>
+                    {editingClient ? (
+                      <input
+                        type="email"
+                        value={clientForm.client_email}
+                        onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
+                        disabled={saveClientMutation.isPending}
+                        placeholder="vardas@imone.lt"
+                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_email || '-'}</span>
+                    )}
                   </div>
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20 sm:col-span-2">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Adresas</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.address}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={11} className="text-[#7c7484]" />
+                        <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Adresas</span>
+                      </div>
+                      {editingClient && (
+                        <span className="text-[10px] text-[#7c7484] italic">Koordinatės bus atnaujintos automatiškai</span>
+                      )}
+                    </div>
+                    {editingClient ? (
+                      <input
+                        type="text"
+                        value={clientForm.address}
+                        onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
+                        disabled={saveClientMutation.isPending}
+                        placeholder="Pvz.: Vilniaus g. 1, Vilnius"
+                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                      />
+                    ) : (
+                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.address}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -894,6 +1797,9 @@ export default function SiteDetails() {
                 ))}
               </div>
             )}
+
+            {/* ── Installer photos from mobile (site-photos bucket) ── */}
+            <InstallerPhotosSection photos={installerPhotos ?? []} isLoading={photosLoading} siteId={id!} />
           </motion.div>
         )}
 
@@ -905,63 +1811,8 @@ export default function SiteDetails() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
-            className="space-y-6"
           >
-            {/* Progress Bar */}
-            <div className="bg-[#f6f5fa] border border-[#cdc3d4]/30 rounded-[12px] p-4 flex items-center gap-4 shadow-sm">
-              <span className="text-[13px] font-semibold text-[#4b4452] whitespace-nowrap flex items-center gap-2">
-                <ListChecks size={16} className="text-primary"/> Atlikta: 0 / 12
-              </span>
-              <div className="flex-1 h-2 bg-[#cdc3d4]/30 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: '0%' }}></div>
-              </div>
-              <span className="text-[14px] font-bold text-primary">0%</span>
-            </div>
-
-            {/* Checklist UI Placeholder */}
-            <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm p-6">
-              
-              <div className="mb-6">
-                <h4 className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-3">Pasiruošimas</h4>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-3 rounded-[8px] border border-[#cdc3d4]/30 bg-[#f6f5fa]/50">
-                    <Circle size={18} className="text-[#cdc3d4] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#1d033a]">Patikrinta įranga sandėlyje</p>
-                      <p className="text-[11px] text-[#7c7484] mt-0.5">Priskyrta: Niekam</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 rounded-[8px] border border-[#cdc3d4]/30 bg-[#f6f5fa]/50">
-                    <Circle size={18} className="text-[#cdc3d4] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#1d033a]">ESO leidimas patikrintas</p>
-                      <p className="text-[11px] text-[#7c7484] mt-0.5">Priskyrta: Niekam</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-3">Montavimas – mechanika</h4>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-3 rounded-[8px] border border-[#cdc3d4]/30 bg-[#f6f5fa]/50">
-                    <Circle size={18} className="text-[#cdc3d4] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#1d033a]">Laikiklių sistema sumontuota</p>
-                      <p className="text-[11px] text-[#7c7484] mt-0.5">Priskyrta: Niekam</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 rounded-[8px] border border-[#cdc3d4]/30 bg-[#f6f5fa]/50">
-                    <Circle size={18} className="text-[#cdc3d4] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#1d033a]">Moduliai sumontuoti ant stogo</p>
-                      <p className="text-[11px] text-[#7c7484] mt-0.5">Priskyrta: Niekam</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+            <ChecklistTabContent siteId={id!} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -282,7 +282,7 @@ export default function Dashboard() {
                     ) : (
                       <span className="text-[#cdc3d4] text-[13px] italic">Nepriskirta</span>
                     )}
-                    <Link to="/admin" className="text-primary font-semibold text-[14px] hover:underline" title="Funkcija ruošiama">
+                    <Link to={`/admin/sites/${site.id}`} className="text-primary font-semibold text-[14px] hover:underline">
                       Žiūrėti
                     </Link>
                   </div>
@@ -385,9 +385,13 @@ export default function Dashboard() {
                 </p>
                 <p className="text-[14px] text-[#4b4452] mt-1">
                   {actionText}{' '}
-                  <Link to="/admin" className="text-primary hover:underline font-medium" title="Funkcija ruošiama">
-                    {siteName}
-                  </Link>
+                  {entry.site_id ? (
+                    <Link to={`/admin/sites/${entry.site_id}`} className="text-primary hover:underline font-medium">
+                      {siteName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{siteName}</span>
+                  )}
                 </p>
               </div>
             );

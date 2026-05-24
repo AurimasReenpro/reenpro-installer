@@ -229,34 +229,28 @@ export type Database = {
       }
       site_checklists: {
         Row: {
-          category: string | null
-          created_at: string | null
           id: string
-          is_completed: boolean | null
-          phase: string
-          requires_photo: boolean | null
           site_id: string | null
-          task_name: string
+          template_id: string | null
+          status: 'pending' | 'in_progress' | 'completed'
+          created_at: string | null
+          completed_at: string | null
         }
         Insert: {
-          category?: string | null
-          created_at?: string | null
           id?: string
-          is_completed?: boolean | null
-          phase: string
-          requires_photo?: boolean | null
           site_id?: string | null
-          task_name: string
+          template_id?: string | null
+          status?: 'pending' | 'in_progress' | 'completed'
+          created_at?: string | null
+          completed_at?: string | null
         }
         Update: {
-          category?: string | null
-          created_at?: string | null
           id?: string
-          is_completed?: boolean | null
-          phase?: string
-          requires_photo?: boolean | null
           site_id?: string | null
-          task_name?: string
+          template_id?: string | null
+          status?: 'pending' | 'in_progress' | 'completed'
+          created_at?: string | null
+          completed_at?: string | null
         }
         Relationships: [
           {
@@ -264,6 +258,60 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_checklists_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_checklist_items: {
+        Row: {
+          id: string
+          site_checklist_id: string
+          question_text: string
+          category: string | null
+          phase: string | null
+          is_required: boolean
+          status: 'pending' | 'pass' | 'fail' | 'n_a'
+          photo_url: string | null
+          comment: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          site_checklist_id: string
+          question_text: string
+          category?: string | null
+          phase?: string | null
+          is_required?: boolean
+          status?: 'pending' | 'pass' | 'fail' | 'n_a'
+          photo_url?: string | null
+          comment?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          site_checklist_id?: string
+          question_text?: string
+          category?: string | null
+          phase?: string | null
+          is_required?: boolean
+          status?: 'pending' | 'pass' | 'fail' | 'n_a'
+          photo_url?: string | null
+          comment?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_checklist_items_site_checklist_id_fkey"
+            columns: ["site_checklist_id"]
+            isOneToOne: false
+            referencedRelation: "site_checklists"
             referencedColumns: ["id"]
           },
         ]
@@ -275,6 +323,8 @@ export type Database = {
           address: string
           client_name: string
           client_phone: string | null
+          client_email: string | null
+          contact_person: string | null
           code: string
           created_at: string
           estimated_hours: number | null
@@ -296,6 +346,8 @@ export type Database = {
           address: string
           client_name: string
           client_phone?: string | null
+          client_email?: string | null
+          contact_person?: string | null
           code: string
           created_at?: string
           equipment_details?: Record<string, string> | null
@@ -317,6 +369,8 @@ export type Database = {
           address?: string
           client_name?: string
           client_phone?: string | null
+          client_email?: string | null
+          contact_person?: string | null
           code?: string
           created_at?: string
           equipment_details?: Record<string, string> | null
@@ -509,7 +563,8 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      site_checklist_status: 'pending' | 'in_progress' | 'completed'
+      site_checklist_item_status: 'pending' | 'pass' | 'fail' | 'n_a'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -636,6 +691,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      site_checklist_status: ['pending', 'in_progress', 'completed'],
+      site_checklist_item_status: ['pending', 'pass', 'fail', 'n_a'],
+    },
   },
 } as const

@@ -141,7 +141,8 @@ export default function Settings() {
     },
   });
 
-  // Populate form when data arrives — deferred to avoid sync setState in effect
+  // Populate form when data arrives — setState is deferred into a callback to
+  // satisfy the react-hooks/set-state-in-effect lint rule.
   useEffect(() => {
     if (!settings) return;
     const t = setTimeout(() => {
@@ -158,9 +159,12 @@ export default function Settings() {
         base_lat:      settings.base_lat,
         base_lng:      settings.base_lng,
       });
-      if (settings.base_lat && settings.base_lng) {
-        setCoordsInput(`${settings.base_lat}, ${settings.base_lng}`);
-      }
+      // Always sync coordsInput from DB — null → '' so stale typed values don't persist
+      setCoordsInput(
+        settings.base_lat != null && settings.base_lng != null
+          ? `${settings.base_lat}, ${settings.base_lng}`
+          : '',
+      );
       if (settings.logo_url) setLogoPreview(settings.logo_url);
     }, 0);
     return () => clearTimeout(t);
@@ -169,16 +173,31 @@ export default function Settings() {
   // ── Save mutation ─────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: async (values: FormState) => {
-      const { error } = await supabase
-        .from('company_settings')
-        .upsert({
-          id: SETTINGS_ROW_ID,
-          ...values,
-          base_lat: values.base_lat ? Number(values.base_lat) : null,
-          base_lng: values.base_lng ? Number(values.base_lng) : null,
-        });
+      const payload = {
+        id: SETTINGS_ROW_ID,
+        ...values,
+        base_lat: values.base_lat != null ? Number(values.base_lat) : null,
+        base_lng: values.base_lng != null ? Number(values.base_lng) : null,
+      };
 
-      if (error) throw error;
+      console.log('[Settings] Saving payload:', payload);
+
+      const { data, error } = await supabase
+        .from('company_settings')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Settings] Upsert error:', error);
+        throw error;
+      }
+      if (!data) {
+        // RLS UPDATE policy is blocking the write without returning an error
+        console.error('[Settings] Upsert returned no data — likely blocked by RLS');
+        throw new Error('Nustatymai neišsaugoti: serveris atmetė užklausą (RLS).');
+      }
+      console.log('[Settings] Saved successfully:', data);
     },
     onSuccess: () => {
       toast.success('Nustatymai išsaugoti!');
@@ -186,7 +205,8 @@ export default function Settings() {
     },
     onError: (err) => {
       Sentry.captureException(err, { extra: { context: 'save company_settings' } });
-      toast.error('Klaida išsaugant nustatymus.');
+      console.error('[Settings] Save failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Klaida išsaugant nustatymus.');
     },
   });
 
@@ -279,9 +299,14 @@ export default function Settings() {
     const payload = { ...form };
     if (coordsInput.trim()) {
       const parts = coordsInput.split(',');
-      if (parts.length >= 2 && parts[0] && parts[1]) {
-        payload.base_lat = parseFloat(parts[0].trim());
-        payload.base_lng = parseFloat(parts[1].trim());
+      const lat = parseFloat(parts[0]?.trim() ?? '');
+      const lng = parseFloat(parts[1]?.trim() ?? '');
+      if (parts.length >= 2 && !isNaN(lat) && !isNaN(lng)) {
+        payload.base_lat = lat;
+        payload.base_lng = lng;
+      } else {
+        toast.error('Neteisingas koordinačių formatas. Pvz.: 54.8985, 23.9036');
+        return;
       }
     } else {
       payload.base_lat = null;

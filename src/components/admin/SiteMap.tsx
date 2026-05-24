@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import { LITHUANIA_CENTER, LITHUANIA_ZOOM } from '../../config/map';
@@ -96,6 +97,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function SitePopup({ site }: { site: MapSite }) {
+  const navigate = useNavigate();
   const statusInfo = STATUS_LABELS[site.status ?? ''] ?? {
     label: site.status ?? '—',
     color: 'text-gray-500 bg-gray-100',
@@ -120,6 +122,13 @@ function SitePopup({ site }: { site: MapSite }) {
           <span>{site.team.name}</span>
         </div>
       )}
+
+      <button
+        onClick={() => { void navigate(`/admin/sites/${site.id}`); }}
+        className="mt-3 w-full text-[12px] font-semibold text-primary hover:underline text-left cursor-pointer"
+      >
+        Žiūrėti →
+      </button>
     </div>
   );
 }
