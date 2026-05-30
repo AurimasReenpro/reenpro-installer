@@ -45,11 +45,18 @@ export function useAuth() {
       }
     });
 
-    // Listen for auth changes
+    // Listen for auth changes.
+    // IMPORTANT: this callback runs INSIDE GoTrue's auth lock (navigator.locks).
+    // Calling another Supabase method (e.g. .from().select(), which needs the
+    // access token) directly here re-acquires the same lock and deadlocks —
+    // signInWithPassword then never resolves (UI stuck on "Jungiamasi...").
+    // Deferring with setTimeout(…, 0) runs the profile fetch AFTER the lock is
+    // released. See https://supabase.com/docs/reference/javascript/auth-onauthstatechange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          void fetchProfile(session.user);
+          const authUser = session.user;
+          setTimeout(() => { void fetchProfile(authUser); }, 0);
         } else if (event === 'SIGNED_OUT') {
           signOut();
         }

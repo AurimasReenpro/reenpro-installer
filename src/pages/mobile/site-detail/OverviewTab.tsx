@@ -62,7 +62,7 @@ export default function OverviewTab({ teamMembers, equipmentDetails }: OverviewT
                   </div>
                   <p className="text-xs text-primary font-semibold mt-0.5">{item.category}</p>
                   {item.notes ? (
-                    <p className="text-xs text-[#7c7484] mt-0.5 italic">{item.notes}</p>
+                    <p className="text-xs text-[#574f61] mt-0.5 italic">{item.notes}</p>
                   ) : null}
                 </div>
 
@@ -74,7 +74,7 @@ export default function OverviewTab({ teamMembers, equipmentDetails }: OverviewT
       ) : (
         <div className="bg-[#f6e9ff] rounded-xl p-5 flex items-start gap-3 border border-primary/10">
           <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-          <p className="text-sm text-[#4b4452] leading-relaxed">
+          <p className="text-sm text-[#39323f] leading-relaxed">
             Administratorius dar nepridėjo įrangos informacijos šiam objektui.
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function OverviewTab({ teamMembers, equipmentDetails }: OverviewT
           </div>
         ))}
         {(!teamMembers || teamMembers.length === 0) && (
-          <p className="text-sm text-[#4b4452]">Nėra priskirtų montuotojų.</p>
+          <p className="text-sm text-[#39323f]">Nėra priskirtų montuotojų.</p>
         )}
       </div>
     </div>

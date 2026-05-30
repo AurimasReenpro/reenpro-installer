@@ -19,9 +19,12 @@ import TabsBar from './site-detail/TabsBar';
 import OverviewTab from './site-detail/OverviewTab';
 import WorkTab from './site-detail/WorkTab';
 import PhotosTab from './site-detail/PhotosTab';
+import BlueprintsTab from './site-detail/BlueprintsTab';
 import SiteDetailActionBar from './site-detail/SiteDetailActionBar';
-import PhotoViewerModal from './site-detail/PhotoViewerModal';
+import InfoTab from './site-detail/InfoTab';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import JobCompletionBlockedModal from '../../components/mobile/JobCompletionBlockedModal';
+import { validateJobCompletion, type JobCompletionValidation } from '../../lib/checklistValidation';
 
 export default function SiteDetail() {
   const { id } = useParams();
@@ -32,6 +35,7 @@ export default function SiteDetail() {
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: SitePhoto; checkId: string } | null>(null);
   const [isConfirmCompleteOpen, setIsConfirmCompleteOpen] = useState(false);
   const [isDeletePhotoConfirmOpen, setIsDeletePhotoConfirmOpen] = useState(false);
+  const [completionBlock, setCompletionBlock] = useState<JobCompletionValidation | null>(null);
 
   const { data: site, isLoading } = useQuery({
     queryKey: ['site', id],
@@ -81,6 +85,19 @@ export default function SiteDetail() {
     }
   };
 
+  // Gate "Užbaigti darbą": every item must be pass/n_a and every required item
+  // must have a photo. On failure we show the blocking modal instead of the
+  // standard confirm dialog; on success we proceed to confirmation.
+  const handleAttemptComplete = () => {
+    const items = site?.site_checklists?.[0]?.site_checklist_items ?? [];
+    const result = validateJobCompletion(items, site?.photos ?? []);
+    if (!result.valid) {
+      setCompletionBlock(result);
+      return;
+    }
+    setIsConfirmCompleteOpen(true);
+  };
+
   if (isLoading) {
     return <FullPageSpinner />;
   }
@@ -89,7 +106,7 @@ export default function SiteDetail() {
     return <div className="p-4 text-center mt-10">Objektas nerastas.</div>;
   }
 
-  const tabs = ['Apžvalga', 'Darbai', 'Foto'];
+  const tabs = ['Apžvalga', 'Darbai', 'Objekto info', 'Brėžiniai', 'Foto'];
 
   const isActive = site?.time_entries?.some((e) => !e.end_time) ?? false;
   const displayStatus = site.status === 'completed'
@@ -132,13 +149,28 @@ export default function SiteDetail() {
         <WorkTab
           checklists={(site.site_checklists?.[0]?.site_checklist_items) ?? []}
           photos={site.photos || []}
+          extraMaterials={site.site_extra_materials || []}
+          siteId={id as string}
+          siteChecklistId={site.site_checklists?.[0]?.id}
+          profileId={profile?.id}
           compressingCheckId={compressingCheckId}
           uploadingCheckId={uploadingCheckId}
           onSetStatus={(itemId, status) => { void handleSetStatus(itemId, status); }}
           onSaveComment={handleSaveComment}
           onUploadPhoto={(e, checkId) => { void handleUploadPhoto(e, checkId); }}
-          onSelectPhoto={(photo, checkId) => setSelectedPhoto({ photo, checkId })}
+          onDeletePhoto={(photo, checkId) => {
+            setSelectedPhoto({ photo, checkId });
+            setIsDeletePhotoConfirmOpen(true);
+          }}
         />
+      )}
+
+      {activeTab === 'Objekto info' && (
+        <InfoTab site={site} />
+      )}
+
+      {activeTab === 'Brėžiniai' && (
+        <BlueprintsTab siteId={id as string} categories={site.blueprint_categories} />
       )}
 
       {activeTab === 'Foto' && (
@@ -157,18 +189,16 @@ export default function SiteDetail() {
         onCheckIn={() => { void handleCheckIn(); }}
         onPause={() => { void handlePause(); }}
         onResume={() => { void handleResume(); }}
-        onComplete={() => setIsConfirmCompleteOpen(true)}
+        onComplete={handleAttemptComplete}
         entries={site.time_entries || []}
         installerId={profile?.id}
       />
 
-      {selectedPhoto && (
-        <PhotoViewerModal 
-          storagePath={selectedPhoto.photo.storage_path}
-          onClose={() => setSelectedPhoto(null)}
-          onDelete={() => setIsDeletePhotoConfirmOpen(true)}
-        />
-      )}
+      <JobCompletionBlockedModal
+        isOpen={completionBlock !== null}
+        result={completionBlock}
+        onClose={() => setCompletionBlock(null)}
+      />
 
       <ConfirmModal
         isOpen={isConfirmCompleteOpen}

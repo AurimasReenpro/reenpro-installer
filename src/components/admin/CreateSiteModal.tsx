@@ -43,6 +43,9 @@ interface SiteFormData {
   category: string;
   system_type: string;
   team_id: string;
+  roof_type: string;
+  roof_material: string;
+  roof_angle: string;
 }
 
 export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProps) {
@@ -55,7 +58,10 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
     scheduled_start: '',
     category: '',
     system_type: 'PV',
-    team_id: ''
+    team_id: '',
+    roof_type: '',
+    roof_material: '',
+    roof_angle: '',
   });
 
   // Fetch teams for dropdown
@@ -109,6 +115,9 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
           system_type:     data.system_type,
           status:          'pending',
           team_id:         data.team_id || null,
+          roof_type:       data.roof_type || null,
+          roof_material:   data.roof_material || null,
+          roof_angle:      data.roof_angle || null,
         })
         .select()
         .single();
@@ -172,6 +181,9 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
           category: '',
           system_type: 'PV',
           team_id: '',
+          roof_type: '',
+          roof_material: '',
+          roof_angle: '',
         });
       }, 0);
     },
@@ -321,6 +333,63 @@ export default function CreateSiteModal({ isOpen, onClose }: CreateSiteModalProp
               {categories?.map((cat) => (
                 <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo tipas</label>
+            <select
+              value={formData.roof_type}
+              onChange={e => setFormData({...formData, roof_type: e.target.value})}
+              className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="">-- Pasirinkti --</option>
+              <option value="Plokščias">Plokščias</option>
+              <option value="Šlaitinis">Šlaitinis</option>
+              <option value="Ant žemės">Ant žemės</option>
+              <option value="Netaikoma">Netaikoma</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo danga</label>
+            <input
+              type="text"
+              value={formData.roof_material}
+              onChange={e => setFormData({...formData, roof_material: e.target.value})}
+              placeholder="Įvesti arba pasirinkti..."
+              className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {['Bitumas', 'Čerpės', 'Trapecinė skarda', 'Klasikinė / Falcai', 'Šiferis', 'Netaikoma'].map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setFormData({...formData, roof_material: opt})}
+                  className={`px-2.5 py-1 rounded-[6px] text-[12px] font-medium border transition-colors cursor-pointer ${
+                    formData.roof_material === opt
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-[#f6f5fa] text-[#4b4452] border-[#cdc3d4] hover:border-primary/50 hover:text-primary'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo nuolydis</label>
+            <select
+              value={formData.roof_angle}
+              onChange={e => setFormData({...formData, roof_angle: e.target.value})}
+              className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="">-- Pasirinkti --</option>
+              <option value="Iki 30°">Iki 30°</option>
+              <option value="Virš 30°">Virš 30°</option>
+              <option value="Plokščias (0° - 10°)">Plokščias (0° - 10°)</option>
+              <option value="Netaikoma">Netaikoma</option>
             </select>
           </div>
 

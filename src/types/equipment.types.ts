@@ -1,5 +1,14 @@
 // ── Shared equipment types ────────────────────────────────────────────────────
 
+/** One row in the equipment_categories table */
+export interface EquipmentCategoryDef {
+  id: string;
+  name: string;
+  bg_color: string;
+  text_color: string;
+  border_color: string;
+}
+
 /** One row in an object's equipment list */
 export interface EquipmentItem {
   category: string;

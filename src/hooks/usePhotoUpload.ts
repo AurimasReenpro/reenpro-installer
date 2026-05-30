@@ -15,11 +15,14 @@ const GALLERY_ID = 'gallery';
 async function compress(file: File): Promise<File> {
   if (file.size < 500 * 1024) return file;
   return imageCompression(file, {
-    maxSizeMB: 0.5,
-    maxWidthOrHeight: 1920,
+    // Lighter than before (1600px / 0.4MB) to keep the per-image canvas memory
+    // down — uploading several large phone photos in a row can otherwise spike
+    // RAM enough for Android to kill & reload the page.
+    maxSizeMB: 0.4,
+    maxWidthOrHeight: 1600,
     useWebWorker: true,
     fileType: 'image/jpeg',
-    initialQuality: 0.85,
+    initialQuality: 0.8,
   });
 }
 
@@ -44,102 +47,127 @@ export function usePhotoUpload(
   const [compressingCheckId, setCompressingCheckId] = useState<string | null>(null);
   const [uploadingCheckId,   setUploadingCheckId]   = useState<string | null>(null);
 
+  // Upload a single already-compressed file: storage + photos row. Returns the
+  // storage path on success, or throws with a step-tagged message.
+  const uploadOne = async (
+    file: File,
+    itemId: string,
+    sectionName: string | undefined,
+  ): Promise<string> => {
+    const fileExt = file.name.split('.').pop() ?? 'jpg';
+    const filePath = `${site!.id}/${itemId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+
+    // ── Step 1: Storage upload ──────────────────────────────────────────────
+    const { error: storageErr } = await supabase.storage
+      .from('site-photos')
+      .upload(filePath, file);
+    if (storageErr) throw new Error(`[1/2] Saugyklos klaida: ${toMsg(storageErr)}`);
+
+    // ── Step 2: Insert photos row ───────────────────────────────────────────
+    const { error: dbErr } = await supabase.from('photos').insert({
+      site_id:      site!.id,
+      checklist_id: null,
+      installer_id: profileId!,
+      storage_path: filePath,
+      section_name: sectionName ?? null,
+    });
+    if (dbErr) {
+      // Roll back the orphaned storage file so storage stays clean.
+      void supabase.storage.from('site-photos').remove([filePath]);
+      throw new Error(`[2/2] DB klaida (failas pašalintas iš saugyklos): ${toMsg(dbErr)}`);
+    }
+    return filePath;
+  };
+
   // ── Upload ─────────────────────────────────────────────────────────────────
   const handleUploadPhoto = async (
     e: React.ChangeEvent<HTMLInputElement>,
     itemId: string,
+    sectionName?: string,
   ) => {
-    const file = e.target.files?.[0];
-    if (!file || !profileId || !site) return;
+    const input = e.target;
+    // Multi-select: upload EVERY chosen image. The gallery input has no `accept`
+    // filter (to keep Android multi-select working), so ignore non-image files.
+    const files = Array.from(input.files ?? []).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0 || !profileId || !site) {
+      input.value = '';
+      return;
+    }
 
     const { startSync, finishSync } = useSyncStore.getState();
     startSync();
 
-    // ── 0. Compress ──────────────────────────────────────────────────────────
-    setCompressingCheckId(itemId);
-    let fileToUpload: File;
-    try {
-      fileToUpload = await compress(file);
-      console.log(
-        `[Photo] Compressed ${(file.size / 1024).toFixed(0)} KB → ${(fileToUpload.size / 1024).toFixed(0)} KB`,
-      );
-    } catch (compErr) {
-      // Compression is best-effort — fall back to the original.
-      console.warn('[Photo] Compression failed, using original file:', toMsg(compErr));
-      fileToUpload = file;
-    } finally {
-      setCompressingCheckId(null);
-    }
-
-    // ── 1–3. Upload pipeline ─────────────────────────────────────────────────
-    setUploadingCheckId(itemId);
-    const fileExt = file.name.split('.').pop() ?? 'jpg';
-    const filePath = `${site.id}/${itemId}/${Date.now()}.${fileExt}`;
+    let lastPath: string | null = null;
+    let succeeded = 0;
 
     try {
-      // ── Step 1 / 3: Storage upload ──────────────────────────────────────
-      const { error: storageErr } = await supabase.storage
-        .from('site-photos')
-        .upload(filePath, fileToUpload);
+      // Sequentially compress + upload each file (keeps the compress web worker
+      // and storage from being hammered by a large batch).
+      for (const file of files) {
+        setCompressingCheckId(itemId);
+        let fileToUpload: File;
+        try {
+          fileToUpload = await compress(file);
+        } catch (compErr) {
+          console.warn('[Photo] Compression failed, using original file:', toMsg(compErr));
+          fileToUpload = file;
+        } finally {
+          setCompressingCheckId(null);
+        }
 
-      if (storageErr) {
-        throw new Error(`[1/3] Saugyklos klaida: ${toMsg(storageErr)}`);
+        setUploadingCheckId(itemId);
+        try {
+          lastPath = await uploadOne(fileToUpload, itemId, sectionName);
+          succeeded += 1;
+        } catch (oneErr) {
+          // One file failing shouldn't abort the rest of the batch.
+          console.error('[Photo] One upload failed:', toMsg(oneErr));
+          Sentry.captureException(oneErr instanceof Error ? oneErr : new Error(toMsg(oneErr)), {
+            extra: { context: 'Photo upload (single in batch)', siteId, itemId },
+          });
+        }
+        // Yield between files so the browser can paint and release the transient
+        // compression canvas before the next image — keeps mobile memory flat.
+        await new Promise(r => setTimeout(r, 0));
       }
-      console.log('[Photo] Step 1/3 ✓ — storage upload:', filePath);
 
-      // ── Step 2 / 3: Insert photos row ───────────────────────────────────
-      const { error: dbErr } = await supabase.from('photos').insert({
-        site_id:      site.id,
-        checklist_id: null,
-        installer_id: profileId,
-        storage_path: filePath,
-      });
-
-      if (dbErr) {
-        // Roll back the orphaned storage file so storage stays clean.
-        void supabase.storage.from('site-photos').remove([filePath]);
-        throw new Error(`[2/3] DB klaida (failas pašalintas iš saugyklos): ${toMsg(dbErr)}`);
+      if (succeeded === 0) {
+        toast.error('Nepavyko įkelti nuotraukų.');
+        return;
       }
-      console.log('[Photo] Step 2/3 ✓ — photos row inserted');
 
-      // ── Step 3 / 3: Update checklist item (skip for gallery uploads) ────
-      if (itemId !== GALLERY_ID) {
+      // ── Update checklist item once (skip for gallery uploads) ──────────────
+      if (itemId !== GALLERY_ID && lastPath) {
         const { error: itemErr } = await supabase
           .from('site_checklist_items')
-          .update({ photo_url: filePath, status: 'pass' })
+          .update({ photo_url: lastPath, status: 'pass' })
           .eq('id', itemId);
 
         if (itemErr) {
-          // Photo + DB are already consistent — the photo IS uploaded and visible.
-          // Treat this as a non-fatal warning so the installer is not misled by
-          // a full error when the important part (storage + photos row) succeeded.
-          const warnMsg = `[3/3] Checklist elemento atnaujinimas nepavyko: ${toMsg(itemErr)}`;
+          // Photos are already uploaded & visible — non-fatal.
+          const warnMsg = `Checklist elemento atnaujinimas nepavyko: ${toMsg(itemErr)}`;
           console.warn('[Photo]', warnMsg);
           Sentry.captureException(new Error(warnMsg), {
-            extra: { context: 'Checklist item update failed after successful upload', siteId, itemId, filePath },
+            extra: { context: 'Checklist item update failed after successful upload', siteId, itemId, lastPath },
           });
-          // Still surface the photo in the UI.
           void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-          toast.warning('Nuotrauka įkelta, tačiau checklist statusas neatnaujintas.');
+          toast.warning('Nuotraukos įkeltos, tačiau checklist statusas neatnaujintas.');
           return;
         }
-        console.log('[Photo] Step 3/3 ✓ — checklist item updated');
       }
 
-      // ── All steps succeeded ──────────────────────────────────────────────
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-      toast.success('Nuotrauka sėkmingai įkelta!');
-    } catch (err) {
-      const msg = toMsg(err);
-      console.error('[Photo] Upload pipeline failed:', msg);
-      Sentry.captureException(err instanceof Error ? err : new Error(msg), {
-        extra: { context: 'Photo upload pipeline', siteId, itemId, filePath },
-      });
-      // Show the exact step that failed — no more generic "Klaida" messages.
-      toast.error(`Klaida įkeliant nuotrauką: ${msg}`);
+      const failed = files.length - succeeded;
+      if (failed > 0) {
+        toast.warning(`Įkelta ${succeeded} iš ${files.length} nuotraukų.`);
+      } else {
+        toast.success(succeeded > 1 ? `Įkeltos ${succeeded} nuotraukos!` : 'Nuotrauka sėkmingai įkelta!');
+      }
     } finally {
-      // Always reset state and release the sync lock, regardless of outcome.
+      // Always reset state, clear the input and release the sync lock.
+      setCompressingCheckId(null);
       setUploadingCheckId(null);
+      input.value = '';
       finishSync();
     }
   };

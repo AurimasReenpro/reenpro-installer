@@ -17,26 +17,11 @@ import {
   CreditCard,
   Hash,
 } from 'lucide-react';
+import { getCompanySettings, updateCompanySettings } from '../../api/settings';
+import type { CompanySettings } from '../../api/settings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface CompanySettings {
-  id: string;
-  company_name: string | null;
-  company_code: string | null;
-  vat_code: string | null;
-  iban: string | null;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-  logo_url: string | null;
-  primary_color: string | null;
-  base_lat: number | null;
-  base_lng: number | null;
-}
-
-type FormState = Omit<CompanySettings, 'id'>;
-
-const SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001';
+type FormState = Omit<CompanySettings, 'id' | 'created_at' | 'updated_at'>;
 
 // ─── Section Card wrapper ─────────────────────────────────────────────────────
 function SectionCard({
@@ -119,26 +104,14 @@ export default function Settings() {
     email: '',
     logo_url: null,
     primary_color: '#490891',
-    base_lat: null,
-    base_lng: null,
+    warehouse_lat: null,
+    warehouse_lng: null,
   });
 
   // ── Fetch current settings ────────────────────────────────────────────────
   const { data: settings, isLoading } = useQuery({
     queryKey: ['company_settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('id', SETTINGS_ROW_ID)
-        .maybeSingle();
-
-      if (error) {
-        Sentry.captureException(error, { extra: { context: 'fetch company_settings' } });
-        throw error;
-      }
-      return data;
-    },
+    queryFn: getCompanySettings,
   });
 
   // Populate form when data arrives — setState is deferred into a callback to
@@ -156,13 +129,13 @@ export default function Settings() {
         email:         settings.email         ?? '',
         logo_url:      settings.logo_url,
         primary_color: settings.primary_color ?? '#490891',
-        base_lat:      settings.base_lat,
-        base_lng:      settings.base_lng,
+        warehouse_lat: settings.warehouse_lat,
+        warehouse_lng: settings.warehouse_lng,
       });
       // Always sync coordsInput from DB — null → '' so stale typed values don't persist
       setCoordsInput(
-        settings.base_lat != null && settings.base_lng != null
-          ? `${settings.base_lat}, ${settings.base_lng}`
+        settings.warehouse_lat != null && settings.warehouse_lng != null
+          ? `${settings.warehouse_lat}, ${settings.warehouse_lng}`
           : '',
       );
       if (settings.logo_url) setLogoPreview(settings.logo_url);
@@ -172,40 +145,13 @@ export default function Settings() {
 
   // ── Save mutation ─────────────────────────────────────────────────────────
   const saveMutation = useMutation({
-    mutationFn: async (values: FormState) => {
-      const payload = {
-        id: SETTINGS_ROW_ID,
-        ...values,
-        base_lat: values.base_lat != null ? Number(values.base_lat) : null,
-        base_lng: values.base_lng != null ? Number(values.base_lng) : null,
-      };
-
-      console.log('[Settings] Saving payload:', payload);
-
-      const { data, error } = await supabase
-        .from('company_settings')
-        .upsert(payload)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[Settings] Upsert error:', error);
-        throw error;
-      }
-      if (!data) {
-        // RLS UPDATE policy is blocking the write without returning an error
-        console.error('[Settings] Upsert returned no data — likely blocked by RLS');
-        throw new Error('Nustatymai neišsaugoti: serveris atmetė užklausą (RLS).');
-      }
-      console.log('[Settings] Saved successfully:', data);
-    },
+    mutationFn: (values: FormState) => updateCompanySettings(values),
     onSuccess: () => {
       toast.success('Nustatymai išsaugoti!');
       void qc.invalidateQueries({ queryKey: ['company_settings'] });
     },
     onError: (err) => {
       Sentry.captureException(err, { extra: { context: 'save company_settings' } });
-      console.error('[Settings] Save failed:', err);
       toast.error(err instanceof Error ? err.message : 'Klaida išsaugant nustatymus.');
     },
   });
@@ -264,14 +210,7 @@ export default function Settings() {
       }
 
       // Persist canonical URL to DB immediately — no wait for full form save
-      const { error: dbError } = await supabase
-        .from('company_settings')
-        .upsert({ id: SETTINGS_ROW_ID, logo_url: canonicalUrl });
-
-      if (dbError) {
-        console.error('[Logo] DB update failed:', dbError);
-        throw dbError;
-      }
+      await updateCompanySettings({ logo_url: canonicalUrl });
 
       // Store canonical URL in form state; unique path means no cache-buster needed
       setForm((f) => ({ ...f, logo_url: canonicalUrl }));
@@ -302,15 +241,15 @@ export default function Settings() {
       const lat = parseFloat(parts[0]?.trim() ?? '');
       const lng = parseFloat(parts[1]?.trim() ?? '');
       if (parts.length >= 2 && !isNaN(lat) && !isNaN(lng)) {
-        payload.base_lat = lat;
-        payload.base_lng = lng;
+        payload.warehouse_lat = lat;
+        payload.warehouse_lng = lng;
       } else {
         toast.error('Neteisingas koordinačių formatas. Pvz.: 54.8985, 23.9036');
         return;
       }
     } else {
-      payload.base_lat = null;
-      payload.base_lng = null;
+      payload.warehouse_lat = null;
+      payload.warehouse_lng = null;
     }
     saveMutation.mutate(payload);
   };

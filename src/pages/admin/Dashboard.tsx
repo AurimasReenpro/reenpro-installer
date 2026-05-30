@@ -8,6 +8,7 @@ import LiveAdminTimer from '../../components/admin/LiveAdminTimer';
 import CreateSiteModal from '../../components/admin/CreateSiteModal';
 import * as Sentry from "@sentry/react";
 import { Plus, MapPin, Users, CheckCircle2, Timer, Clock, CheckCheck, LogIn, Pause } from 'lucide-react';
+import { getCompanySettings } from '../../api/settings';
 
 const SiteMap = lazy(() => import('../../components/admin/SiteMap'));
 
@@ -79,27 +80,16 @@ export default function Dashboard() {
   // 2c. Company settings (for map base coords)
   const { data: companySettings } = useQuery({
     queryKey: ['company_settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company_settings')
-        .select('base_lat, base_lng, company_name')
-        .eq('id', '00000000-0000-0000-0000-000000000001')
-        .maybeSingle();
-      if (error) {
-        console.error('Error fetching company settings:', error);
-        return null;
-      }
-      return data;
-    },
+    queryFn: getCompanySettings,
     staleTime: 5 * 60_000, // 5 min — rarely changes
   });
 
-  // Derive base coords: DB → fallback to Kaunas
+  // Derive base coords: DB → fallback to Lithuania center (handled inside SiteMap)
   const mapBaseCoords =
-    companySettings?.base_lat && companySettings?.base_lng
+    companySettings?.warehouse_lat && companySettings?.warehouse_lng
       ? {
-          lat: Number(companySettings.base_lat),
-          lng: Number(companySettings.base_lng),
+          lat: Number(companySettings.warehouse_lat),
+          lng: Number(companySettings.warehouse_lng),
           label: companySettings.company_name ?? 'Įmonės sandėlis',
         }
       : null;

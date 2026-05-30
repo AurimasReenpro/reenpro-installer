@@ -1,11 +1,14 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User } from 'lucide-react';
+import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { FEATURES } from '../../config/features';
 import { useBranding } from '../../hooks/useBranding';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 export default function MobileLayout() {
   const location = useLocation();
   const { logoUrl, companyName } = useBranding();
+  const { canInstall, promptInstall } = usePWAInstall();
 
   const navItems = [
     { path: '/m', icon: 'today', label: 'Šiandien', exact: true },
@@ -38,7 +41,11 @@ export default function MobileLayout() {
     <div className="h-screen flex flex-col bg-app-bg relative">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 h-[56px] bg-surface-bright shadow-sm z-50 flex items-center justify-between px-4">
-        <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px]">
+        <button
+          onClick={() => toast.info('Meniu kuriamas.')}
+          aria-label="Meniu"
+          className="text-on-surface-variant flex items-center justify-center min-w-[48px] min-h-[48px]"
+        >
           <MenuIcon className="w-6 h-6" />
         </button>
         {logoUrl ? (
@@ -46,19 +53,34 @@ export default function MobileLayout() {
         ) : (
           <h1 className="text-primary font-bold text-lg truncate px-2">{companyName || 'InstallerApp'}</h1>
         )}
-        <button className="text-on-surface-variant flex items-center justify-center min-w-[44px] min-h-[44px] relative">
+        <button
+          onClick={() => toast.info('Pranešimų centras kuriamas.')}
+          aria-label="Pranešimai"
+          className="text-on-surface-variant flex items-center justify-center min-w-[48px] min-h-[48px]"
+        >
           <Bell className="w-6 h-6" />
-          <span className="absolute w-2 h-2 bg-[#fc391d] top-2 right-2 rounded-full border-2 border-surface-bright"></span>
         </button>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pt-[56px] pb-[64px] bg-app-bg">
+      <main className="flex-1 overflow-y-auto pt-[56px] pb-[72px] bg-app-bg">
         <Outlet />
       </main>
 
+      {/* Install App prompt (only when the browser offers installation) */}
+      {canInstall && (
+        <button
+          onClick={() => { void promptInstall(); }}
+          aria-label="Įdiegti programėlę"
+          className="fixed bottom-[84px] right-4 z-50 flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-white text-sm font-semibold shadow-lg active:scale-[0.97] transition-transform"
+        >
+          <Download className="w-5 h-5" />
+          Įdiegti programėlę
+        </button>
+      )}
+
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 h-[64px] bg-surface-bright border-t border-outline-variant shadow-[0_-2px_10px_rgba(29,3,58,0.05)] z-50 flex">
+      <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-surface-bright border-t border-outline-variant shadow-[0_-2px_10px_rgba(29,3,58,0.05)] z-50 flex">
         {navItems.map((item) => {
           const isActive = item.exact
             ? location.pathname === item.path
@@ -70,7 +92,7 @@ export default function MobileLayout() {
             <NavLink
               key={item.path}
               to={item.path}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[48px] ${
                 isActive ? 'text-primary' : 'text-on-surface-variant'
               }`}
             >

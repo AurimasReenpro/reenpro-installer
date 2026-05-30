@@ -5,20 +5,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Loader2, Plus, Trash2, Save,
-  Upload, FileText, Image as ImageIcon, X, Pencil,
-  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Calendar, Circle, Building, ChevronDown, Package,
+  Upload, FileText, Image as ImageIcon, X, Pencil, ZoomIn,
+  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Calendar, Circle, ChevronDown, Package,
   CheckCircle2, XCircle, MinusCircle, ClipboardList, ChevronRight, AlertTriangle, Phone, Mail, User,
-  Download,
+  Download, Zap, Sun, Battery, Wrench, Shield, MoreVertical, DraftingCompass,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
+import ImageAnnotator from '../../components/shared/ImageAnnotator';
+import ImageLightbox from '../../components/shared/ImageLightbox';
+import PdfPagePreview from '../../components/shared/PdfPagePreview';
+import { isPdf } from '../../lib/pdf';
 import {
-  getSiteById, updateEquipment, updateSiteDetails, uploadSiteFile, getSiteFiles, deleteSiteFile,
-  getSiteChecklistSession, assignChecklistToSite, updateClientInfo, getSiteInstallerPhotos,
+  getSiteById, updateEquipment, updateSiteDetails, uploadSiteFile, uploadBlueprintFile, groupBlueprints, getSiteFiles, deleteSiteFile,
+  addBlueprintCategory, removeBlueprintCategory,
+  getSiteChecklistSession, assignChecklistToSite, updateClientInfo, updateTechData, getSiteInstallerPhotos,
 } from '../../api/sites';
 import type { InstallerPhoto } from '../../api/sites';
 import { useSignedPhotoUrl } from '../../hooks/useSignedPhotoUrl';
 import { supabase } from '../../lib/supabase';
-import { getCatalogItems } from '../../api/catalog';
+import { getCatalogItems, getEquipmentCategories } from '../../api/catalog';
 import { parseEquipmentDetails, EQUIPMENT_CATEGORIES, EQUIPMENT_UNITS } from '../../types/equipment.types';
 import type { EquipmentItem } from '../../types/equipment.types';
 import { format } from 'date-fns';
@@ -106,19 +111,23 @@ interface SiteWithTeam {
   equipment_details: import('../../types/equipment.types').EquipmentItem[] | Record<string, string> | null;
   notes: string | null;
   stringing_details: unknown;
+  blueprint_categories: string[] | null;
   team: { name: string } | null;
   kwp: number | null;
   client_phone: string | null;
   contact_person: string | null;
   client_email: string | null;
+  roof_type: string | null;
+  roof_material: string | null;
+  roof_angle: string | null;
 }
 
-type TabId = 'info' | 'equip' | 'strings' | 'files' | 'check';
+type TabId = 'info' | 'equip' | 'blueprints' | 'files' | 'check';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'info', label: 'Objekto info', icon: Info },
   { id: 'equip', label: 'Įranga', icon: Cpu },
-  { id: 'strings', label: 'Stringavimas', icon: Network },
+  { id: 'blueprints', label: 'Brėžiniai', icon: DraftingCompass },
   { id: 'files', label: 'Failai', icon: FolderOpen },
   { id: 'check', label: 'Checklist', icon: ListChecks },
 ];
@@ -131,8 +140,8 @@ type ItemStatus = 'pending' | 'pass' | 'fail' | 'n_a';
 
 const STATUS_ITEM: Record<ItemStatus, { label: string; icon: React.ElementType; className: string; dotClass: string }> = {
   pending: { label: 'Laukia',     icon: Circle,       className: 'bg-[#f6f5fa] text-[#7c7484] border-[#cdc3d4]/50',  dotClass: 'bg-[#cdc3d4]' },
-  pass:    { label: 'Praėjo',     icon: CheckCircle2, className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20',   dotClass: 'bg-[#059669]' },
-  fail:    { label: 'Brokas',     icon: XCircle,      className: 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20',   dotClass: 'bg-[#DC2626]' },
+  pass:    { label: 'Atlikta',    icon: CheckCircle2, className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20',   dotClass: 'bg-[#059669]' },
+  fail:    { label: 'Neatlikta', icon: XCircle,      className: 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20',   dotClass: 'bg-[#DC2626]' },
   n_a:     { label: 'Netaikoma', icon: MinusCircle,  className: 'bg-[#FFFBEB] text-[#D97706] border-[#D97706]/20',   dotClass: 'bg-[#D97706]' },
 };
 
@@ -236,10 +245,26 @@ function ChecklistPhoto({
   );
 }
 
-function ChecklistItemRow({ item, siteId }: { item: { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean }; siteId: string }) {
+function ChecklistItemRow({
+  item,
+  siteId,
+  installerPhotos = [],
+}: {
+  item: { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean; is_extra?: boolean };
+  siteId: string;
+  /** Photos from the `photos` table whose storage_path maps to this item (durable record). */
+  installerPhotos?: InstallerPhoto[];
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const s = STATUS_ITEM[item.status];
   const StatusIcon = s.icon;
+
+  // Durable photos (photos table) are the source of truth. Fall back to the
+  // legacy single `photo_url` column only when no rows matched this item.
+  const photoUrls = installerPhotos.map(p => p.signedUrl).filter((u): u is string => !!u);
+  const hasInstallerPhotos = photoUrls.length > 0;
+  const hasAnyPhoto = hasInstallerPhotos || !!item.photo_url;
 
   return (
     <div className={`rounded-[10px] border transition-all duration-200 ${item.status === 'fail' ? 'border-[#DC2626]/30 bg-[#FEF2F2]/30' : 'border-[#cdc3d4]/30 bg-white hover:border-[#cdc3d4]/60'}`}>
@@ -248,7 +273,29 @@ function ChecklistItemRow({ item, siteId }: { item: { id: string; question_text:
         className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer"
       >
         <StatusIcon size={18} className={item.status === 'pass' ? 'text-[#059669]' : item.status === 'fail' ? 'text-[#DC2626]' : item.status === 'n_a' ? 'text-[#D97706]' : 'text-[#cdc3d4]'} />
-        <span className="flex-1 text-[13px] font-semibold text-[#1d033a] leading-snug">{item.question_text}</span>
+        <span className="flex-1 text-[13px] font-semibold text-[#1d033a] leading-snug">
+          {item.question_text}
+          {item.is_extra && (
+            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20 align-middle">
+              PAPILDOMAS DARBAS
+            </span>
+          )}
+        </span>
+        {/* Collapsed-state evidence thumbnail */}
+        {hasInstallerPhotos && (
+          <span
+            onClick={(e) => { e.stopPropagation(); setExpanded(true); setLightboxIndex(0); }}
+            className="relative shrink-0 w-9 h-9 rounded-[6px] overflow-hidden border border-[#cdc3d4]/40 cursor-zoom-in hover:border-primary/50 transition-colors"
+            title="Peržiūrėti nuotrauką"
+          >
+            <img src={photoUrls[0]} alt="Įrodymas" className="w-full h-full object-cover" />
+            {photoUrls.length > 1 && (
+              <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[9px] font-bold px-1 leading-tight rounded-tl-[4px]">
+                {photoUrls.length}
+              </span>
+            )}
+          </span>
+        )}
         {item.is_required && item.status === 'pending' && (
           <span className="text-[10px] font-bold text-[#DC2626] border border-[#DC2626]/30 bg-[#FEF2F2] px-1.5 py-0.5 rounded">REQ</span>
         )}
@@ -276,19 +323,38 @@ function ChecklistItemRow({ item, siteId }: { item: { id: string; question_text:
                 <p className="text-[12px] text-[#7c7484] italic">Komentaro nėra.</p>
               )}
 
-              {/* Photo */}
-              {item.photo_url && (
-                <div>
-                  <p className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-2">Nuotrauka</p>
+              {/* Installer's photos (Įrodymai) — durable photos-table records */}
+              <div>
+                <p className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-2">Montuotojo nuotrauka</p>
+                {hasInstallerPhotos ? (
+                  <div className="flex flex-wrap gap-2">
+                    {photoUrls.map((u, idx) => (
+                      <button
+                        key={installerPhotos[idx]?.id ?? u}
+                        onClick={() => setLightboxIndex(idx)}
+                        className="w-20 h-20 rounded-[8px] overflow-hidden border border-[#cdc3d4]/30 hover:border-primary/50 transition-colors cursor-zoom-in focus:outline-none"
+                        title="Peržiūrėti"
+                      >
+                        <img src={u} alt="Įrodymas" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                ) : item.photo_url ? (
+                  /* Legacy fallback: single photo_url column */
                   <ChecklistPhoto
                     value={item.photo_url}
                     siteId={siteId}
                     checklistItemId={item.id}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center gap-2 text-[#7c7484] bg-[#f6f5fa] border border-dashed border-[#cdc3d4]/50 rounded-[8px] px-3 py-2.5">
+                    <ImageIcon size={14} className="text-[#cdc3d4]" />
+                    <span className="text-[12px] italic">Nėra nuotraukos</span>
+                  </div>
+                )}
+              </div>
 
-              {item.status === 'fail' && !item.photo_url && (
+              {item.status === 'fail' && !hasAnyPhoto && (
                 <div className="flex items-center gap-2 text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/20 rounded-[8px] px-3 py-2">
                   <AlertTriangle size={14} />
                   <span className="text-[12px] font-semibold">Reikia nuotraukos — laukiama montuotojo įkėlimo.</span>
@@ -298,6 +364,16 @@ function ChecklistItemRow({ item, siteId }: { item: { id: string; question_text:
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Full-screen lightbox for the installer evidence photos */}
+      {lightboxIndex !== null && hasInstallerPhotos && (
+        <ImageLightbox
+          urls={photoUrls}
+          index={lightboxIndex}
+          originalFileUrl={photoUrls[lightboxIndex]}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }
@@ -315,6 +391,32 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
   const { data: session, isLoading } = useQuery({
     queryKey: ['site_checklist_session', siteId],
     queryFn: () => getSiteChecklistSession(siteId),
+  });
+
+  // Installer photos (durable `photos` table records, batch-signed). Matched to
+  // each checklist item via the `/${itemId}/` segment in the storage path —
+  // the same durable lookup the mobile WorkTab uses.
+  const { data: installerPhotos } = useQuery({
+    queryKey: ['admin_site_photos', siteId],
+    queryFn: () => getSiteInstallerPhotos(siteId),
+    enabled: !!siteId,
+  });
+  const photosForItem = (itemId: string) =>
+    (installerPhotos ?? []).filter(p => p.storage_path.includes(`/${itemId}/`));
+
+  // Installer-logged extra materials for this site.
+  const { data: extraMaterials } = useQuery({
+    queryKey: ['site_extra_materials', siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_extra_materials')
+        .select('*')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
   });
 
   // Fetch categories for assignment dropdown
@@ -455,7 +557,7 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-[6px] border ${ss.className}`}>{ss.label}</span>
             {failed > 0 && (
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] border bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20 flex items-center gap-1">
-                <AlertTriangle size={11} /> {failed} brokas
+                <AlertTriangle size={11} /> {failed} neatlikta
               </span>
             )}
           </div>
@@ -465,8 +567,8 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
             { label: 'Iš viso',    value: total,    cls: 'text-[#1d033a]' },
-            { label: 'Praėjo',     value: passed,   cls: 'text-[#059669]' },
-            { label: 'Brokas',     value: failed,   cls: 'text-[#DC2626]' },
+            { label: 'Atlikta',    value: passed,   cls: 'text-[#059669]' },
+            { label: 'Neatlikta', value: failed,   cls: 'text-[#DC2626]' },
             { label: 'Netaikoma', value: naCount,   cls: 'text-[#D97706]' },
           ].map(s => (
             <div key={s.label} className="bg-[#f6f5fa] rounded-[10px] p-3 border border-[#cdc3d4]/30 text-center">
@@ -514,12 +616,35 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
             </div>
             <div className="p-4 space-y-2">
               {groupItems.map(item => (
-                <ChecklistItemRow key={item.id} item={item as { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean }} siteId={siteId} />
+                <ChecklistItemRow key={item.id} item={item as { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean; is_extra?: boolean }} siteId={siteId} installerPhotos={photosForItem(item.id)} />
               ))}
             </div>
           </div>
         );
       })}
+
+      {/* Installer-logged extra materials */}
+      {extraMaterials && extraMaterials.length > 0 && (
+        <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 bg-[#f6f5fa]/70 border-b border-[#cdc3d4]/20 flex items-center justify-between">
+            <h4 className="text-[12px] font-bold text-[#7c7484] uppercase tracking-wider flex items-center gap-2">
+              <Package size={14} className="text-primary" /> Papildomos medžiagos
+            </h4>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20">
+              PAPILDOMOS MEDŽIAGOS
+            </span>
+          </div>
+          <div className="p-4 space-y-2">
+            {extraMaterials.map(m => (
+              <div key={m.id} className="flex items-center gap-3 bg-[#f6f5fa] rounded-[10px] px-3.5 py-2.5 border border-[#cdc3d4]/30">
+                <Package size={15} className="text-[#7c7484] shrink-0" />
+                <span className="flex-1 text-[13px] font-semibold text-[#1d033a] truncate">{m.name}</span>
+                <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">{m.quantity} {m.unit}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
 
     {/* ── Add custom checklist item modal ── */}
@@ -591,6 +716,7 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
 
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 const isImage = (name: string) => IMAGE_EXTS.includes(name.split('.').pop()?.toLowerCase() ?? '');
+const isPreviewable = (name: string) => isImage(name) || isPdf(name);
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   in_progress: { label: 'Vykdomas', className: 'bg-[#ECFDF5] text-[#10B981]' },
@@ -614,6 +740,18 @@ interface StringRow {
   angle: string;
 }
 
+// ── Category icon fallback map (icons are a UI concern, not stored in DB) ────
+const EQUIP_ICON_MAP: Record<string, React.ElementType> = {
+  Inverteris: Zap,
+  Moduliai: Sun,
+  BESS: Battery,
+  Konstrukcija: Wrench,
+  Kabeliai: Network,
+  Apsauga: Shield,
+};
+const DEFAULT_EQUIP_ICON = Package;
+const DEFAULT_CAT_COLORS = { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
+
 const EMPTY_EQUIP_ROW: EquipmentItem = { category: 'Inverteris', model: '', quantity: 1, unit: 'vnt.', notes: '' };
 
 function EquipmentTabContent({
@@ -628,11 +766,21 @@ function EquipmentTabContent({
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [rows, setRows] = useState<EquipmentItem[]>([]);
+  const [kebabOpen, setKebabOpen] = useState<number | null>(null);
 
   const { data: catalog = [] } = useQuery({
     queryKey: ['equipment_catalog'],
     queryFn: getCatalogItems,
   });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['equipment_categories'],
+    queryFn: getEquipmentCategories,
+  });
+
+  const catColorMap = Object.fromEntries(
+    categories.map(c => [c.name, { bg: c.bg_color, text: c.text_color, border: c.border_color }])
+  );
 
   const saveMutation = useMutation({
     mutationFn: () => updateEquipment(siteId, rows.filter(r => r.model.trim())),
@@ -646,7 +794,9 @@ function EquipmentTabContent({
   });
 
   const startEditing = () => {
-    setRows(currentEquipment.length > 0 ? [...currentEquipment] : [{ ...EMPTY_EQUIP_ROW }]);
+    const defaultCat = categories[0]?.name ?? EMPTY_EQUIP_ROW.category;
+    const defaultRow = { ...EMPTY_EQUIP_ROW, category: defaultCat };
+    setRows(currentEquipment.length > 0 ? [...currentEquipment] : [defaultRow]);
     setEditing(true);
   };
 
@@ -708,156 +858,214 @@ function EquipmentTabContent({
             </button>
           </div>
         ) : (
-          <div className="rounded-[10px] border border-[#cdc3d4]/30 overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#f6f5fa] border-b border-[#cdc3d4]/30">
-                  <th className="py-3 px-4 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Kategorija</th>
-                  <th className="py-3 px-4 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Modelis</th>
-                  <th className="py-3 px-4 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider w-[100px]">Kiekis</th>
-                  <th className="py-3 px-4 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Pastabos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentEquipment.map((item, i) => (
-                  <tr key={i} className="border-b border-[#cdc3d4]/10 last:border-none hover:bg-[#fbf0ff]/20 transition-colors">
-                    <td className="py-3 px-4 text-[13px]">
-                      <span className="bg-[#f6f5fa] border border-[#cdc3d4]/40 text-primary font-semibold px-2 py-0.5 rounded-md text-[12px]">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-[14px] font-semibold text-[#1d033a]">{item.model}</td>
-                    <td className="py-3 px-4 text-[14px] text-[#4b4452]">
-                      <span className="bg-[#ecfdf5] text-[#059669] font-bold px-2 py-0.5 rounded-md text-[12px] whitespace-nowrap">
-                        {item.quantity} {item.unit || 'vnt.'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-[13px] text-[#7c7484]">{item.notes || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="rounded-[12px] border border-[#cdc3d4]/30 overflow-hidden">
+            {/* Column headers */}
+            <div className="grid grid-cols-[176px_1fr_96px_32px] gap-3 px-4 py-2.5 bg-[#f6f5fa] border-b border-[#cdc3d4]/30">
+              <span className="text-[10px] font-bold text-[#7c7484] uppercase tracking-wider">Kategorija</span>
+              <span className="text-[10px] font-bold text-[#7c7484] uppercase tracking-wider">Modelis / Specifikacija</span>
+              <span className="text-[10px] font-bold text-[#7c7484] uppercase tracking-wider">Kiekis</span>
+              <span />
+            </div>
+
+            {/* Transparent click-away overlay for kebab */}
+            {kebabOpen !== null && (
+              <div className="fixed inset-0 z-10" onClick={() => setKebabOpen(null)} />
+            )}
+
+            {currentEquipment.map((item, i) => {
+              const colors = catColorMap[item.category] ?? DEFAULT_CAT_COLORS;
+              const CatIcon = EQUIP_ICON_MAP[item.category] ?? DEFAULT_EQUIP_ICON;
+              return (
+                <div
+                  key={i}
+                  className="grid grid-cols-[176px_1fr_96px_32px] gap-3 items-start px-4 py-3 border-b border-[#cdc3d4]/10 last:border-none hover:bg-[#fbf9ff] transition-colors group"
+                  style={{ background: i % 2 === 1 ? '#fdfcff' : '#ffffff' }}
+                >
+                  {/* Category pill */}
+                  <div className="pt-0.5">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-semibold text-[12px] whitespace-nowrap"
+                      style={{ background: colors.bg, color: colors.text, borderColor: colors.border }}
+                    >
+                      <CatIcon size={12} />
+                      {item.category}
+                    </span>
+                  </div>
+
+                  {/* Model + notes */}
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#1d033a] leading-snug">{item.model || '—'}</p>
+                    {item.notes && (
+                      <p className="text-[12px] text-[#7c7484] mt-0.5 leading-snug">{item.notes}</p>
+                    )}
+                  </div>
+
+                  {/* Quantity + unit badge */}
+                  <div className="pt-0.5 flex items-center gap-1.5">
+                    <span className="text-[15px] font-bold text-[#1d033a]">{item.quantity}</span>
+                    <span className="text-[11px] font-semibold text-[#7c7484] bg-[#f6f5fa] border border-[#cdc3d4]/50 px-1.5 py-0.5 rounded-md">{item.unit || 'vnt.'}</span>
+                  </div>
+
+                  {/* Kebab menu */}
+                  <div className="relative pt-0.5">
+                    <button
+                      onClick={() => setKebabOpen(kebabOpen === i ? null : i)}
+                      className="w-7 h-7 flex items-center justify-center text-[#cdc3d4] hover:text-[#4b4452] hover:bg-[#f6f5fa] rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical size={15} />
+                    </button>
+                    {kebabOpen === i && (
+                      <div className="absolute right-0 top-8 z-20 bg-white rounded-[10px] shadow-lg border border-[#cdc3d4]/40 py-1 min-w-[130px]">
+                        <button
+                          onClick={() => { setKebabOpen(null); startEditing(); }}
+                          className="w-full px-4 py-2 text-[13px] text-[#1d033a] hover:bg-[#f6f5fa] text-left flex items-center gap-2 cursor-pointer"
+                        >
+                          <Pencil size={13} className="text-primary" /> Redaguoti
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )
+      )}
+
+      {/* Info callout */}
+      {!editing && (
+        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-[#1d033a]">
+          <Info size={15} className="text-[#2563EB] flex-shrink-0 mt-0.5" />
+          <span>
+            <span className="font-semibold">Kategorija</span> automatiškai nustatoma pagal objekto tipą. Galima laisvai pridėti bet kokių papildomų komponentų.
+          </span>
+        </div>
       )}
 
       {/* Edit mode */}
       {editing && (
         <div className="flex flex-col gap-2">
           {/* Column headers */}
-          <div className="grid grid-cols-[1.5fr_2fr_60px_90px_1.5fr_36px] gap-2 px-1 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">
-            <span>Kategorija</span><span>Modelis / Specifikacija</span><span>Kiekis</span><span>Vnt.</span><span>Pastabos</span><span />
+          <div className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 px-1 mb-0.5 text-[10px] font-bold text-[#7c7484] uppercase tracking-wider">
+            <span>Kategorija</span>
+            <span>Modelis / Specifikacija</span>
+            <span>Kiekis</span>
+            <span>Vnt.</span>
+            <span>Pastabos</span>
+            <span />
           </div>
 
-          {rows.map((row, i) => (
-            <div key={i} className="grid grid-cols-[1.5fr_2fr_60px_90px_1.5fr_36px] gap-2 items-center">
-              {/* Category select */}
-              <div className="relative">
-                <select
-                  value={row.category}
-                  onChange={(e) => {
-                    updateRow(i, 'category', e.target.value);
-                    updateRow(i, 'model', ''); // reset model when category changes
-                  }}
-                  className="w-full h-[40px] pl-3 pr-8 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary focus:bg-white cursor-pointer"
-                >
-                  {EQUIPMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
-              </div>
-
-              {/* Model — catalog dropdown with manual fallback */}
-              <div className="relative">
-                {(catalogByCategory[row.category] ?? []).length > 0 ? (
-                  <select
-                    value={row.model}
-                    onChange={(e) => updateRow(i, 'model', e.target.value)}
-                    className="w-full h-[40px] pl-3 pr-8 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary focus:bg-white cursor-pointer"
-                  >
-                    <option value="">— Pasirinkite —</option>
-                    {(catalogByCategory[row.category] ?? []).map(c => (
-                      <option key={c.id} value={`${c.brand ? c.brand + ' ' : ''}${c.model}`}>
-                        {c.brand ? `${c.brand} ` : ''}{c.model}
-                        {c.specifications ? ` (${c.specifications})` : ''}
-                      </option>
-                    ))}
-                    <option value="__custom">✎ Įvesti ranka...</option>
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={row.model}
-                    onChange={(e) => updateRow(i, 'model', e.target.value)}
-                    placeholder="Modelis / specifikacija"
-                    className="w-full h-[40px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white"
-                  />
-                )}
-                {(catalogByCategory[row.category] ?? []).length > 0 && (
-                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
-                )}
-              </div>
-
-              {/* Quantity */}
-              <input
-                type="number"
-                min={1}
-                value={row.quantity}
-                onChange={(e) => updateRow(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                className="h-[40px] px-2 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white text-center"
-              />
-
-              {/* Unit select */}
-              <div className="relative">
-                <select
-                  value={row.unit || 'vnt.'}
-                  onChange={(e) => updateRow(i, 'unit', e.target.value)}
-                  className="w-full h-[40px] pl-3 pr-7 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary focus:bg-white cursor-pointer text-center"
-                >
-                  {EQUIPMENT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
-              </div>
-
-              {/* Notes */}
-              <input
-                type="text"
-                value={row.notes}
-                onChange={(e) => updateRow(i, 'notes', e.target.value)}
-                placeholder="Pastabos..."
-                className="h-[40px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white"
-              />
-
-              {/* Remove */}
-              <button
-                onClick={() => setRows(r => r.filter((_, idx) => idx !== i))}
-                className="w-9 h-9 flex items-center justify-center text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer rounded-[8px]"
+          {rows.map((row, i) => {
+            const colors = catColorMap[row.category] ?? DEFAULT_CAT_COLORS;
+            const hasCatalog = (catalogByCategory[row.category] ?? []).length > 0;
+            return (
+              <div
+                key={i}
+                className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 items-center p-2.5 rounded-[10px] border"
+                style={{ borderColor: colors.border, background: colors.bg + '28' }}
               >
-                <X size={16} />
-              </button>
-            </div>
-          ))}
+                {/* Category select */}
+                <div className="relative">
+                  <select
+                    value={row.category}
+                    onChange={(e) => { updateRow(i, 'category', e.target.value); updateRow(i, 'model', ''); }}
+                    className="w-full h-[38px] pl-2.5 pr-7 rounded-[8px] text-[12px] font-semibold appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer border"
+                    style={{ borderColor: colors.border, background: colors.bg, color: colors.text }}
+                  >
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: colors.text }} />
+                </div>
 
-          {/* If model is __custom, show text input */}
-          {rows.some(r => r.model === '__custom') && rows.map((row, i) => row.model === '__custom' && (
-            <div key={`custom-${i}`} className="flex items-center gap-2 px-1">
-              <span className="text-[12px] text-primary font-medium w-[calc(1.5fr)]">
-                Eilutė {i + 1} — įveskite modelį ranka:
-              </span>
-              <input
-                type="text"
-                autoFocus
-                placeholder="Pvz.: Huawei SUN2000 10kW"
-                onBlur={(e) => { if (e.target.value.trim()) updateRow(i, 'model', e.target.value.trim()); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) updateRow(i, 'model', v); } }}
-                className="flex-1 h-[38px] px-3 bg-white border-2 border-primary rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none"
-              />
-            </div>
-          ))}
+                {/* Model — catalog dropdown or free-text */}
+                <div className="relative">
+                  {hasCatalog && row.model !== '__custom' ? (
+                    <>
+                      <select
+                        value={row.model}
+                        onChange={(e) => updateRow(i, 'model', e.target.value)}
+                        className="w-full h-[38px] pl-3 pr-8 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
+                      >
+                        <option value="">— Pasirinkite —</option>
+                        {(catalogByCategory[row.category] ?? []).map(c => (
+                          <option key={c.id} value={`${c.brand ? c.brand + ' ' : ''}${c.model}`}>
+                            {c.brand ? `${c.brand} ` : ''}{c.model}{c.specifications ? ` (${c.specifications})` : ''}
+                          </option>
+                        ))}
+                        <option value="__custom">✎ Įvesti ranka...</option>
+                      </select>
+                      <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
+                    </>
+                  ) : hasCatalog && row.model === '__custom' ? (
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Pvz.: Huawei SUN2000 10kW"
+                        onBlur={(e) => { if (e.target.value.trim()) updateRow(i, 'model', e.target.value.trim()); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) updateRow(i, 'model', v); } }}
+                        className="flex-1 h-[38px] px-3 bg-white border-2 border-primary rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none"
+                      />
+                      <button onClick={() => updateRow(i, 'model', '')} className="h-[38px] px-2 text-[#7c7484] hover:text-red-500 transition-colors cursor-pointer">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={row.model}
+                      onChange={(e) => updateRow(i, 'model', e.target.value)}
+                      placeholder="Modelis / specifikacija"
+                      className="w-full h-[38px] px-3 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    />
+                  )}
+                </div>
 
-          {/* Add row */}
+                {/* Quantity */}
+                <input
+                  type="number"
+                  min={1}
+                  value={row.quantity}
+                  onChange={(e) => updateRow(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                  className="h-[38px] px-1 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] font-bold text-[#1d033a] focus:outline-none focus:border-primary text-center"
+                />
+
+                {/* Unit */}
+                <div className="relative">
+                  <select
+                    value={row.unit || 'vnt.'}
+                    onChange={(e) => updateRow(i, 'unit', e.target.value)}
+                    className="w-full h-[38px] pl-2 pr-6 bg-white border border-[#cdc3d4] rounded-[8px] text-[12px] text-[#4b4452] appearance-none focus:outline-none focus:border-primary cursor-pointer text-center"
+                  >
+                    {EQUIPMENT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
+                </div>
+
+                {/* Notes */}
+                <input
+                  type="text"
+                  value={row.notes}
+                  onChange={(e) => updateRow(i, 'notes', e.target.value)}
+                  placeholder="Pastabos..."
+                  className="h-[38px] px-3 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+
+                {/* Remove */}
+                <button
+                  onClick={() => setRows(r => r.filter((_, idx) => idx !== i))}
+                  className="w-8 h-8 flex items-center justify-center text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer rounded-[8px]"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Add row — primary button */}
           <button
             onClick={() => setRows(r => [...r, { ...EMPTY_EQUIP_ROW }])}
-            className="flex items-center justify-center gap-2 h-[40px] border border-dashed border-[#cdc3d4] text-primary font-semibold text-[14px] rounded-[8px] hover:bg-[#fbf0ff] hover:border-primary/50 transition-colors cursor-pointer mt-1"
+            className="flex items-center justify-center gap-2 h-[40px] px-5 rounded-[8px] bg-primary text-white font-semibold text-[13px] hover:bg-primary/80 transition-colors cursor-pointer mt-1 self-start"
           >
             <Plus size={16} />
             Pridėti eilutę
@@ -1084,8 +1292,20 @@ export default function SiteDetails() {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const blueprintInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<TabId>('info');
+  const [annotatingFile, setAnnotatingFile] = useState<{ name: string; url: string; page?: number } | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxPdf, setLightboxPdf] = useState<{ url: string; page: number } | null>(null);
+  // Active page per category, so the annotator/lightbox open on the page shown.
+  const [pageByCategory, setPageByCategory] = useState<Record<string, number>>({});
+  // Blueprint upload/category state
+  const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+  const [uploadTargetCategory, setUploadTargetCategory] = useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
 
   /* ── Queries ── */
   const { data: site, isLoading: siteLoading } = useQuery({
@@ -1147,6 +1367,47 @@ export default function SiteDetails() {
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
 
+  const uploadBlueprintMutation = useMutation({
+    mutationFn: ({ category, file }: { category: string; file: File }) =>
+      uploadBlueprintFile(id!, category, file),
+    onSuccess: () => {
+      toast.success('Brėžinys įkeltas!');
+      setUploadingCategory(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site_files', id] });
+    },
+    onError: (err: unknown) => {
+      setUploadingCategory(null);
+      toast.error(err instanceof Error ? err.message : 'Klaida');
+    },
+  });
+
+  const addCategoryMutation = useMutation({
+    mutationFn: (name: string) => addBlueprintCategory(id!, name),
+    onSuccess: () => {
+      setCategoryName('');
+      setShowCategoryModal(false);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  const removeCategoryMutation = useMutation({
+    mutationFn: async ({ category, fileName }: { category: string; fileName?: string }) => {
+      if (fileName) await deleteSiteFile(id!, fileName);
+      await removeBlueprintCategory(id!, category);
+    },
+    onSuccess: () => {
+      toast.success('Kategorija pašalinta');
+      setDeletingCategory(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_site_files', id] });
+    },
+    onError: (err: unknown) => {
+      setDeletingCategory(null);
+      toast.error(err instanceof Error ? err.message : 'Klaida');
+    },
+  });
+
   const deleteFileMutation = useMutation({
     mutationFn: (fileName: string) => deleteSiteFile(id!, fileName),
     onSuccess: () => {
@@ -1193,6 +1454,50 @@ export default function SiteDetails() {
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
 
+  /* ── Tech data editing ── */
+  const [editingTech, setEditingTech] = useState(false);
+  const [techForm, setTechForm] = useState({
+    kwp: '',
+    system_type: '',
+    scheduled_start: '',
+    roof_type: '',
+    roof_material: '',
+    roof_angle: '',
+  });
+
+  const startEditingTech = () => {
+    setTechForm({
+      kwp:             site?.kwp != null ? String(site.kwp) : '',
+      system_type:     site?.system_type     ?? 'PV',
+      scheduled_start: site?.scheduled_start
+        ? format(new Date(site.scheduled_start), "yyyy-MM-dd'T'HH:mm")
+        : '',
+      roof_type:     site?.roof_type     ?? '',
+      roof_material: site?.roof_material ?? '',
+      roof_angle:    site?.roof_angle    ?? '',
+    });
+    setEditingTech(true);
+  };
+
+  const saveTechMutation = useMutation({
+    mutationFn: () => updateTechData(id!, {
+      kwp:             techForm.kwp !== '' ? parseFloat(techForm.kwp) : null,
+      system_type:     techForm.system_type,
+      scheduled_start: techForm.scheduled_start
+        ? new Date(techForm.scheduled_start).toISOString()
+        : null,
+      roof_type:     techForm.roof_type     || null,
+      roof_material: techForm.roof_material || null,
+      roof_angle:    techForm.roof_angle    || null,
+    }),
+    onSuccess: () => {
+      toast.success('Techniniai duomenys išsaugoti!');
+      setEditingTech(false);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
   /* ── Handlers ── */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1210,8 +1515,69 @@ export default function SiteDetails() {
     if (ok) deleteFileMutation.mutate(fileName);
   };
 
+  // Triggers the hidden blueprint file picker for a given category.
+  const pickBlueprint = (category: string) => {
+    setUploadTargetCategory(category);
+    blueprintInputRef.current?.click();
+  };
+
+  const handleBlueprintInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const category = uploadTargetCategory;
+    e.target.value = '';
+    if (!file || !category) return;
+    setUploadingCategory(category);
+    uploadBlueprintMutation.mutate({ category, file });
+  };
+
+  const handleAddCategory = () => {
+    const name = categoryName.trim();
+    if (!name) return;
+    // Avoid duplicates against both existing blueprints and persisted placeholders.
+    if (displayCategories.includes(name)) {
+      toast.error('Tokia kategorija jau egzistuoja.');
+      return;
+    }
+    addCategoryMutation.mutate(name);
+  };
+
+  const handleDeleteBlueprint = async (fileName: string) => {
+    const ok = await confirm({
+      title: 'Pašalinti brėžinį?',
+      message: 'Ar tikrai norite pašalinti šį brėžinį?',
+      variant: 'danger',
+    });
+    if (ok) deleteFileMutation.mutate(fileName);
+  };
+
+  const handleDeleteCategory = async (category: string, fileName?: string) => {
+    const ok = await confirm({
+      title: 'Pašalinti kategoriją?',
+      message: fileName
+        ? `Kategorija „${category}" ir jos brėžinys bus pašalinti. Veiksmas neatšaukiamas.`
+        : `Ar tikrai norite pašalinti kategoriją „${category}"?`,
+      variant: 'danger',
+    });
+    if (!ok) return;
+    setDeletingCategory(category);
+    removeCategoryMutation.mutate({ category, fileName });
+  };
+
   /* ── Helpers ── */
   const currentEquipment = parseEquipmentDetails(site?.equipment_details);
+  // Blueprints are stored with a `__` prefix so they stay out of the Files tab.
+  const blueprints = groupBlueprints(files ?? []);
+  // Categories to render = persisted placeholders ∪ categories derived from
+  // uploaded files (deduped). A Set keeps insertion order while removing dupes.
+  const displayCategories = [
+    ...new Set<string>([
+      ...(site?.blueprint_categories ?? []),
+      ...blueprints.map((b) => b.category),
+    ]),
+  ];
+  const blueprintByCategory = (category: string) =>
+    blueprints.find((b) => b.category === category)?.file;
+  const regularFiles = files?.filter(f => !f.name.startsWith('__'));
   const team = site?.team;
   const status = STATUS_MAP[site?.status ?? ''];
 
@@ -1232,7 +1598,7 @@ export default function SiteDetails() {
   }
 
   return (
-    <div className="space-y-6 flex flex-col h-full max-w-6xl mx-auto w-full">
+    <div className="space-y-6 max-w-6xl mx-auto w-full">
       
       {/* ── Header ── */}
       <div className="flex flex-col gap-4">
@@ -1295,7 +1661,7 @@ export default function SiteDetails() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="relative flex gap-1 bg-[#f6f5fa] rounded-[12px] p-1.5 overflow-x-auto scrollbar-hide border border-[#cdc3d4]/30">
+      <div className="relative flex gap-1 bg-[#f6f5fa] rounded-[12px] p-1.5 overflow-x-auto border border-[#cdc3d4]/30 flex-shrink-0 min-h-[48px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1468,9 +1834,18 @@ export default function SiteDetails() {
               </div>
 
               <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
-                  <Cpu size={18} className="text-primary" />
-                  <h3 className="font-semibold text-[#1d033a] text-[14px]">Techniniai duomenys</h3>
+                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Cpu size={18} className="text-primary" />
+                    <h3 className="font-semibold text-[#1d033a] text-[14px]">Techniniai duomenys</h3>
+                  </div>
+                  <button
+                    onClick={startEditingTech}
+                    className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-[#f6f5fa] text-primary font-semibold text-[12px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 transition-colors cursor-pointer"
+                  >
+                    <Pencil size={13} />
+                    Redaguoti
+                  </button>
                 </div>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
@@ -1490,6 +1865,18 @@ export default function SiteDetails() {
                   <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
                     <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Komanda</span>
                     <span className="text-[14px] font-semibold text-[#1d033a]">{team?.name || 'Nepriskirta'}</span>
+                  </div>
+                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
+                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo tipas</span>
+                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_type || '-'}</span>
+                  </div>
+                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
+                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo danga</span>
+                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_material || '-'}</span>
+                  </div>
+                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
+                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo nuolydis</span>
+                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_angle || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -1541,45 +1928,150 @@ export default function SiteDetails() {
         )}
 
         {/* ════ TAB 3: STRINGS ════ */}
-        {activeTab === 'strings' && (
+        {activeTab === 'blueprints' && (
           <motion.div
-            key="strings"
+            key="blueprints"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
             className="space-y-6"
           >
-            {/* Visual schemas placeholders */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden flex flex-col">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
-                  <Network size={18} className="text-primary" />
-                  <h3 className="font-semibold text-[#1d033a] text-[14px]">DC schema / String layout</h3>
-                </div>
-                <div className="p-5 flex-1 flex items-center justify-center">
-                  <div className="border-2 border-dashed border-[#cdc3d4]/50 rounded-[12px] w-full p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#fbf0ff]/30 hover:border-primary/40 transition-colors">
-                    <ImageIcon size={32} className="text-[#cdc3d4] mb-3" />
-                    <p className="font-semibold text-[#1d033a] text-[13px]">Įkelti DC schemą</p>
-                    <p className="text-[11px] text-[#7c7484] mt-1">PNG, PDF</p>
-                  </div>
-                </div>
-              </div>
+            {/* Hidden file picker shared by every blueprint card */}
+            <input
+              ref={blueprintInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*,.pdf,.dwg"
+              onChange={handleBlueprintInputChange}
+            />
 
-              <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden flex flex-col">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
-                  <Building size={18} className="text-primary" />
-                  <h3 className="font-semibold text-[#1d033a] text-[14px]">Stogo planas</h3>
-                </div>
-                <div className="p-5 flex-1 flex items-center justify-center">
-                  <div className="border-2 border-dashed border-[#cdc3d4]/50 rounded-[12px] w-full p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#fbf0ff]/30 hover:border-primary/40 transition-colors">
-                    <ImageIcon size={32} className="text-[#cdc3d4] mb-3" />
-                    <p className="font-semibold text-[#1d033a] text-[13px]">Įkelti stogo planą</p>
-                    <p className="text-[11px] text-[#7c7484] mt-1">PNG, DWG, PDF</p>
-                  </div>
-                </div>
-              </div>
+            {/* Header + new category button */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="text-[16px] font-bold text-[#1d033a] flex items-center gap-2">
+                <DraftingCompass size={18} className="text-primary" />
+                Brėžiniai
+              </h2>
+              <button
+                onClick={() => { setCategoryName(''); setShowCategoryModal(true); }}
+                className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-primary text-white font-semibold text-[13px] hover:bg-primary/80 transition-colors cursor-pointer"
+              >
+                <Plus size={16} />
+                Nauja kategorija
+              </button>
             </div>
+
+            {/* Blueprint category grid */}
+            {displayCategories.length === 0 ? (
+              <div className="bg-white rounded-[16px] border border-dashed border-[#cdc3d4]/50 shadow-sm p-10 flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-[16px] bg-[#f6f5fa] flex items-center justify-center border border-[#cdc3d4]/30">
+                  <DraftingCompass size={28} className="text-[#cdc3d4]" />
+                </div>
+                <p className="font-bold text-[15px] text-[#1d033a]">Brėžinių dar nėra</p>
+                <p className="text-[13px] text-[#7c7484] max-w-sm">
+                  Sukurk kategoriją (pvz. „Vizualizacija", „El. schema", „Stringavimas") ir įkelk po vieną brėžinį.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {displayCategories.map((category) => {
+                  const file = blueprintByCategory(category);
+                  const busy = uploadingCategory === category;
+                  return (
+                    <div key={category} className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden flex flex-col">
+                      <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
+                        <DraftingCompass size={18} className="text-primary shrink-0" />
+                        <h3 className="font-semibold text-[#1d033a] text-[14px] truncate flex-1">{category}</h3>
+                        <button
+                          onClick={() => void handleDeleteCategory(category, file?.name)}
+                          disabled={deletingCategory === category}
+                          className="w-7 h-7 flex items-center justify-center text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Pašalinti kategoriją"
+                        >
+                          {deletingCategory === category ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                        </button>
+                      </div>
+                      <div className="p-5 flex-1 flex items-center justify-center">
+                        {file ? (
+                          <div className="group relative rounded-[12px] overflow-hidden border border-[#cdc3d4]/30 w-full">
+                            {isPdf(file.name) ? (
+                              <PdfPagePreview
+                                url={file.url}
+                                page={pageByCategory[category] ?? 1}
+                                onPageChange={(p) => setPageByCategory((prev) => ({ ...prev, [category]: p }))}
+                                className="w-full aspect-[4/3] object-contain bg-[#f6f5fa]"
+                              />
+                            ) : isImage(file.name) ? (
+                              <img
+                                src={file.url}
+                                alt={category}
+                                className="w-full aspect-[4/3] object-contain bg-[#f6f5fa]"
+                              />
+                            ) : (
+                              <div className="aspect-[4/3] flex flex-col items-center justify-center bg-[#f6f5fa] gap-2">
+                                <FileText size={40} className="text-[#cdc3d4]" />
+                                <p className="text-[12px] text-[#7c7484] font-semibold truncate px-4">{category}</p>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                              {isPreviewable(file.name) && (
+                                <button
+                                  onClick={() => isPdf(file.name)
+                                    ? setLightboxPdf({ url: file.url, page: pageByCategory[category] ?? 1 })
+                                    : setLightboxUrl(file.url)}
+                                  className="pointer-events-auto w-9 h-9 rounded-[8px] bg-white text-primary flex items-center justify-center hover:bg-[#f6f5fa] transition-colors cursor-pointer shadow-sm"
+                                  title="Padidinti"
+                                >
+                                  <ZoomIn size={16} />
+                                </button>
+                              )}
+                              {isPreviewable(file.name) && (
+                                <button
+                                  onClick={() => setAnnotatingFile({ name: file.name, url: file.url, page: pageByCategory[category] ?? 1 })}
+                                  className="pointer-events-auto w-9 h-9 rounded-[8px] bg-primary text-white flex items-center justify-center hover:bg-primary/80 transition-colors cursor-pointer shadow-sm"
+                                  title="Žymėti"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => pickBlueprint(category)}
+                                className="pointer-events-auto w-9 h-9 rounded-[8px] bg-white/80 text-[#4b4452] flex items-center justify-center hover:bg-white transition-colors cursor-pointer shadow-sm"
+                                title="Pakeisti"
+                              >
+                                <Upload size={15} />
+                              </button>
+                              <button
+                                onClick={() => void handleDeleteBlueprint(file.name)}
+                                className="pointer-events-auto w-9 h-9 rounded-[8px] bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow-sm"
+                                title="Pašalinti"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => !busy && pickBlueprint(category)}
+                            className="border-2 border-dashed border-[#cdc3d4]/50 rounded-[12px] w-full p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#fbf0ff]/30 hover:border-primary/40 transition-colors"
+                          >
+                            {busy ? (
+                              <Loader2 size={32} className="text-primary animate-spin mb-3" />
+                            ) : (
+                              <ImageIcon size={32} className="text-[#cdc3d4] mb-3" />
+                            )}
+                            <p className="font-semibold text-[#1d033a] text-[13px]">
+                              {busy ? 'Įkeliama...' : 'Įkelti brėžinį'}
+                            </p>
+                            <p className="text-[11px] text-[#7c7484] mt-1">PNG, JPG, PDF, DWG</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* String table */}
             <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm p-6">
@@ -1738,14 +2230,14 @@ export default function SiteDetails() {
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="w-7 h-7 text-primary animate-spin" />
               </div>
-            ) : !files || files.length === 0 ? (
+            ) : !regularFiles || regularFiles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2 bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm">
                 <FolderOpen size={32} className="text-[#cdc3d4] mb-2" />
                 <p className="text-[#7c7484] text-[14px]">Failų dar nėra.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {files.map((file) => (
+                {regularFiles.map((file) => (
                   <motion.div
                     key={file.name}
                     layout
@@ -1775,16 +2267,36 @@ export default function SiteDetails() {
                       <p className="text-[11px] text-[#7c7484] mt-0.5">{formatBytes(file.size)}</p>
                     </div>
 
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-9 h-9 rounded-[8px] bg-white text-primary flex items-center justify-center hover:bg-[#f6f5fa] transition-colors shadow-sm"
-                        title="Atidaryti"
-                      >
-                        <ImageIcon size={16} />
-                      </a>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      {isImage(file.name) && (
+                        <button
+                          onClick={() => setLightboxUrl(file.url)}
+                          className="w-9 h-9 rounded-[8px] bg-white text-primary flex items-center justify-center hover:bg-[#f6f5fa] transition-colors cursor-pointer shadow-sm"
+                          title="Padidinti"
+                        >
+                          <ZoomIn size={16} />
+                        </button>
+                      )}
+                      {!isImage(file.name) && (
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-9 h-9 rounded-[8px] bg-white text-primary flex items-center justify-center hover:bg-[#f6f5fa] transition-colors shadow-sm"
+                          title="Atidaryti"
+                        >
+                          <ImageIcon size={16} />
+                        </a>
+                      )}
+                      {isImage(file.name) && (
+                        <button
+                          onClick={() => setAnnotatingFile({ name: file.name, url: file.url })}
+                          className="w-9 h-9 rounded-[8px] bg-primary text-white flex items-center justify-center hover:bg-primary/80 transition-colors cursor-pointer shadow-sm"
+                          title="Žymėti"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
                       <button
                         onClick={() => void handleDeleteFile(file.name)}
                         className="w-9 h-9 rounded-[8px] bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow-sm"
@@ -1816,6 +2328,227 @@ export default function SiteDetails() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ════ TECH DATA EDIT MODAL ════ */}
+      {editingTech && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[16px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/30 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Cpu size={18} className="text-primary" />
+                <h3 className="text-[16px] font-bold text-[#1d033a]">Redaguoti techninius duomenis</h3>
+              </div>
+              <button
+                onClick={() => setEditingTech(false)}
+                disabled={saveTechMutation.isPending}
+                className="text-[#7c7484] hover:text-[#1d033a] transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Įrengta galia (kWp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={techForm.kwp}
+                  onChange={e => setTechForm(f => ({ ...f, kwp: e.target.value }))}
+                  placeholder="Pvz.: 10.5"
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Sistemos tipas</label>
+                <select
+                  value={techForm.system_type}
+                  onChange={e => setTechForm(f => ({ ...f, system_type: e.target.value }))}
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="PV">Saulės elektrinė (PV)</option>
+                  <option value="PV+BESS">Saulės elektrinė + Baterija (PV+BESS)</option>
+                  <option value="BESS">Baterija (BESS)</option>
+                  <option value="OTHER">Šilumos siurblys / Kita</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Planuojama pradžia</label>
+                <input
+                  type="datetime-local"
+                  value={techForm.scheduled_start}
+                  onChange={e => setTechForm(f => ({ ...f, scheduled_start: e.target.value }))}
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo tipas</label>
+                <select
+                  value={techForm.roof_type}
+                  onChange={e => setTechForm(f => ({ ...f, roof_type: e.target.value }))}
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="">-- Pasirinkti --</option>
+                  <option value="Plokščias">Plokščias</option>
+                  <option value="Šlaitinis">Šlaitinis</option>
+                  <option value="Ant žemės">Ant žemės</option>
+                  <option value="Netaikoma">Netaikoma</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo danga</label>
+                <input
+                  type="text"
+                  value={techForm.roof_material}
+                  onChange={e => setTechForm(f => ({ ...f, roof_material: e.target.value }))}
+                  placeholder="Įvesti arba pasirinkti..."
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {['Bitumas', 'Čerpės', 'Trapecinė skarda', 'Klasikinė / Falcai', 'Šiferis', 'Netaikoma'].map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setTechForm(f => ({ ...f, roof_material: opt }))}
+                      className={`px-2.5 py-1 rounded-[6px] text-[12px] font-medium border transition-colors cursor-pointer ${
+                        techForm.roof_material === opt
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-[#f6f5fa] text-[#4b4452] border-[#cdc3d4] hover:border-primary/50 hover:text-primary'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Stogo nuolydis</label>
+                <select
+                  value={techForm.roof_angle}
+                  onChange={e => setTechForm(f => ({ ...f, roof_angle: e.target.value }))}
+                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                >
+                  <option value="">-- Pasirinkti --</option>
+                  <option value="Iki 30°">Iki 30°</option>
+                  <option value="Virš 30°">Virš 30°</option>
+                  <option value="Plokščias (0° - 10°)">Plokščias (0° - 10°)</option>
+                  <option value="Netaikoma">Netaikoma</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 pt-4 flex gap-3 flex-shrink-0 border-t border-[#cdc3d4]/20">
+              <button
+                type="button"
+                onClick={() => setEditingTech(false)}
+                disabled={saveTechMutation.isPending}
+                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] hover:bg-[#f6f5fa] transition-colors disabled:opacity-60 cursor-pointer"
+              >
+                Atšaukti
+              </button>
+              <button
+                type="button"
+                onClick={() => saveTechMutation.mutate()}
+                disabled={saveTechMutation.isPending}
+                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-70 cursor-pointer"
+              >
+                {saveTechMutation.isPending ? (
+                  <Loader2 className="animate-spin w-5 h-5" />
+                ) : (
+                  <>
+                    <Save size={15} />
+                    Išsaugoti
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Annotation Modal ── */}
+      {annotatingFile && id && (
+        <ImageAnnotator
+          siteId={id}
+          fileName={annotatingFile.name}
+          imageUrl={annotatingFile.url}
+          initialPage={annotatingFile.page ?? 1}
+          isAdmin={true}
+          onClose={() => setAnnotatingFile(null)}
+        />
+      )}
+
+      {/* ── Image Lightbox (zoom/pan, no annotation tools) ── */}
+      {lightboxUrl && (
+        <ImageLightbox
+          url={lightboxUrl}
+          originalFileUrl={lightboxUrl}
+          onClose={() => setLightboxUrl(null)}
+        />
+      )}
+
+      {/* ── PDF Lightbox (full-screen zoom + pagination) ── */}
+      {lightboxPdf && (
+        <ImageLightbox
+          pdfUrl={lightboxPdf.url}
+          initialPage={lightboxPdf.page}
+          originalFileUrl={lightboxPdf.url}
+          onClose={() => setLightboxPdf(null)}
+        />
+      )}
+
+      {/* ── New blueprint category modal ── */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/30">
+              <h3 className="text-[16px] font-bold text-[#1d033a]">Nauja kategorija</h3>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="cursor-pointer text-[#7c7484] hover:text-[#1d033a] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">
+                Pavadinimas <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
+                placeholder="Pvz.: Vizualizacija"
+                autoFocus
+                className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+              >
+                Atšaukti
+              </button>
+              <button
+                onClick={handleAddCategory}
+                disabled={!categoryName.trim() || addCategoryMutation.isPending}
+                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              >
+                {addCategoryMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                Pridėti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

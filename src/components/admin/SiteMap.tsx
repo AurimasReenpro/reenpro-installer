@@ -170,6 +170,7 @@ export default function SiteMap({ sites, baseCoords }: SiteMapProps) {
   }, []);
 
   return (
+    <div className="relative isolate w-full h-full">
     <MapContainer
       center={LITHUANIA_CENTER}
       zoom={LITHUANIA_ZOOM}
@@ -224,5 +225,6 @@ export default function SiteMap({ sites, baseCoords }: SiteMapProps) {
         </Marker>
       ))}
     </MapContainer>
+    </div>
   );
 }

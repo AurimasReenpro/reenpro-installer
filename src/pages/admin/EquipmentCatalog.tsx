@@ -4,63 +4,125 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Package, Plus, Trash2, Loader2, X, Search, ChevronDown,
-  Cpu, LayoutGrid, BatteryCharging, Wrench, Cable, ShieldCheck
+  Cpu, LayoutGrid, BatteryCharging, Wrench, Cable, ShieldCheck,
+  Pencil, Settings2, Check,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
-import { getCatalogItems, createCatalogItem, deleteCatalogItem } from '../../api/catalog';
-import { EQUIPMENT_CATEGORIES, type EquipmentCategory } from '../../types/equipment.types';
-import type { CatalogItem } from '../../types/equipment.types';
+import {
+  getCatalogItems, createCatalogItem, deleteCatalogItem,
+  getEquipmentCategories, createEquipmentCategory,
+  updateEquipmentCategory, deleteEquipmentCategory,
+} from '../../api/catalog';
+import type { CatalogItem, EquipmentCategoryDef } from '../../types/equipment.types';
 
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  'Inverteris': Cpu,
-  'Moduliai': LayoutGrid,
-  'BESS': BatteryCharging,
-  'Konstrukcija': Wrench,
-  'Kabeliai': Cable,
-  'Apsauga': ShieldCheck,
-  'Kita': Package,
+// ── Icon fallback map (icons are a UI concern, not stored in DB) ─────────────
+const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
+  Inverteris: Cpu,
+  Moduliai: LayoutGrid,
+  BESS: BatteryCharging,
+  Konstrukcija: Wrench,
+  Kabeliai: Cable,
+  Apsauga: ShieldCheck,
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Inverteris': 'bg-[#ede8ff] text-primary',
-  'Moduliai': 'bg-[#ecfdf5] text-[#059669]',
-  'BESS': 'bg-[#fff7ed] text-[#ea580c]',
-  'Konstrukcija': 'bg-[#f0f9ff] text-[#0284c7]',
-  'Kabeliai': 'bg-[#fdf4ff] text-[#a21caf]',
-  'Apsauga': 'bg-[#fff1f2] text-[#e11d48]',
-  'Kita': 'bg-[#f6f5fa] text-[#4b4452]',
+function getCatIcon(name: string): React.ElementType {
+  return CATEGORY_ICON_MAP[name] ?? Package;
+}
+
+// ── Color swatches for category creation/editing ─────────────────────────────
+const COLOR_SWATCHES = [
+  { bg: '#F5F3FF', text: '#6D28D9', border: '#DDD6FE' },
+  { bg: '#ECFDF5', text: '#059669', border: '#A7F3D0' },
+  { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' },
+  { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE' },
+  { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA' },
+  { bg: '#FDF4FF', text: '#A21CAF', border: '#F0ABFC' },
+  { bg: '#FFF7ED', text: '#EA580C', border: '#FED7AA' },
+  { bg: '#ECFEFF', text: '#0891B2', border: '#A5F3FC' },
+  { bg: '#F7FEE7', text: '#65A30D', border: '#D9F99D' },
+  { bg: '#FAF5FF', text: '#7C3AED', border: '#E9D5FF' },
+  { bg: '#F8FAFC', text: '#475569', border: '#CBD5E1' },
+  { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' },
+];
+// COLOR_SWATCHES always has at least one entry (defined above), safe to assert
+const DEFAULT_SWATCH = COLOR_SWATCHES[0]!;
+
+type CatColorForm = { name: string; bg_color: string; text_color: string; border_color: string };
+const EMPTY_CAT_FORM: CatColorForm = {
+  name: '',
+  bg_color: DEFAULT_SWATCH.bg,
+  text_color: DEFAULT_SWATCH.text,
+  border_color: DEFAULT_SWATCH.border,
 };
 
+// ── Swatch picker component ──────────────────────────────────────────────────
+function SwatchPicker({
+  selected,
+  onChange,
+}: {
+  selected: { bg_color: string; text_color: string; border_color: string };
+  onChange: (s: { bg_color: string; text_color: string; border_color: string }) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {COLOR_SWATCHES.map((s) => {
+        const isSelected = s.bg === selected.bg_color && s.text === selected.text_color;
+        return (
+          <button
+            key={s.bg}
+            type="button"
+            onClick={() => onChange({ bg_color: s.bg, text_color: s.text, border_color: s.border })}
+            className="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer"
+            style={{ background: s.bg, borderColor: isSelected ? s.text : s.border }}
+          >
+            {isSelected && <Check size={14} style={{ color: s.text }} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main form types ───────────────────────────────────────────────────────────
 interface NewItemForm {
-  category: EquipmentCategory;
+  category: string;
   brand: string;
   model: string;
   specifications: string;
 }
 
-const EMPTY_FORM: NewItemForm = {
-  category: 'Inverteris',
-  brand: '',
-  model: '',
-  specifications: '',
-};
-
 export default function EquipmentCatalog() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
+
+  // Catalog state
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('Visos');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<NewItemForm>(EMPTY_FORM);
+  const [form, setForm] = useState<NewItemForm>({ category: '', brand: '', model: '', specifications: '' });
 
+  // Category management state
+  const [showCatMgmt, setShowCatMgmt] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<CatColorForm>(EMPTY_CAT_FORM);
+  const [showNewCatForm, setShowNewCatForm] = useState(false);
+  const [newCatForm, setNewCatForm] = useState<CatColorForm>(EMPTY_CAT_FORM);
+
+  // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['equipment_catalog'],
     queryFn: getCatalogItems,
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['equipment_categories'],
+    queryFn: getEquipmentCategories,
+  });
+
+  // ── Catalog mutations ────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: () => createCatalogItem({
-      category: form.category,
+      category: form.category || (categories[0]?.name ?? 'Kita'),
       brand: form.brand.trim(),
       model: form.model.trim(),
       specifications: form.specifications.trim() || null,
@@ -69,7 +131,7 @@ export default function EquipmentCatalog() {
       toast.success('Įranga pridėta į katalogą!');
       void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] });
       setShowForm(false);
-      setForm(EMPTY_FORM);
+      setForm({ category: '', brand: '', model: '', specifications: '' });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -83,6 +145,39 @@ export default function EquipmentCatalog() {
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
 
+  // ── Category mutations ───────────────────────────────────────────────────────
+  const createCatMutation = useMutation({
+    mutationFn: () => createEquipmentCategory(newCatForm),
+    onSuccess: () => {
+      toast.success('Kategorija sukurta!');
+      void queryClient.invalidateQueries({ queryKey: ['equipment_categories'] });
+      setNewCatForm(EMPTY_CAT_FORM);
+      setShowNewCatForm(false);
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  const updateCatMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<EquipmentCategoryDef> }) =>
+      updateEquipmentCategory(id, data),
+    onSuccess: () => {
+      toast.success('Kategorija atnaujinta!');
+      void queryClient.invalidateQueries({ queryKey: ['equipment_categories'] });
+      setEditingCatId(null);
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  const deleteCatMutation = useMutation({
+    mutationFn: deleteEquipmentCategory,
+    onSuccess: () => {
+      toast.success('Kategorija ištrinta.');
+      void queryClient.invalidateQueries({ queryKey: ['equipment_categories'] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleDelete = async (item: CatalogItem) => {
     const ok = await confirm({
       title: 'Ištrinti iš katalogo?',
@@ -92,13 +187,31 @@ export default function EquipmentCatalog() {
     if (ok) deleteMutation.mutate(item.id);
   };
 
+  const handleDeleteCat = async (cat: EquipmentCategoryDef) => {
+    const ok = await confirm({
+      title: 'Ištrinti kategoriją?',
+      message: `Ar tikrai norite ištrinti „${cat.name}"? Įranga šioje kategorijoje liks, bet bus rodoma kaip „${cat.name}".`,
+      variant: 'danger',
+    });
+    if (ok) deleteCatMutation.mutate(cat.id);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.model.trim()) { toast.error('Įveskite modelio pavadinimą.'); return; }
     createMutation.mutate();
   };
 
-  const allCategories = ['Visos', ...EQUIPMENT_CATEGORIES];
+  const startEditCat = (cat: EquipmentCategoryDef) => {
+    setEditingCatId(cat.id);
+    setEditForm({ name: cat.name, bg_color: cat.bg_color, text_color: cat.text_color, border_color: cat.border_color });
+  };
+
+  // ── Filtering & grouping ─────────────────────────────────────────────────────
+  const catNames = categories.map(c => c.name);
+  const allFilterOptions = ['Visos', ...catNames];
+
+  const catMap = Object.fromEntries(categories.map(c => [c.name, c]));
 
   const filtered = items.filter((item) => {
     const matchesSearch =
@@ -107,19 +220,20 @@ export default function EquipmentCatalog() {
       item.brand.toLowerCase().includes(search.toLowerCase()) ||
       item.category.toLowerCase().includes(search.toLowerCase()) ||
       (item.specifications ?? '').toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      filterCategory === 'Visos' || item.category === filterCategory;
+    const matchesCategory = filterCategory === 'Visos' || item.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
-  // Group for display
-  const grouped = EQUIPMENT_CATEGORIES.reduce<Record<string, CatalogItem[]>>((acc, cat) => {
-    const catItems = filtered.filter((i) => i.category === cat);
-    if (catItems.length > 0) acc[cat] = catItems;
+  const grouped = catNames.reduce<Record<string, CatalogItem[]>>((acc, name) => {
+    const catItems = filtered.filter(i => i.category === name);
+    if (catItems.length > 0) acc[name] = catItems;
     return acc;
   }, {});
-  const otherItems = filtered.filter((i) => !EQUIPMENT_CATEGORIES.includes(i.category as EquipmentCategory));
+  const knownNames = new Set(catNames);
+  const otherItems = filtered.filter(i => !knownNames.has(i.category));
   if (otherItems.length > 0) grouped['Kita'] = otherItems;
+
+  const defaultCatForForm = categories[0]?.name ?? '';
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto w-full">
@@ -135,16 +249,25 @@ export default function EquipmentCatalog() {
             {items.length} įrengini{items.length === 1 ? 's' : 'ų'} kataloge
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 h-[40px] px-5 rounded-[10px] bg-primary text-white font-semibold text-[14px] hover:bg-primary/80 transition-colors shadow-sm cursor-pointer"
-        >
-          <Plus size={16} />
-          Pridėti įrangą
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCatMgmt(true)}
+            className="flex items-center gap-2 h-[40px] px-4 rounded-[10px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[14px] hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+          >
+            <Settings2 size={15} />
+            Kategorijos
+          </button>
+          <button
+            onClick={() => { setForm({ category: defaultCatForForm, brand: '', model: '', specifications: '' }); setShowForm(true); }}
+            className="flex items-center gap-2 h-[40px] px-5 rounded-[10px] bg-primary text-white font-semibold text-[14px] hover:bg-primary/80 transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus size={16} />
+            Pridėti įrangą
+          </button>
+        </div>
       </div>
 
-      {/* ── Add Form Modal ── */}
+      {/* ── Add Equipment Modal ── */}
       <AnimatePresence>
         {showForm && (
           <motion.div
@@ -175,11 +298,11 @@ export default function EquipmentCatalog() {
                   <div className="relative">
                     <select
                       value={form.category}
-                      onChange={(e) => setForm(f => ({ ...f, category: e.target.value as EquipmentCategory }))}
+                      onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
                       className="w-full h-[42px] pl-3 pr-9 bg-[#f6f5fa] border border-[#cdc3d4]/60 rounded-[10px] text-[14px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary cursor-pointer"
                     >
-                      {EQUIPMENT_CATEGORIES.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
@@ -246,6 +369,166 @@ export default function EquipmentCatalog() {
         )}
       </AnimatePresence>
 
+      {/* ── Category Management Modal ── */}
+      <AnimatePresence>
+        {showCatMgmt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowCatMgmt(false); setEditingCatId(null); setShowNewCatForm(false); } }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+              className="bg-white rounded-[20px] shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/20 flex-shrink-0">
+                <h2 className="font-bold text-[17px] text-[#1d033a] flex items-center gap-2">
+                  <Settings2 size={18} className="text-primary" />
+                  Kategorijų valdymas
+                </h2>
+                <button
+                  onClick={() => { setShowCatMgmt(false); setEditingCatId(null); setShowNewCatForm(false); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                >
+                  <X size={18} className="text-[#7c7484]" />
+                </button>
+              </div>
+
+              {/* Category list */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {categories.map((cat) => {
+                  const CatIcon = getCatIcon(cat.name);
+                  const isEditing = editingCatId === cat.id;
+                  return (
+                    <div key={cat.id} className="rounded-[10px] border border-[#cdc3d4]/30 overflow-hidden">
+                      {/* Row */}
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-semibold text-[12px] whitespace-nowrap flex-shrink-0"
+                          style={{ background: cat.bg_color, color: cat.text_color, borderColor: cat.border_color }}
+                        >
+                          <CatIcon size={12} />
+                          {cat.name}
+                        </span>
+                        <div className="flex-1" />
+                        <button
+                          onClick={() => isEditing ? setEditingCatId(null) : startEditCat(cat)}
+                          className="w-7 h-7 flex items-center justify-center rounded-[6px] text-[#7c7484] hover:text-primary hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => void handleDeleteCat(cat)}
+                          disabled={deleteCatMutation.isPending}
+                          className="w-7 h-7 flex items-center justify-center rounded-[6px] text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-30"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {/* Inline edit form */}
+                      {isEditing && (
+                        <div className="px-3 pb-3 pt-1 border-t border-[#cdc3d4]/20 space-y-3 bg-[#fdfcff]">
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                            placeholder="Kategorijos pavadinimas"
+                            className="w-full h-[36px] px-3 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary"
+                          />
+                          <SwatchPicker
+                            selected={{ bg_color: editForm.bg_color, text_color: editForm.text_color, border_color: editForm.border_color }}
+                            onChange={(s) => setEditForm(f => ({ ...f, ...s }))}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingCatId(null)}
+                              className="flex-1 h-[34px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[12px] hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                            >
+                              Atšaukti
+                            </button>
+                            <button
+                              onClick={() => updateCatMutation.mutate({ id: cat.id, data: editForm })}
+                              disabled={updateCatMutation.isPending || !editForm.name.trim()}
+                              className="flex-1 h-[34px] rounded-[8px] bg-primary text-white font-semibold text-[12px] hover:bg-primary/80 transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              {updateCatMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                              Išsaugoti
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* New category form */}
+                {showNewCatForm ? (
+                  <div className="rounded-[10px] border-2 border-primary/30 bg-[#fdfcff] p-3 space-y-3">
+                    <p className="text-[12px] font-bold text-primary uppercase tracking-wider">Nauja kategorija</p>
+                    <input
+                      type="text"
+                      value={newCatForm.name}
+                      onChange={(e) => setNewCatForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="Kategorijos pavadinimas"
+                      autoFocus
+                      className="w-full h-[36px] px-3 bg-white border border-[#cdc3d4] rounded-[8px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary"
+                    />
+                    <SwatchPicker
+                      selected={{ bg_color: newCatForm.bg_color, text_color: newCatForm.text_color, border_color: newCatForm.border_color }}
+                      onChange={(s) => setNewCatForm(f => ({ ...f, ...s }))}
+                    />
+                    {/* Preview */}
+                    {newCatForm.name.trim() && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[#7c7484]">Peržiūra:</span>
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-semibold text-[12px]"
+                          style={{ background: newCatForm.bg_color, color: newCatForm.text_color, borderColor: newCatForm.border_color }}
+                        >
+                          <Package size={12} />
+                          {newCatForm.name}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowNewCatForm(false); setNewCatForm(EMPTY_CAT_FORM); }}
+                        className="flex-1 h-[34px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[12px] hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                      >
+                        Atšaukti
+                      </button>
+                      <button
+                        onClick={() => createCatMutation.mutate()}
+                        disabled={createCatMutation.isPending || !newCatForm.name.trim()}
+                        className="flex-1 h-[34px] rounded-[8px] bg-primary text-white font-semibold text-[12px] hover:bg-primary/80 transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        {createCatMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                        Sukurti
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowNewCatForm(true)}
+                    className="w-full flex items-center justify-center gap-2 h-[38px] border border-dashed border-[#cdc3d4] rounded-[10px] text-primary font-semibold text-[13px] hover:bg-[#fbf0ff] hover:border-primary/40 transition-colors cursor-pointer"
+                  >
+                    <Plus size={15} />
+                    Pridėti kategoriją
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Search + Filter ── */}
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -264,7 +547,7 @@ export default function EquipmentCatalog() {
             onChange={(e) => setFilterCategory(e.target.value)}
             className="h-[40px] pl-3 pr-9 bg-white border border-[#cdc3d4]/50 rounded-[10px] text-[14px] text-[#1d033a] appearance-none focus:outline-none focus:border-primary cursor-pointer"
           >
-            {allCategories.map(c => (
+            {allFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -295,8 +578,8 @@ export default function EquipmentCatalog() {
       ) : (
         <div className="space-y-6">
           {Object.entries(grouped).map(([category, catItems]) => {
-            const Icon = CATEGORY_ICONS[category] ?? Package;
-            const colorClass = CATEGORY_COLORS[category] ?? 'bg-[#f6f5fa] text-[#4b4452]';
+            const Icon = getCatIcon(category);
+            const cat = catMap[category];
             return (
               <motion.div
                 key={category}
@@ -306,7 +589,10 @@ export default function EquipmentCatalog() {
               >
                 {/* Category header */}
                 <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-[8px] flex items-center justify-center ${colorClass}`}>
+                  <div
+                    className="w-7 h-7 rounded-[8px] flex items-center justify-center"
+                    style={cat ? { background: cat.bg_color, color: cat.text_color } : { background: '#F3F4F6', color: '#6B7280' }}
+                  >
                     <Icon size={15} />
                   </div>
                   <h3 className="font-bold text-[14px] text-[#1d033a]">{category}</h3>

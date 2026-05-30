@@ -27,8 +27,8 @@ export type Database = {
           email: string | null
           logo_url: string | null
           primary_color: string | null
-          base_lat: number | null
-          base_lng: number | null
+          warehouse_lat: number | null
+          warehouse_lng: number | null
           created_at: string
           updated_at: string
         }
@@ -43,8 +43,8 @@ export type Database = {
           email?: string | null
           logo_url?: string | null
           primary_color?: string | null
-          base_lat?: number | null
-          base_lng?: number | null
+          warehouse_lat?: number | null
+          warehouse_lng?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -59,10 +59,67 @@ export type Database = {
           email?: string | null
           logo_url?: string | null
           primary_color?: string | null
-          base_lat?: number | null
-          base_lng?: number | null
+          warehouse_lat?: number | null
+          warehouse_lng?: number | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      site_file_annotations: {
+        Row: {
+          id: string
+          site_id: string
+          file_name: string
+          annotations: Json
+          page_number: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          file_name: string
+          annotations?: Json
+          page_number?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          file_name?: string
+          annotations?: Json
+          page_number?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment_categories: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          bg_color: string
+          text_color: string
+          border_color: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          bg_color: string
+          text_color: string
+          border_color: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          bg_color?: string
+          text_color?: string
+          border_color?: string
         }
         Relationships: []
       }
@@ -145,6 +202,7 @@ export type Database = {
           created_at: string | null
           id: string
           installer_id: string | null
+          section_name: string | null
           site_id: string | null
           storage_path: string
         }
@@ -153,6 +211,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           installer_id?: string | null
+          section_name?: string | null
           site_id?: string | null
           storage_path: string
         }
@@ -161,6 +220,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           installer_id?: string | null
+          section_name?: string | null
           site_id?: string | null
           storage_path?: string
         }
@@ -281,6 +341,8 @@ export type Database = {
           photo_url: string | null
           comment: string | null
           updated_at: string | null
+          is_extra: boolean
+          created_by: string | null
         }
         Insert: {
           id?: string
@@ -293,6 +355,8 @@ export type Database = {
           photo_url?: string | null
           comment?: string | null
           updated_at?: string | null
+          is_extra?: boolean
+          created_by?: string | null
         }
         Update: {
           id?: string
@@ -305,6 +369,8 @@ export type Database = {
           photo_url?: string | null
           comment?: string | null
           updated_at?: string | null
+          is_extra?: boolean
+          created_by?: string | null
         }
         Relationships: [
           {
@@ -312,6 +378,54 @@ export type Database = {
             columns: ["site_checklist_id"]
             isOneToOne: false
             referencedRelation: "site_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_extra_materials: {
+        Row: {
+          id: string
+          site_id: string
+          checklist_item_id: string | null
+          name: string
+          quantity: number
+          unit: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          checklist_item_id?: string | null
+          name: string
+          quantity?: number
+          unit?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          checklist_item_id?: string | null
+          name?: string
+          quantity?: number
+          unit?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_extra_materials_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_extra_materials_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "site_checklist_items"
             referencedColumns: ["id"]
           },
         ]
@@ -336,7 +450,11 @@ export type Database = {
           notes: string | null
           scheduled_start: string | null
           status: string | null
+          roof_angle: string | null
+          roof_material: string | null
+          roof_type: string | null
           stringing_details: any | null
+          blueprint_categories: string[] | null
           system_type: string
           team_id: string | null
         }
@@ -357,9 +475,13 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
+          roof_angle?: string | null
+          roof_material?: string | null
+          roof_type?: string | null
           scheduled_start?: string | null
           status?: string | null
           stringing_details?: any | null
+          blueprint_categories?: string[] | null
           system_type: string
           team_id?: string | null
         }
@@ -380,9 +502,13 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
+          roof_angle?: string | null
+          roof_material?: string | null
+          roof_type?: string | null
           scheduled_start?: string | null
           status?: string | null
           stringing_details?: any | null
+          blueprint_categories?: string[] | null
           system_type?: string
           team_id?: string | null
         }

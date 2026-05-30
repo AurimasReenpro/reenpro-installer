@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { useNavigate } from 'react-router-dom';
 import { startWork } from '../../api/timeTracking';
+import { getCurrentPositionWithTimeout } from '../../lib/geolocation';
 import { getInstallerSites } from '../../api/sites';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
@@ -48,7 +49,16 @@ export default function Today() {
 
   const startWorkMutation = useMutation({
     mutationFn: async (siteId: string) => {
-      await startWork(siteId);
+      // Always attempt GPS capture before starting — keeps clock-in location
+      // consistent regardless of which screen the job was started from. Geo is
+      // best-effort (resolves null after the timeout) and never blocks the start.
+      let pos = null;
+      try {
+        pos = await getCurrentPositionWithTimeout(10000);
+      } catch (geoError) {
+        console.warn('Start work geolocation warning:', geoError);
+      }
+      await startWork(siteId, pos?.lat, pos?.lng);
       return siteId;
     },
     onSuccess: (_, siteId) => {

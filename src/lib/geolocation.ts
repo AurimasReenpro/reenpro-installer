@@ -36,9 +36,13 @@ export async function getCurrentPositionWithTimeout(timeoutMs = 10000): Promise<
           }
         },
         {
-          enableHighAccuracy: true,
+          // We only need neighbourhood-level accuracy to confirm the worker is
+          // at the job site — not lane-level precision. Low accuracy gets a much
+          // faster lock on a roof (cell/wifi vs. cold GPS fix) and drains far
+          // less battery. A 60 s cached fix is fine for clock-in/out.
+          enableHighAccuracy: false,
           timeout: timeoutMs,
-          maximumAge: 0,
+          maximumAge: 60000,
         }
       );
     } catch (e) {

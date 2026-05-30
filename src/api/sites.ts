@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import type { EquipmentItem } from '../types/equipment.types';
@@ -109,6 +110,174 @@ export async function uploadSiteFile(siteId: string, file: File): Promise<void> 
     .upload(path, file, { upsert: true });
 
   if (error) throw new Error(error.message);
+}
+
+// ── Blueprints (Brėžiniai) ─────────────────────────────────────────────────
+// Blueprints live in the site_files bucket under a dynamic prefix so they stay
+// hidden from the generic Files tab and can be grouped into custom categories.
+//   New:    __blueprint_<hexCategory>__.<ext>
+//   Legacy: __dc_schema__.<ext> / __roof_plan__.<ext>
+export const BLUEPRINT_PREFIX = '__blueprint_';
+
+// Old fixed-prefix files are mapped back to a human-readable category on read.
+const LEGACY_BLUEPRINTS: Record<string, string> = {
+  __dc_schema__: 'DC schema',
+  __roof_plan__: 'Stogo planas',
+};
+
+// The category name is hex-encoded into the filename: hex chars (0-9a-f) are
+// always storage-key-safe and round-trip Lithuanian/space characters exactly.
+function encodeCategory(name: string): string {
+  return Array.from(new TextEncoder().encode(name))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function decodeCategory(hex: string): string {
+  const bytes = hex.match(/../g)?.map((h) => parseInt(h, 16)) ?? [];
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+/** Returns the blueprint category for a file name, or null if it isn't one. */
+export function parseBlueprintCategory(fileName: string): string | null {
+  for (const [prefix, label] of Object.entries(LEGACY_BLUEPRINTS)) {
+    if (fileName.startsWith(prefix)) return label;
+  }
+  if (fileName.startsWith(BLUEPRINT_PREFIX)) {
+    const rest = fileName.slice(BLUEPRINT_PREFIX.length);
+    const end = rest.indexOf('__');
+    if (end <= 0) return null;
+    try {
+      return decodeCategory(rest.slice(0, end));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export function isBlueprintFile(fileName: string): boolean {
+  return parseBlueprintCategory(fileName) !== null;
+}
+
+export interface Blueprint {
+  category: string;
+  file: SiteFile;
+}
+
+/** Groups raw site files into blueprints keyed by category (legacy + new). */
+export function groupBlueprints(files: SiteFile[]): Blueprint[] {
+  const out: Blueprint[] = [];
+  for (const f of files) {
+    const category = parseBlueprintCategory(f.name);
+    if (category) out.push({ category, file: f });
+  }
+  return out;
+}
+
+// Upload (or replace) the single blueprint for a category. Uploaded as-is — no
+// compression — to preserve blueprint quality. Any existing blueprint for the
+// same category (including a legacy file) is removed first so replacing with a
+// different file extension never leaves an orphan behind.
+export async function uploadBlueprintFile(
+  siteId: string,
+  category: string,
+  file: File,
+): Promise<void> {
+  const trimmed = category.trim();
+  if (!trimmed) throw new Error('Kategorijos pavadinimas privalomas.');
+
+  const existing = await getSiteFiles(siteId);
+  const toRemove = existing
+    .filter((f) => parseBlueprintCategory(f.name) === trimmed)
+    .map((f) => `${siteId}/${f.name}`);
+  if (toRemove.length > 0) {
+    await supabase.storage.from(BUCKET).remove(toRemove);
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+  const path = `${siteId}/${BLUEPRINT_PREFIX}${encodeCategory(trimmed)}__.${ext}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true });
+
+  if (error) throw new Error(error.message);
+}
+
+// Persisted (empty) blueprint categories live in the sites.blueprint_categories
+// text[] column so admins can pre-create placeholder slots for installers to
+// fill in later — these survive a refresh even before any file is uploaded.
+async function getBlueprintCategories(siteId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select('blueprint_categories')
+    .eq('id', siteId)
+    .single();
+  if (error) throw new Error(error.message);
+  return data?.blueprint_categories ?? [];
+}
+
+/** Append a category to the site's persisted list (no-op if it already exists). */
+export async function addBlueprintCategory(
+  siteId: string,
+  categoryName: string,
+): Promise<void> {
+  const trimmed = categoryName.trim();
+  if (!trimmed) throw new Error('Kategorijos pavadinimas privalomas.');
+
+  const current = await getBlueprintCategories(siteId);
+  if (current.includes(trimmed)) return;
+
+  const { error } = await supabase
+    .from('sites')
+    .update({ blueprint_categories: [...current, trimmed] })
+    .eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+/** Remove a category from the site's persisted list. */
+export async function removeBlueprintCategory(
+  siteId: string,
+  categoryName: string,
+): Promise<void> {
+  const current = await getBlueprintCategories(siteId);
+  const next = current.filter((c) => c !== categoryName);
+  if (next.length === current.length) return;
+
+  const { error } = await supabase
+    .from('sites')
+    .update({ blueprint_categories: next })
+    .eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+// Upload a photo attachment for a specific annotation. Each call generates a
+// UNIQUE filename so multiple photos can be attached to the same pin without
+// overwriting one another. Returns the public URL of the new file.
+export async function uploadAnnotationAttachment(
+  siteId: string,
+  annotationId: string,
+  file: File,
+): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+  const path = `${siteId}/ann_${annotationId}__${Date.now()}_${uuidv4()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: false });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// Best-effort removal of an annotation attachment from storage, given its
+// public URL. Errors are swallowed — the annotation array is the source of truth.
+export async function deleteAnnotationAttachment(publicUrl: string): Promise<void> {
+  const marker = `/${BUCKET}/`;
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return;
+  const path = decodeURIComponent(publicUrl.slice(idx + marker.length));
+  if (!path) return;
+  await supabase.storage.from(BUCKET).remove([path]);
 }
 
 export async function getSiteFiles(siteId: string): Promise<SiteFile[]> {
@@ -235,6 +404,7 @@ export interface InstallerPhoto {
   storage_path: string;
   signedUrl: string;
   created_at: string;
+  section_name: string | null;
 }
 
 /**
@@ -244,7 +414,7 @@ export interface InstallerPhoto {
 export async function getSiteInstallerPhotos(siteId: string): Promise<InstallerPhoto[]> {
   const { data, error } = await supabase
     .from('photos')
-    .select('id, storage_path, created_at')
+    .select('id, storage_path, created_at, section_name')
     .eq('site_id', siteId)
     .order('created_at', { ascending: false });
 
@@ -263,6 +433,7 @@ export async function getSiteInstallerPhotos(siteId: string): Promise<InstallerP
     storage_path: p.storage_path,
     signedUrl: signed?.[i]?.signedUrl ?? '',
     created_at: p.created_at ?? '',
+    section_name: p.section_name ?? null,
   }));
 }
 
@@ -294,3 +465,29 @@ export async function updateClientInfo(
   if (error) throw new Error(error.message);
 }
 
+// ── Update technical data ──────────────────────────────────────────────────────
+export async function updateTechData(
+  id: string,
+  data: {
+    kwp: number | null;
+    system_type: string;
+    scheduled_start: string | null;
+    roof_type: string | null;
+    roof_material: string | null;
+    roof_angle: string | null;
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('sites')
+    .update({
+      kwp:             data.kwp,
+      system_type:     data.system_type,
+      scheduled_start: data.scheduled_start,
+      roof_type:       data.roof_type     || null,
+      roof_material:   data.roof_material || null,
+      roof_angle:      data.roof_angle    || null,
+    })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+}
