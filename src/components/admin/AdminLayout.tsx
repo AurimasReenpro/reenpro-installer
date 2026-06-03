@@ -32,7 +32,7 @@ export default function AdminLayout() {
     { name: 'Checklist\'ai', path: '/admin/checklists', icon: 'fact_check', end: false },
     { name: 'Įrangos katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
     { name: 'Bonusai', path: '/admin/bonuses', icon: 'payments', end: false, comingSoon: true },
-    { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false, comingSoon: true },
+    { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false },
     { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4', comingSoon: true },
   ];
 
@@ -93,7 +93,7 @@ export default function AdminLayout() {
                     onClick={() => {
                       void (async () => {
                         const wantsNotification = await confirm({
-                          title: "Kuriame šią funkciją! 🚧",
+                          title: "Kuriame šią funkciją!",
                           message: "Mes intensyviai dirbame ties šiuo moduliu. Ar norėtumėte gauti pranešimą elektroniniu paštu, kai jis bus aktyvuotas?",
                           confirmText: "Taip, praneškite man!",
                           cancelText: "Uždaryti",

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import type { EquipmentItem } from '../types/equipment.types';
+import { isBatteryCategory } from '../types/equipment.types';
 
 // ── Nominatim geocoding ───────────────────────────────────────────────────────
 interface NominatimResult { lat: string; lon: string; }
@@ -67,6 +68,25 @@ export function calculateKwpFromEquipment(equipment: EquipmentItem[]): number | 
   return found ? parseFloat((totalWatts / 1000).toFixed(2)) : null;
 }
 
+/**
+ * Auto-rollup of total battery capacity (kWh) from the equipment list — sums the
+ * (already total-per-row) capacity_kwh of every energy-storage row. Returns null
+ * when there are no battery rows with a capacity, so the site shows no kWh.
+ */
+export function calculateKwhFromEquipment(equipment: EquipmentItem[]): number | null {
+  let total = 0;
+  let found = false;
+  for (const item of equipment) {
+    if (!isBatteryCategory(item.category)) continue;
+    const c = item.capacity_kwh;
+    if (typeof c === 'number' && isFinite(c) && c > 0) {
+      total += c;
+      found = true;
+    }
+  }
+  return found ? parseFloat(total.toFixed(2)) : null;
+}
+
 // ── Update equipment_details JSONB (new structured array format) ─────────────
 export async function updateEquipment(
   id: string,
@@ -85,6 +105,16 @@ export async function updateEquipment(
     .eq('id', id);
 
   if (error) throw new Error(error.message);
+
+  // Best-effort battery rollup → sites.kwh. Done as a SEPARATE update so a
+  // missing `kwh` column (if the migration hasn't run yet) can never break the
+  // primary equipment save.
+  const kwh = calculateKwhFromEquipment(equipment);
+  const { error: kwhErr } = await supabase
+    .from('sites')
+    .update({ kwh })
+    .eq('id', id);
+  if (kwhErr) console.warn('[updateEquipment] kWh rollup skipped:', kwhErr.message);
 }
 
 // ── Update site notes and stringing details ────────────────────────────────────
@@ -470,6 +500,7 @@ export async function updateTechData(
   id: string,
   data: {
     kwp: number | null;
+    kwh: number | null;
     system_type: string;
     scheduled_start: string | null;
     roof_type: string | null;
@@ -481,6 +512,7 @@ export async function updateTechData(
     .from('sites')
     .update({
       kwp:             data.kwp,
+      kwh:             data.kwh,
       system_type:     data.system_type,
       scheduled_start: data.scheduled_start,
       roof_type:       data.roof_type     || null,

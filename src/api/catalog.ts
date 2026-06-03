@@ -15,8 +15,10 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
 }
 
 // ── Create a catalog item ────────────────────────────────────────────────────
+// capacity_kwh is OPTIONAL in the payload: it's only sent when a value is given,
+// so adding non-battery items still works before the capacity_kwh column exists.
 export async function createCatalogItem(
-  item: Omit<CatalogItem, 'id' | 'created_at'>
+  item: Omit<CatalogItem, 'id' | 'created_at' | 'capacity_kwh'> & { capacity_kwh?: number | null }
 ): Promise<void> {
   const { error } = await supabase.from('equipment_catalog').insert(item);
   if (error) throw new Error(error.message);

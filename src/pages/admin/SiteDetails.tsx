@@ -6,12 +6,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Loader2, Plus, Trash2, Save,
   Upload, FileText, Image as ImageIcon, X, Pencil, ZoomIn,
-  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Calendar, Circle, ChevronDown, Package,
-  CheckCircle2, XCircle, MinusCircle, ClipboardList, ChevronRight, AlertTriangle, Phone, Mail, User,
-  Download, Zap, Sun, Battery, Wrench, Shield, MoreVertical, DraftingCompass,
+  Info, Cpu, Network, FolderOpen, ListChecks, MapPin, Circle, ChevronDown, Package,
+  CheckCircle2, XCircle, MinusCircle, ClipboardList, ChevronRight, AlertTriangle,
+  Download, Zap, Sun, Battery, Wrench, Shield, MoreVertical, DraftingCompass, History,
+  Activity, Clock, RotateCcw,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
-import ImageAnnotator from '../../components/shared/ImageAnnotator';
+import ImageAnnotator from '../../components/shared/ImageAnnotatorLazy';
 import ImageLightbox from '../../components/shared/ImageLightbox';
 import PdfPagePreview from '../../components/shared/PdfPagePreview';
 import { isPdf } from '../../lib/pdf';
@@ -24,8 +25,11 @@ import type { InstallerPhoto } from '../../api/sites';
 import { useSignedPhotoUrl } from '../../hooks/useSignedPhotoUrl';
 import { supabase } from '../../lib/supabase';
 import { getCatalogItems, getEquipmentCategories } from '../../api/catalog';
-import { parseEquipmentDetails, EQUIPMENT_CATEGORIES, EQUIPMENT_UNITS } from '../../types/equipment.types';
-import type { EquipmentItem } from '../../types/equipment.types';
+import { parseEquipmentDetails, EQUIPMENT_CATEGORIES, EQUIPMENT_UNITS, isBatteryCategory } from '../../types/equipment.types';
+import type { EquipmentItem, CatalogItem } from '../../types/equipment.types';
+
+/** Label a catalog item the same way the model dropdown shows it (brand + model). */
+const catalogLabel = (c: CatalogItem) => `${c.brand ? c.brand + ' ' : ''}${c.model}`;
 import { format } from 'date-fns';
 
 // ── Shared photo helpers ──────────────────────────────────────────────────────
@@ -114,6 +118,7 @@ interface SiteWithTeam {
   blueprint_categories: string[] | null;
   team: { name: string } | null;
   kwp: number | null;
+  kwh: number | null;
   client_phone: string | null;
   contact_person: string | null;
   client_email: string | null;
@@ -122,7 +127,7 @@ interface SiteWithTeam {
   roof_angle: string | null;
 }
 
-type TabId = 'info' | 'equip' | 'blueprints' | 'files' | 'check';
+type TabId = 'info' | 'equip' | 'blueprints' | 'files' | 'check' | 'history';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'info', label: 'Objekto info', icon: Info },
@@ -130,6 +135,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'blueprints', label: 'Brėžiniai', icon: DraftingCompass },
   { id: 'files', label: 'Failai', icon: FolderOpen },
   { id: 'check', label: 'Checklist', icon: ListChecks },
+  { id: 'history', label: 'Istorija', icon: History },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -404,15 +410,17 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
   const photosForItem = (itemId: string) =>
     (installerPhotos ?? []).filter(p => p.storage_path.includes(`/${itemId}/`));
 
-  // Installer-logged extra materials for this site.
+  // Installer-logged extra materials for this site. Shares the SAME query key +
+  // select as the Equipment tab's billing query so React Query serves both tabs
+  // from one cached fetch (no duplicate request).
   const { data: extraMaterials } = useQuery({
-    queryKey: ['site_extra_materials', siteId],
+    queryKey: ['site_extra_materials_billing', siteId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('site_extra_materials')
-        .select('*')
+        .select('*, creator:user_profiles(full_name), checklist_item:site_checklist_items(question_text)')
         .eq('site_id', siteId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -714,6 +722,127 @@ function ChecklistTabContent({ siteId }: { siteId: string }) {
 
 // ── End SolarGrade Checklist Tab ─────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════════════════════
+// Audit Log (History) Tab
+// ══════════════════════════════════════════════════════════════════════════════
+
+const AUDIT_ITEM_STATUS_LT: Record<string, string> = {
+  pending: 'Laukia', pass: 'Atlikta', fail: 'Neatlikta', n_a: 'Netaikoma',
+};
+const AUDIT_SITE_STATUS_LT: Record<string, string> = {
+  pending: 'Laukia', in_progress: 'Vykdomas', paused: 'Sustabdytas', completed: 'Baigtas',
+};
+
+function readField(j: unknown, key: string): string | undefined {
+  if (j && typeof j === 'object' && !Array.isArray(j)) {
+    const v = (j as Record<string, unknown>)[key];
+    if (v == null) return undefined;
+    return typeof v === 'string' ? v : undefined;
+  }
+  return undefined;
+}
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  entity_type: string;
+  old_data: unknown;
+  new_data: unknown;
+  created_at: string;
+  actor: { full_name: string | null } | null;
+}
+
+/** Build a readable Lithuanian description + an icon/tint for one audit entry. */
+function describeAudit(log: AuditEntry): { icon: React.ElementType; title: string; detail?: string; tint: string } {
+  const newStatus = readField(log.new_data, 'status');
+  const question = readField(log.new_data, 'question_text');
+  switch (log.action) {
+    case 'status_change': {
+      const lt = newStatus ? (AUDIT_SITE_STATUS_LT[newStatus] ?? newStatus) : '—';
+      return { icon: Activity, title: `pakeitė statusą į „${lt}"`, tint: '#2563EB' };
+    }
+    case 'site_updated':
+      return { icon: Pencil, title: 'atnaujino objekto informaciją', tint: '#7c3aed' };
+    case 'checklist_update': {
+      const lt = newStatus ? (AUDIT_ITEM_STATUS_LT[newStatus] ?? newStatus) : '—';
+      const tint = newStatus === 'pass' ? '#059669' : newStatus === 'fail' ? '#DC2626' : '#D97706';
+      return { icon: CheckCircle2, title: `pažymėjo punktą kaip „${lt}"`, detail: question, tint };
+    }
+    case 'extra_work_added':
+      return { icon: Plus, title: 'pridėjo papildomą darbą', detail: question, tint: '#7c3aed' };
+    default:
+      return { icon: Activity, title: log.action, detail: log.entity_type, tint: '#6B7280' };
+  }
+}
+
+function AuditLogTab({ siteId }: { siteId: string }) {
+  const { data: logs, isLoading } = useQuery<AuditEntry[]>({
+    queryKey: ['site_audit_logs', siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_audit_logs')
+        .select('id, action, entity_type, old_data, new_data, created_at, actor:user_profiles(full_name)')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!siteId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-7 h-7 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!logs || logs.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-12 flex flex-col items-center gap-3">
+        <History className="w-9 h-9 text-gray-300" />
+        <p className="text-[14px] text-gray-400">Veiksmų istorijos dar nėra.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-50">
+        <History size={18} className="text-primary" />
+        <h3 className="font-semibold text-[15px] text-gray-900">Veiksmų istorija</h3>
+        <span className="ml-auto text-[12px] text-gray-400">{logs.length}</span>
+      </div>
+
+      <ol className="px-3 py-1">
+        {logs.map((log, i) => {
+          const { icon: Icon, title, detail, tint } = describeAudit(log);
+          return (
+            <li key={log.id} className={`flex gap-3 px-2 py-3 ${i < logs.length - 1 ? 'border-b border-gray-50' : ''}`}>
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0" style={{ color: tint }}>
+                <Icon size={15} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] text-gray-900 leading-snug">
+                  <span className="font-semibold">{log.actor?.full_name ?? 'Nežinomas'}</span>{' '}
+                  {title}
+                  {detail && <span className="text-gray-500"> — {detail}</span>}
+                </p>
+                <p className="flex items-center gap-1.5 text-[12px] text-gray-400 mt-0.5">
+                  <Clock size={11} className="shrink-0" />
+                  {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 const isImage = (name: string) => IMAGE_EXTS.includes(name.split('.').pop()?.toLowerCase() ?? '');
 const isPreviewable = (name: string) => isImage(name) || isPdf(name);
@@ -731,6 +860,27 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** If an "address" is actually raw "lat, lng", trim each to 4 decimals. */
+function formatLocation(value: string | null | undefined): string {
+  if (!value) return '—';
+  const m = value.match(/^\s*(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/);
+  if (m) return `${parseFloat(m[1] ?? '0').toFixed(4)}, ${parseFloat(m[2] ?? '0').toFixed(4)}`;
+  return value;
+}
+
+/** Clean iOS-style list row: muted label left, focal value right, hairline divider. */
+function FieldRow({ label, icon: Icon, last, children }: { label: string; icon?: React.ElementType; last?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex items-start justify-between gap-4 py-2.5 ${last ? '' : 'border-b border-gray-100'}`}>
+      <span className="flex items-center gap-2 text-[12px] text-gray-400 font-medium tracking-wide shrink-0 pt-0.5">
+        {Icon && <Icon className="w-4 h-4 text-gray-400" />}
+        {label}
+      </span>
+      <span className="text-[14px] text-gray-900 font-semibold text-right min-w-0 break-words">{children}</span>
+    </div>
+  );
+}
+
 interface StringRow {
   name: string;
   modules: string;
@@ -745,6 +895,7 @@ const EQUIP_ICON_MAP: Record<string, React.ElementType> = {
   Inverteris: Zap,
   Moduliai: Sun,
   BESS: Battery,
+  'Energijos kaupiklis': Battery,
   Konstrukcija: Wrench,
   Kabeliai: Network,
   Apsauga: Shield,
@@ -778,6 +929,22 @@ function EquipmentTabContent({
     queryFn: getEquipmentCategories,
   });
 
+  // Installer-logged extra materials (off-contract → must be billed separately).
+  // Embeds the creator's name and any linked extra-work title for context.
+  const { data: extraMaterials, isLoading: materialsLoading } = useQuery({
+    queryKey: ['site_extra_materials_billing', siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_extra_materials')
+        .select('*, creator:user_profiles(full_name), checklist_item:site_checklist_items(question_text)')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
+  });
+
   const catColorMap = Object.fromEntries(
     categories.map(c => [c.name, { bg: c.bg_color, text: c.text_color, border: c.border_color }])
   );
@@ -801,7 +968,23 @@ function EquipmentTabContent({
   };
 
   const updateRow = <K extends keyof EquipmentItem>(i: number, key: K, value: EquipmentItem[K]) => {
-    setRows(r => r.map((rw, idx) => idx === i ? { ...rw, [key]: value } : rw));
+    setRows(r => r.map((rw, idx) => {
+      if (idx !== i) return rw;
+      const next: EquipmentItem = { ...rw, [key]: value };
+      // Auto-rollup battery capacity from the catalog when model/quantity/category
+      // changes: total = catalog capacity_kwh × quantity. Manual rows are untouched.
+      if (key === 'model' || key === 'quantity' || key === 'category') {
+        if (isBatteryCategory(next.category)) {
+          const match = catalog.find(c => c.category === next.category && catalogLabel(c) === next.model);
+          if (match && match.capacity_kwh != null) {
+            next.capacity_kwh = parseFloat((match.capacity_kwh * (next.quantity || 1)).toFixed(2));
+          }
+        } else {
+          delete next.capacity_kwh; // left the battery category
+        }
+      }
+      return next;
+    }));
   };
 
   // Build grouped catalog options
@@ -895,6 +1078,11 @@ function EquipmentTabContent({
                   {/* Model + notes */}
                   <div className="min-w-0">
                     <p className="text-[14px] font-semibold text-[#1d033a] leading-snug">{item.model || '—'}</p>
+                    {isBatteryCategory(item.category) && item.capacity_kwh != null && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30">
+                        <Battery className="w-3 h-3" /> {item.capacity_kwh} kWh
+                      </span>
+                    )}
                     {item.notes && (
                       <p className="text-[12px] text-[#7c7484] mt-0.5 leading-snug">{item.notes}</p>
                     )}
@@ -942,6 +1130,75 @@ function EquipmentTabContent({
         </div>
       )}
 
+      {/* ── Extra materials used on-site (off-contract → bill separately) ── */}
+      {!editing && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-[15px] font-bold text-[#92400E] flex items-center gap-2">
+              <AlertTriangle size={17} className="text-[#D97706]" />
+              Papildomai sunaudotos medžiagos
+            </h3>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B]/40 whitespace-nowrap">
+              <AlertTriangle size={11} /> Papildomos išlaidos
+            </span>
+          </div>
+
+          {materialsLoading ? (
+            <div className="flex items-center gap-2 text-[#7c7484] px-4 py-3">
+              <Loader2 size={15} className="animate-spin" />
+              <span className="text-[13px]">Kraunama…</span>
+            </div>
+          ) : !extraMaterials || extraMaterials.length === 0 ? (
+            <p className="text-[13px] text-[#7c7484] italic px-4 py-3 bg-[#f6f5fa] rounded-[10px] border border-dashed border-[#cdc3d4]/50">
+              Papildomų medžiagų neužregistruota.
+            </p>
+          ) : (
+            <div className="rounded-[12px] border border-[#F59E0B]/40 bg-[#FFFBEB] overflow-hidden">
+              {/* Column headers */}
+              <div className="grid grid-cols-[1fr_104px_148px_108px] gap-3 px-4 py-2.5 bg-[#FEF3C7]/70 border-b border-[#F59E0B]/30">
+                <span className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Medžiaga</span>
+                <span className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Kiekis</span>
+                <span className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Užregistravo</span>
+                <span className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Data</span>
+              </div>
+
+              {extraMaterials.map((m) => (
+                <div
+                  key={m.id}
+                  className="grid grid-cols-[1fr_104px_148px_108px] gap-3 items-start px-4 py-3 border-b border-[#F59E0B]/15 last:border-none hover:bg-[#FEF9EC] transition-colors"
+                >
+                  {/* Name + linked extra-work context */}
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#1d033a] leading-snug">{m.name}</p>
+                    {m.checklist_item?.question_text && (
+                      <p className="text-[12px] text-[#92400E]/80 mt-0.5 leading-snug">
+                        Panaudota prie: {m.checklist_item.question_text}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Quantity + unit */}
+                  <div className="pt-0.5 flex items-center gap-1.5">
+                    <span className="text-[15px] font-bold text-[#1d033a]">{m.quantity}</span>
+                    <span className="text-[11px] font-semibold text-[#92400E] bg-[#FEF3C7] border border-[#F59E0B]/30 px-1.5 py-0.5 rounded-md">{m.unit}</span>
+                  </div>
+
+                  {/* Registered by */}
+                  <div className="pt-0.5 text-[13px] text-[#1d033a] truncate">
+                    {m.creator?.full_name ?? '—'}
+                  </div>
+
+                  {/* Date */}
+                  <div className="pt-0.5 text-[13px] text-[#7c7484] whitespace-nowrap">
+                    {format(new Date(m.created_at), 'yyyy-MM-dd')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Edit mode */}
       {editing && (
         <div className="flex flex-col gap-2">
@@ -958,12 +1215,18 @@ function EquipmentTabContent({
           {rows.map((row, i) => {
             const colors = catColorMap[row.category] ?? DEFAULT_CAT_COLORS;
             const hasCatalog = (catalogByCategory[row.category] ?? []).length > 0;
+            const isBattery = isBatteryCategory(row.category);
+            const battMatch = isBattery
+              ? catalog.find(c => c.category === row.category && catalogLabel(c) === row.model)
+              : undefined;
+            const isDerived = isBattery && battMatch?.capacity_kwh != null;
             return (
               <div
                 key={i}
-                className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 items-center p-2.5 rounded-[10px] border"
+                className="rounded-[10px] border p-2.5"
                 style={{ borderColor: colors.border, background: colors.bg + '28' }}
               >
+                <div className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 items-center">
                 {/* Category select */}
                 <div className="relative">
                   <select
@@ -992,7 +1255,7 @@ function EquipmentTabContent({
                             {c.brand ? `${c.brand} ` : ''}{c.model}{c.specifications ? ` (${c.specifications})` : ''}
                           </option>
                         ))}
-                        <option value="__custom">✎ Įvesti ranka...</option>
+                        <option value="__custom">Įvesti ranka...</option>
                       </select>
                       <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7c7484] pointer-events-none" />
                     </>
@@ -1058,6 +1321,36 @@ function EquipmentTabContent({
                 >
                   <X size={15} />
                 </button>
+                </div>
+
+                {/* Conditional: battery capacity for energy-storage rows.
+                    Read-only when derived from the catalog (capacity × quantity);
+                    manually editable for custom / non-catalog batteries. */}
+                {isBattery && (
+                  <div className="flex items-center gap-2 mt-2 pl-0.5 flex-wrap">
+                    <Battery className="w-4 h-4 text-gray-400 shrink-0" />
+                    <label className="text-[12px] text-gray-500 font-medium whitespace-nowrap">Baterijos talpa (kWh)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={row.capacity_kwh ?? ''}
+                      readOnly={isDerived}
+                      onChange={(e) => updateRow(i, 'capacity_kwh', e.target.value === '' ? undefined : Math.max(0, parseFloat(e.target.value) || 0))}
+                      placeholder="Pvz.: 15"
+                      className={`w-[120px] h-[36px] px-3 border rounded-[8px] text-[13px] font-semibold focus:outline-none ${
+                        isDerived
+                          ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-white border-[#cdc3d4] text-[#1d033a] focus:border-primary focus:ring-1 focus:ring-primary/20'
+                      }`}
+                    />
+                    {isDerived && battMatch?.capacity_kwh != null && (
+                      <span className="text-[11px] text-[#7c7484]">
+                        = {battMatch.capacity_kwh} kWh × {row.quantity} (iš katalogo)
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1458,6 +1751,7 @@ export default function SiteDetails() {
   const [editingTech, setEditingTech] = useState(false);
   const [techForm, setTechForm] = useState({
     kwp: '',
+    kwh: '',
     system_type: '',
     scheduled_start: '',
     roof_type: '',
@@ -1468,6 +1762,7 @@ export default function SiteDetails() {
   const startEditingTech = () => {
     setTechForm({
       kwp:             site?.kwp != null ? String(site.kwp) : '',
+      kwh:             site?.kwh != null ? String(site.kwh) : '',
       system_type:     site?.system_type     ?? 'PV',
       scheduled_start: site?.scheduled_start
         ? format(new Date(site.scheduled_start), "yyyy-MM-dd'T'HH:mm")
@@ -1482,6 +1777,7 @@ export default function SiteDetails() {
   const saveTechMutation = useMutation({
     mutationFn: () => updateTechData(id!, {
       kwp:             techForm.kwp !== '' ? parseFloat(techForm.kwp) : null,
+      kwh:             techForm.kwh !== '' ? parseFloat(techForm.kwh) : null,
       system_type:     techForm.system_type,
       scheduled_start: techForm.scheduled_start
         ? new Date(techForm.scheduled_start).toISOString()
@@ -1494,6 +1790,24 @@ export default function SiteDetails() {
       toast.success('Techniniai duomenys išsaugoti!');
       setEditingTech(false);
       void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  /* ── Reopen a completed project (admin only) ── */
+  const reopenMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('sites')
+        .update({ status: 'in_progress', actual_end: null })
+        .eq('id', id!);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success('Objektas atidarytas iš naujo.');
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', id] });
+      void queryClient.invalidateQueries({ queryKey: ['site', id] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -1602,59 +1916,74 @@ export default function SiteDetails() {
       
       {/* ── Header ── */}
       <div className="flex flex-col gap-4">
-        <button
-          onClick={() => { void navigate('/admin/sites'); }}
-          className="flex items-center gap-2 text-[#7c7484] hover:text-primary transition-colors text-[14px] font-medium w-fit cursor-pointer"
-        >
-          <ArrowLeft size={16} />
-          Grįžti prie objektų sąrašo
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => { void navigate('/admin/sites'); }}
+            className="flex items-center gap-2 text-[#7c7484] hover:text-primary transition-colors text-[14px] font-medium w-fit cursor-pointer"
+          >
+            <ArrowLeft size={16} />
+            Grįžti prie objektų sąrašo
+          </button>
 
-        <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6">
+          {site.status === 'completed' && (
+            <button
+              onClick={() => reopenMutation.mutate()}
+              disabled={reopenMutation.isPending}
+              className="flex items-center gap-2 h-[38px] px-4 rounded-[10px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[13px] hover:bg-[#f6f5fa] transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {reopenMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
+              Atidaryti iš naujo
+            </button>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-start justify-between gap-6 flex-col md:flex-row">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-[14px] bg-[#fbf0ff] flex items-center justify-center flex-shrink-0 border border-primary/10">
-                <Building2 size={28} className="text-primary" />
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="w-14 h-14 rounded-2xl bg-[#fbf0ff] flex items-center justify-center flex-shrink-0">
+                <Building2 size={26} className="text-primary" />
               </div>
-              <div>
-                <h1 className="text-[20px] font-bold text-[#1d033a] leading-tight mb-1">
+              <div className="min-w-0">
+                <h1 className="text-[22px] font-bold text-gray-900 leading-tight tracking-tight">
                   {site.client_name}
                 </h1>
-                <p className="text-[14px] text-[#7c7484] flex items-center gap-2 flex-wrap">
-                  <MapPin size={14} /> {site.address}
-                  <span className="text-[#cdc3d4]">|</span>
-                  <Calendar size={14} /> {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd') : '-'}
+                <p className="text-[13px] text-gray-400 font-medium flex items-center gap-1.5 mt-1">
+                  <MapPin size={13} className="shrink-0" />
+                  <span className="truncate">{formatLocation(site.address)}</span>
                 </p>
-                
+
+                {/* Soft iOS-style badges */}
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  <span className="bg-[#f6f5fa] border border-[#cdc3d4]/50 text-[12px] font-bold px-2.5 py-1 rounded-md text-primary">
+                  <span className="bg-gray-100 text-gray-600 rounded-full px-3 py-1 text-xs font-medium">
                     {site.code}
                   </span>
                   {status && (
-                    <span className={`px-2.5 py-1 rounded-md text-[12px] font-bold ${status.className}`}>
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
                       {status.label}
                     </span>
                   )}
-                  <span className="bg-[#f0fdf4] text-[#16a34a] border border-[#16a34a]/20 px-2.5 py-1 rounded-md text-[12px] font-bold">
+                  <span className="bg-emerald-50 text-emerald-600 rounded-full px-3 py-1 text-xs font-medium">
                     {team?.name || 'Nepriskirta'}
                   </span>
-                  <span className="bg-[#fbf0ff] text-primary border border-primary/20 px-2.5 py-1 rounded-md text-[12px] font-bold">
+                  <span className="bg-violet-50 text-violet-600 rounded-full px-3 py-1 text-xs font-medium">
                     {site.system_type}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="bg-[#f6f5fa] border border-[#cdc3d4]/30 rounded-[12px] px-4 py-2 flex flex-col items-center flex-1 md:flex-initial">
-                <span className="text-[18px] font-bold text-primary">{site.kwp || '-'}</span>
-                <span className="text-[11px] text-[#7c7484] uppercase font-semibold">kWp</span>
-              </div>
-              <div className="bg-[#f6f5fa] border border-[#cdc3d4]/30 rounded-[12px] px-4 py-2 flex flex-col items-center flex-1 md:flex-initial">
-                <span className="text-[18px] font-bold text-[#10B981]">0%</span>
-                <span className="text-[11px] text-[#7c7484] uppercase font-semibold">Checklist</span>
-              </div>
+            {/* Capacity — kWp with total battery kWh stacked directly below it */}
+            <div className="flex flex-col items-end shrink-0">
+              <p className="flex items-center gap-1.5 text-[24px] font-bold text-gray-900 leading-none tracking-tight">
+                <Sun className="w-4 h-4 text-gray-400" />
+                {site.kwp ?? '—'}<span className="text-[14px] text-gray-400 font-semibold ml-0.5">kWp</span>
+              </p>
+              {site.kwh != null && (
+                <p className="flex items-center gap-1.5 text-[18px] font-bold text-gray-700 leading-none tracking-tight mt-2">
+                  <Battery className="w-4 h-4 text-gray-400" />
+                  {site.kwh}<span className="text-[12px] text-gray-400 font-semibold ml-0.5">kWh</span>
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1698,213 +2027,157 @@ export default function SiteDetails() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start"
           >
-            <div className="space-y-6">
-              <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Building2 size={18} className="text-primary" />
-                    <h3 className="font-semibold text-[#1d033a] text-[14px]">Kliento informacija</h3>
-                  </div>
+            <div className="lg:col-span-2 space-y-5">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-semibold text-gray-900 text-[15px]">Kliento informacija</h3>
                   {!editingClient ? (
                     <button
                       onClick={startEditingClient}
-                      className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-[#f6f5fa] text-primary font-semibold text-[12px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 transition-colors cursor-pointer"
+                      className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
                     >
-                      <Pencil size={13} />
                       Redaguoti
                     </button>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-3">
                       <button
                         onClick={() => setEditingClient(false)}
                         disabled={saveClientMutation.isPending}
-                        className="h-[28px] px-3 rounded-[6px] border border-[#cdc3d4] text-[#4b4452] font-semibold text-[12px] hover:bg-[#f6f5fa] transition-colors cursor-pointer disabled:opacity-60"
+                        className="text-[13px] text-gray-400 font-medium hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-60"
                       >
                         Atšaukti
                       </button>
                       <button
                         onClick={() => saveClientMutation.mutate()}
                         disabled={saveClientMutation.isPending}
-                        className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-primary text-white font-semibold text-[12px] hover:bg-primary/80 transition-colors cursor-pointer disabled:opacity-70"
+                        className="flex items-center gap-1 text-[13px] text-primary font-semibold hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-60"
                       >
-                        {saveClientMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save size={13} />}
+                        {saveClientMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Išsaugoti
                       </button>
                     </div>
                   )}
                 </div>
-                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <User size={11} className="text-[#7c7484]" />
-                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Įmonė / Klientas</span>
-                    </div>
-                    {editingClient ? (
+
+                {editingClient ? (
+                  <div className="space-y-3 pt-1">
+                    <div>
+                      <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Įmonė / Klientas</label>
                       <input
                         type="text"
                         value={clientForm.client_name}
                         onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
                         disabled={saveClientMutation.isPending}
-                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                        className="w-full h-[40px] px-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                       />
-                    ) : (
-                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_name}</span>
-                    )}
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <User size={11} className="text-[#7c7484]" />
-                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Kontaktinis asmuo</span>
                     </div>
-                    {editingClient ? (
+                    <div>
+                      <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Kontaktinis asmuo</label>
                       <input
                         type="text"
                         value={clientForm.contact_person}
                         onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
                         disabled={saveClientMutation.isPending}
                         placeholder="Vardas Pavardė"
-                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                        className="w-full h-[40px] px-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                       />
-                    ) : (
-                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.contact_person || '-'}</span>
-                    )}
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Phone size={11} className="text-[#7c7484]" />
-                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Tel. numeris</span>
                     </div>
-                    {editingClient ? (
-                      <input
-                        type="tel"
-                        value={clientForm.client_phone}
-                        onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
-                        disabled={saveClientMutation.isPending}
-                        placeholder="+370 600 00000"
-                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
-                      />
-                    ) : (
-                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_phone || '-'}</span>
-                    )}
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Mail size={11} className="text-[#7c7484]" />
-                      <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">El. paštas</span>
-                    </div>
-                    {editingClient ? (
-                      <input
-                        type="email"
-                        value={clientForm.client_email}
-                        onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
-                        disabled={saveClientMutation.isPending}
-                        placeholder="vardas@imone.lt"
-                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
-                      />
-                    ) : (
-                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.client_email || '-'}</span>
-                    )}
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20 sm:col-span-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={11} className="text-[#7c7484]" />
-                        <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider">Adresas</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Tel. numeris</label>
+                        <input
+                          type="tel"
+                          value={clientForm.client_phone}
+                          onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
+                          disabled={saveClientMutation.isPending}
+                          placeholder="+370 600 00000"
+                          className="w-full h-[40px] px-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                        />
                       </div>
-                      {editingClient && (
-                        <span className="text-[10px] text-[#7c7484] italic">Koordinatės bus atnaujintos automatiškai</span>
-                      )}
+                      <div>
+                        <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">El. paštas</label>
+                        <input
+                          type="email"
+                          value={clientForm.client_email}
+                          onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
+                          disabled={saveClientMutation.isPending}
+                          placeholder="vardas@imone.lt"
+                          className="w-full h-[40px] px-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                        />
+                      </div>
                     </div>
-                    {editingClient ? (
+                    <div>
+                      <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Adresas</label>
                       <input
                         type="text"
                         value={clientForm.address}
                         onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
                         disabled={saveClientMutation.isPending}
                         placeholder="Pvz.: Vilniaus g. 1, Vilnius"
-                        className="w-full h-[32px] px-2 bg-white border border-[#cdc3d4] rounded-[6px] text-[13px] text-[#1d033a] focus:outline-none focus:border-primary disabled:opacity-60"
+                        className="w-full h-[40px] px-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                       />
-                    ) : (
-                      <span className="text-[14px] font-semibold text-[#1d033a]">{site.address}</span>
-                    )}
+                      <p className="text-[12px] text-gray-400 italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <FieldRow label="Įmonė / Klientas">{site.client_name}</FieldRow>
+                    <FieldRow label="Kontaktinis asmuo">{site.contact_person || '—'}</FieldRow>
+                    <FieldRow label="Tel. numeris">{site.client_phone || '—'}</FieldRow>
+                    <FieldRow label="El. paštas">{site.client_email || '—'}</FieldRow>
+                    <FieldRow label="Adresas" last>{site.address || '—'}</FieldRow>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Cpu size={18} className="text-primary" />
-                    <h3 className="font-semibold text-[#1d033a] text-[14px]">Techniniai duomenys</h3>
-                  </div>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-semibold text-gray-900 text-[15px]">Techniniai duomenys</h3>
                   <button
                     onClick={startEditingTech}
-                    className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-[#f6f5fa] text-primary font-semibold text-[12px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 transition-colors cursor-pointer"
+                    className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
                   >
-                    <Pencil size={13} />
                     Redaguoti
                   </button>
                 </div>
-                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Įrengta galia</span>
-                    <span className="text-[15px] font-bold text-primary">{site.kwp || '-'} kWp</span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Sistemos tipas</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.system_type}</span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Planuojama pradžia</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">
-                      {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd') : '-'}
-                    </span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Komanda</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{team?.name || 'Nepriskirta'}</span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo tipas</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_type || '-'}</span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo danga</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_material || '-'}</span>
-                  </div>
-                  <div className="bg-[#f6f5fa] rounded-[8px] p-3 border border-[#cdc3d4]/20">
-                    <span className="text-[11px] text-[#7c7484] uppercase font-bold tracking-wider block mb-1">Stogo nuolydis</span>
-                    <span className="text-[14px] font-semibold text-[#1d033a]">{site.roof_angle || '-'}</span>
-                  </div>
+                <div>
+                  <FieldRow label="Saulės galia" icon={Sun}>
+                    {site.kwp != null ? <>{site.kwp} <span className="text-gray-400 font-medium">kWp</span></> : '—'}
+                  </FieldRow>
+                  <FieldRow label="Baterijos talpa" icon={Battery}>
+                    {site.kwh != null ? <>{site.kwh} <span className="text-gray-400 font-medium">kWh</span></> : '—'}
+                  </FieldRow>
+                  <FieldRow label="Planuojama pradžia">
+                    {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd HH:mm') : '—'}
+                  </FieldRow>
+                  <FieldRow label="Stogo tipas">{site.roof_type || '—'}</FieldRow>
+                  <FieldRow label="Stogo danga">{site.roof_material || '—'}</FieldRow>
+                  <FieldRow label="Stogo nuolydis" last>{site.roof_angle || '—'}</FieldRow>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden flex flex-col">
-              <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 bg-[#f6f5fa]/50 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <FileText size={18} className="text-primary" />
-                  <h3 className="font-semibold text-[#1d033a] text-[14px]">Pastabos / komentarai</h3>
-                </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:col-span-1">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="font-semibold text-gray-900 text-[15px]">Pastabos / komentarai</h3>
                 <button
                   onClick={() => saveNotesMutation.mutate()}
                   disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
-                  className="flex items-center gap-1.5 h-[28px] px-3 rounded-[6px] bg-primary text-white font-semibold text-[12px] hover:bg-primary/80 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
                 >
-                  {saveNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save size={14} />}
+                  {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Išsaugoti
                 </button>
               </div>
-              <div className="p-5 flex-1 flex flex-col">
-                <textarea
-                  value={notes}
-                  onChange={(e) => setLocalNotes(e.target.value)}
-                  placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
-                  className="w-full flex-1 min-h-[200px] p-4 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-[10px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white transition-colors resize-none"
-                />
-              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => setLocalNotes(e.target.value)}
+                placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
+                rows={8}
+                className="w-full min-h-[180px] p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-900 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+              />
             </div>
           </motion.div>
         )}
@@ -2327,6 +2600,19 @@ export default function SiteDetails() {
             <ChecklistTabContent siteId={id!} />
           </motion.div>
         )}
+
+        {/* ════ TAB 6: HISTORY (AUDIT LOG) ════ */}
+        {activeTab === 'history' && (
+          <motion.div
+            key="history"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+          >
+            <AuditLogTab siteId={id!} />
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* ════ TECH DATA EDIT MODAL ════ */}
@@ -2348,17 +2634,31 @@ export default function SiteDetails() {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
-              <div>
-                <label className="block text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2">Įrengta galia (kWp)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={techForm.kwp}
-                  onChange={e => setTechForm(f => ({ ...f, kwp: e.target.value }))}
-                  placeholder="Pvz.: 10.5"
-                  className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="flex items-center gap-1.5 text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2"><Sun className="w-4 h-4 text-gray-400" /> Galia (kWp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={techForm.kwp}
+                    onChange={e => setTechForm(f => ({ ...f, kwp: e.target.value }))}
+                    placeholder="Pvz.: 10.5"
+                    className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-[13px] font-semibold text-[#4b4452] uppercase tracking-wider mb-2"><Battery className="w-4 h-4 text-gray-400" /> Baterija (kWh)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={techForm.kwh}
+                    onChange={e => setTechForm(f => ({ ...f, kwh: e.target.value }))}
+                    placeholder="Pvz.: 15"
+                    className="w-full h-[44px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
 
               <div>

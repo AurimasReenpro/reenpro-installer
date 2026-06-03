@@ -103,7 +103,7 @@ export default function Dashboard() {
       status: s.status,
       latitude: s.latitude ?? null,
       longitude: s.longitude ?? null,
-      team: s.team as unknown as { name: string } | null,
+      team: s.team,
     })),
     ...(pendingSites ?? []).map(s => ({
       id: s.id,
@@ -112,7 +112,7 @@ export default function Dashboard() {
       status: s.status,
       latitude: s.latitude ?? null,
       longitude: s.longitude ?? null,
-      team: s.team as unknown as { name: string } | null,
+      team: s.team,
     })),
   ];
 
@@ -218,7 +218,7 @@ export default function Dashboard() {
             {activeSites?.map((site) => {
               const timeEntries = site.time_entries as unknown as Array<{ start_time: string; end_time: string | null }> | undefined;
               const openTimeEntry = timeEntries?.find((e) => !e.end_time);
-              const team = site.team as unknown as { name: string } | null;
+              const team = site.team;
 
               let timeDisplayText = '';
               if (openTimeEntry?.start_time) {

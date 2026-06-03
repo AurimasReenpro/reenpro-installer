@@ -17,9 +17,10 @@ interface PhotosTabProps {
   siteId: string;
   profileId: string | undefined;
   siteData: SiteDetailData | undefined;
+  readOnly?: boolean;
 }
 
-export default function PhotosTab({ photos, siteId, profileId, siteData }: PhotosTabProps) {
+export default function PhotosTab({ photos, siteId, profileId, siteData, readOnly = false }: PhotosTabProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   // Remembers which section the pending file-input pick belongs to
@@ -131,7 +132,10 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
 
   return (
     <div className="px-4 pb-[140px] pt-4">
-      {/* Hidden file inputs */}
+      {/* Hidden file inputs. Camera = single shot; gallery = multi-select.
+          The gallery input deliberately has NO `accept` filter — `accept="image/*"`
+          forces Android into single-select Google Photos. Non-images are filtered
+          out in the upload handler instead. */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -143,7 +147,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => handleFileChange(e, galleryInputRef)}
       />
@@ -156,13 +160,15 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
             {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
           </p>
         </div>
-        <button
-          onClick={() => setShowNewSectionDialog(true)}
-          className="flex items-center gap-2 h-[42px] px-4 rounded-xl font-semibold text-sm bg-primary text-white active:scale-95 transition-all shadow-md"
-        >
-          <Plus className="w-4 h-4" />
-          Nauja skiltis
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setShowNewSectionDialog(true)}
+            className="flex items-center gap-2 h-[42px] px-4 rounded-xl font-semibold text-sm bg-primary text-white active:scale-95 transition-all shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            Nauja skiltis
+          </button>
+        )}
       </div>
 
       {/* Global upload progress */}
@@ -191,14 +197,17 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
                   <span className="font-semibold text-[#1d033a] text-sm truncate">{sectionName}</span>
                   <span className="text-xs text-[#39323f] shrink-0">({sectionPhotos.length})</span>
                 </div>
-                <button
-                  onClick={() => setPickerSection(sectionName)}
-                  disabled={isBusy || !profileId}
-                  className="flex items-center gap-1.5 h-[34px] px-3 rounded-lg font-semibold text-xs bg-primary text-white disabled:opacity-50 active:scale-95 transition-all shadow-sm ml-2 shrink-0"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  Įkelti
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setPickerSection(sectionName)}
+                    disabled={isBusy || !profileId}
+                    className="flex items-center gap-1.5 h-[34px] px-3 rounded-lg font-semibold text-xs bg-primary text-white disabled:opacity-50 active:scale-95 transition-all shadow-sm ml-2 shrink-0"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    Įkelti
+                  </button>
+                )}
               </div>
 
               {/* Photos grid */}
@@ -262,7 +271,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
             </button>
             {(() => {
               const photo = photos.find(p => p.storage_path === viewerPath);
-              return photo ? (
+              return photo && !readOnly ? (
                 <button
                   onClick={() => void handleDelete(photo)}
                   disabled={!!deletingId}
@@ -304,6 +313,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
             <p className="text-center text-xs text-[#39323f] -mt-1 mb-1">{pickerSection}</p>
 
             <button
+              type="button"
               onClick={() => handleSourceSelect('camera')}
               className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md"
             >
@@ -311,6 +321,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData }: Photo
               Fotografuoti
             </button>
             <button
+              type="button"
               onClick={() => handleSourceSelect('gallery')}
               className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] text-primary font-semibold text-base active:scale-95 transition-all"
             >

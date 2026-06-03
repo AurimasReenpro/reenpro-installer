@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js';
 import * as Sentry from "@sentry/react";
 import { toast } from 'sonner';
 import { useSyncStore } from '../stores/useSyncStore';
+import { processPhotoOutbox } from '../lib/photoProcessor';
 
 export function useAuth() {
   const { user, profile, loading, setUser, setLoading, signOut } = useAuthStore();
@@ -57,6 +58,8 @@ export function useAuth() {
         if (event === 'SIGNED_IN' && session?.user) {
           const authUser = session.user;
           setTimeout(() => { void fetchProfile(authUser); }, 0);
+          // Now that a valid token exists, flush any photos queued before login.
+          setTimeout(() => { void processPhotoOutbox(queryClient); }, 0);
         } else if (event === 'SIGNED_OUT') {
           signOut();
         }
@@ -66,12 +69,16 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, setLoading, signOut]);
+  }, [setUser, setLoading, signOut, queryClient]);
 
   const handleLogout = async () => {
-    const isSyncing = useSyncStore.getState().isSyncing;
+    const { isSyncing, pendingPhotos } = useSyncStore.getState();
     if (isSyncing) {
       toast.error('Palaukite, dar keliami failai! Atsijungus duomenys bus prarasti.');
+      return;
+    }
+    if (pendingPhotos > 0) {
+      toast.error(`Telefone laukia ${pendingPhotos} neįkelta(-os) nuotrauka(-os). Prisijunkite prie interneto ir palaukite, kol jos bus išsiųstos.`);
       return;
     }
 

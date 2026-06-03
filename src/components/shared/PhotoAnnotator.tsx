@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import ImageAnnotator from './ImageAnnotator';
+import ImageAnnotator from './ImageAnnotatorLazy';
 import { useSignedPhotoUrl } from '../../hooks/useSignedPhotoUrl';
 
 interface Props {

@@ -144,7 +144,7 @@ export default function Sites() {
                       </td>
                       <td className="py-4 px-6">
                         {(() => {
-                          const team = site.team as unknown as { name: string } | null;
+                          const team = site.team;
                           return team ? (
                             <span className="bg-[#f0fdf4] text-[#16a34a] border border-[#16a34a]/20 px-2.5 py-1 rounded-[6px] text-[12px] font-bold">
                               {team.name}

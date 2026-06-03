@@ -1,23 +1,27 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, onlineManager } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import * as Sentry from '@sentry/react';
 import type { SiteDetailData } from '../types/site.types';
 import imageCompression from 'browser-image-compression';
 import { toast } from 'sonner';
 import { useSyncStore } from '../stores/useSyncStore';
+import { enqueuePhoto } from '../lib/photoOutbox';
 
 type SitePhoto = SiteDetailData['photos'][number];
 
 // Gallery uploads are not tied to a specific checklist item.
 const GALLERY_ID = 'gallery';
 
+function tempId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 async function compress(file: File): Promise<File> {
   if (file.size < 500 * 1024) return file;
   return imageCompression(file, {
-    // Lighter than before (1600px / 0.4MB) to keep the per-image canvas memory
-    // down — uploading several large phone photos in a row can otherwise spike
-    // RAM enough for Android to kill & reload the page.
     maxSizeMB: 0.4,
     maxWidthOrHeight: 1600,
     useWebWorker: true,
@@ -48,35 +52,89 @@ export function usePhotoUpload(
   const [uploadingCheckId,   setUploadingCheckId]   = useState<string | null>(null);
 
   // Upload a single already-compressed file: storage + photos row. Returns the
-  // storage path on success, or throws with a step-tagged message.
+  // inserted photos row (so callers can append it straight into the cache
+  // instead of triggering a full site refetch).
   const uploadOne = async (
     file: File,
     itemId: string,
     sectionName: string | undefined,
-  ): Promise<string> => {
+  ): Promise<SitePhoto> => {
     const fileExt = file.name.split('.').pop() ?? 'jpg';
     const filePath = `${site!.id}/${itemId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
-    // ── Step 1: Storage upload ──────────────────────────────────────────────
     const { error: storageErr } = await supabase.storage
       .from('site-photos')
       .upload(filePath, file);
     if (storageErr) throw new Error(`[1/2] Saugyklos klaida: ${toMsg(storageErr)}`);
 
-    // ── Step 2: Insert photos row ───────────────────────────────────────────
-    const { error: dbErr } = await supabase.from('photos').insert({
+    const { data: row, error: dbErr } = await supabase.from('photos').insert({
       site_id:      site!.id,
       checklist_id: null,
       installer_id: profileId!,
       storage_path: filePath,
       section_name: sectionName ?? null,
-    });
-    if (dbErr) {
-      // Roll back the orphaned storage file so storage stays clean.
+    }).select('*').single();
+    if (dbErr || !row) {
       void supabase.storage.from('site-photos').remove([filePath]);
       throw new Error(`[2/2] DB klaida (failas pašalintas iš saugyklos): ${toMsg(dbErr)}`);
     }
-    return filePath;
+    return row;
+  };
+
+  // ── Cache helpers — patch the cached site graph directly so a new photo shows
+  // instantly WITHOUT invalidating ['site'] (which would refetch the whole heavy
+  // query + re-sign every URL, causing the slow flicker / "reload" feel).
+  const appendPhotosToCache = (rows: SitePhoto[]) => {
+    if (rows.length === 0) return;
+    queryClient.setQueryData<SiteDetailData>(['site', siteId], (old) =>
+      old ? { ...old, photos: [...old.photos, ...rows] } : old,
+    );
+  };
+
+  const patchChecklistItem = (itemId: string, patch: { status?: 'pass'; photo_url?: string | null }) => {
+    queryClient.setQueryData<SiteDetailData>(['site', siteId], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        site_checklists: old.site_checklists.map((cl) => ({
+          ...cl,
+          site_checklist_items: cl.site_checklist_items.map((it) =>
+            it.id === itemId ? { ...it, ...patch } : it,
+          ),
+        })),
+      };
+    });
+  };
+
+  // Persist a compressed file to the durable IndexedDB outbox for later upload.
+  const queueOne = async (file: File, itemId: string, sectionName: string | undefined) => {
+    await enqueuePhoto({
+      id: tempId(),
+      siteId: site!.id,
+      itemId,
+      sectionName: sectionName ?? null,
+      installerId: profileId!,
+      fileName: file.name,
+      blob: file,
+      createdAt: Date.now(),
+    });
+  };
+
+  // Optimistically flip a checklist item to 'pass' in the cached site so the
+  // checkmark shows immediately even when the photo is only queued locally.
+  const optimisticallyMarkPass = (itemId: string) => {
+    queryClient.setQueryData<SiteDetailData>(['site', siteId], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        site_checklists: old.site_checklists.map((cl) => ({
+          ...cl,
+          site_checklist_items: cl.site_checklist_items.map((it) =>
+            it.id === itemId ? { ...it, status: 'pass' as const } : it,
+          ),
+        })),
+      };
+    });
   };
 
   // ── Upload ─────────────────────────────────────────────────────────────────
@@ -86,11 +144,16 @@ export function usePhotoUpload(
     sectionName?: string,
   ) => {
     const input = e.target;
-    // Multi-select: upload EVERY chosen image. The gallery input has no `accept`
-    // filter (to keep Android multi-select working), so ignore non-image files.
     const files = Array.from(input.files ?? []).filter(f => f.type.startsWith('image/'));
     if (files.length === 0 || !profileId || !site) {
       input.value = '';
+      return;
+    }
+    // Hard guard: a completed site is read-only (the UI hides the controls; this
+    // blocks any sneaky/queued path too).
+    if (site.status === 'completed') {
+      input.value = '';
+      toast.error('Objektas užbaigtas — redaguoti negalima.');
       return;
     }
 
@@ -98,11 +161,10 @@ export function usePhotoUpload(
     startSync();
 
     let lastPath: string | null = null;
-    let succeeded = 0;
+    let uploaded = 0;
+    let queued = 0;
 
     try {
-      // Sequentially compress + upload each file (keeps the compress web worker
-      // and storage from being hammered by a large batch).
       for (const file of files) {
         setCompressingCheckId(itemId);
         let fileToUpload: File;
@@ -115,56 +177,73 @@ export function usePhotoUpload(
           setCompressingCheckId(null);
         }
 
-        setUploadingCheckId(itemId);
-        try {
-          lastPath = await uploadOne(fileToUpload, itemId, sectionName);
-          succeeded += 1;
-        } catch (oneErr) {
-          // One file failing shouldn't abort the rest of the batch.
-          console.error('[Photo] One upload failed:', toMsg(oneErr));
-          Sentry.captureException(oneErr instanceof Error ? oneErr : new Error(toMsg(oneErr)), {
-            extra: { context: 'Photo upload (single in batch)', siteId, itemId },
-          });
+        if (onlineManager.isOnline()) {
+          // Online: try the direct upload; on a network/poor-connection failure,
+          // fall back to the durable queue rather than losing the photo.
+          setUploadingCheckId(itemId);
+          try {
+            const row = await uploadOne(fileToUpload, itemId, sectionName);
+            lastPath = row.storage_path;
+            // Append to the cache as each one lands so it shows immediately.
+            appendPhotosToCache([row]);
+            uploaded += 1;
+          } catch (oneErr) {
+            console.warn('[Photo] Direct upload failed, queueing:', toMsg(oneErr));
+            await queueOne(fileToUpload, itemId, sectionName);
+            queued += 1;
+          } finally {
+            setUploadingCheckId(null);
+          }
+        } else {
+          // Offline: straight to the durable queue.
+          await queueOne(fileToUpload, itemId, sectionName);
+          queued += 1;
         }
-        // Yield between files so the browser can paint and release the transient
-        // compression canvas before the next image — keeps mobile memory flat.
+
         await new Promise(r => setTimeout(r, 0));
       }
 
-      if (succeeded === 0) {
-        toast.error('Nepavyko įkelti nuotraukų.');
-        return;
-      }
-
-      // ── Update checklist item once (skip for gallery uploads) ──────────────
-      if (itemId !== GALLERY_ID && lastPath) {
+      // Online success → flag the checklist item (legacy column + status). We
+      // patch the cache directly (no ['site'] invalidate → no refetch flicker).
+      if (itemId !== GALLERY_ID && uploaded > 0 && lastPath) {
+        patchChecklistItem(itemId, { photo_url: lastPath, status: 'pass' });
         const { error: itemErr } = await supabase
           .from('site_checklist_items')
           .update({ photo_url: lastPath, status: 'pass' })
           .eq('id', itemId);
-
         if (itemErr) {
-          // Photos are already uploaded & visible — non-fatal.
           const warnMsg = `Checklist elemento atnaujinimas nepavyko: ${toMsg(itemErr)}`;
           console.warn('[Photo]', warnMsg);
           Sentry.captureException(new Error(warnMsg), {
-            extra: { context: 'Checklist item update failed after successful upload', siteId, itemId, lastPath },
+            extra: { context: 'Checklist item update failed after upload', siteId, itemId, lastPath },
           });
-          void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-          toast.warning('Nuotraukos įkeltos, tačiau checklist statusas neatnaujintas.');
-          return;
         }
       }
 
-      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-      const failed = files.length - succeeded;
-      if (failed > 0) {
-        toast.warning(`Įkelta ${succeeded} iš ${files.length} nuotraukų.`);
+      // Queued for a checklist item → optimistically mark it done locally.
+      if (itemId !== GALLERY_ID && queued > 0) {
+        optimisticallyMarkPass(itemId);
+      }
+
+      // IMPORTANT: do NOT invalidate ['site'] here — the cache was already
+      // patched above, so a refetch would only cause the slow flicker. Only the
+      // lightweight photo-outbox query is refreshed when something was queued.
+      if (queued > 0) {
+        void queryClient.invalidateQueries({ queryKey: ['photo-outbox', siteId] });
+      }
+
+      if (uploaded > 0 && queued === 0) {
+        toast.success(uploaded > 1 ? `Įkeltos ${uploaded} nuotraukos!` : 'Nuotrauka sėkmingai įkelta!');
+      } else if (queued > 0 && uploaded === 0) {
+        toast.info(queued > 1
+          ? `${queued} nuotraukos saugomos telefone – bus įkeltos atsiradus ryšiui.`
+          : 'Nuotrauka saugoma telefone – bus įkelta atsiradus ryšiui.');
+      } else if (uploaded > 0 && queued > 0) {
+        toast.info(`Įkelta ${uploaded}, ${queued} saugoma telefone (bus įkelta atsiradus ryšiui).`);
       } else {
-        toast.success(succeeded > 1 ? `Įkeltos ${succeeded} nuotraukos!` : 'Nuotrauka sėkmingai įkelta!');
+        toast.error('Nepavyko apdoroti nuotraukų.');
       }
     } finally {
-      // Always reset state, clear the input and release the sync lock.
       setCompressingCheckId(null);
       setUploadingCheckId(null);
       input.value = '';
@@ -172,7 +251,7 @@ export function usePhotoUpload(
     }
   };
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── Delete (server photos only) ──────────────────────────────────────────────
   const handleDeletePhoto = async (
     selectedPhoto: { photo: SitePhoto; checkId: string } | null,
     onResetSelection: () => void,
@@ -180,21 +259,17 @@ export function usePhotoUpload(
     if (!selectedPhoto) return;
 
     try {
-      // Step 1: remove from storage
       const { error: storageErr } = await supabase.storage
         .from('site-photos')
         .remove([selectedPhoto.photo.storage_path]);
       if (storageErr) throw new Error(`Saugyklos klaida: ${toMsg(storageErr)}`);
 
-      // Step 2: delete photos row
       const { error: dbErr } = await supabase
         .from('photos')
         .delete()
         .eq('id', selectedPhoto.photo.id);
       if (dbErr) throw new Error(`DB klaida: ${toMsg(dbErr)}`);
 
-      // Step 3: clear checklist item reference (best-effort; don't fail the
-      // delete if the checklist item no longer exists or is inaccessible)
       if (selectedPhoto.checkId && selectedPhoto.checkId !== GALLERY_ID) {
         const { error: itemErr } = await supabase
           .from('site_checklist_items')

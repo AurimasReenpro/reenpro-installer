@@ -9,6 +9,7 @@ export interface UserProfile {
   hourly_rate: number | null;
   phone: string | null;
   avatar_url: string | null;
+  team_id: string | null;
 }
 
 interface AuthState {

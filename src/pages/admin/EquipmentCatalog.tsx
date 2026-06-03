@@ -14,6 +14,7 @@ import {
   updateEquipmentCategory, deleteEquipmentCategory,
 } from '../../api/catalog';
 import type { CatalogItem, EquipmentCategoryDef } from '../../types/equipment.types';
+import { isBatteryCategory } from '../../types/equipment.types';
 
 // ── Icon fallback map (icons are a UI concern, not stored in DB) ─────────────
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -89,6 +90,7 @@ interface NewItemForm {
   brand: string;
   model: string;
   specifications: string;
+  capacity_kwh: string;
 }
 
 export default function EquipmentCatalog() {
@@ -99,7 +101,7 @@ export default function EquipmentCatalog() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('Visos');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<NewItemForm>({ category: '', brand: '', model: '', specifications: '' });
+  const [form, setForm] = useState<NewItemForm>({ category: '', brand: '', model: '', specifications: '', capacity_kwh: '' });
 
   // Category management state
   const [showCatMgmt, setShowCatMgmt] = useState(false);
@@ -121,17 +123,27 @@ export default function EquipmentCatalog() {
 
   // ── Catalog mutations ────────────────────────────────────────────────────────
   const createMutation = useMutation({
-    mutationFn: () => createCatalogItem({
-      category: form.category || (categories[0]?.name ?? 'Kita'),
-      brand: form.brand.trim(),
-      model: form.model.trim(),
-      specifications: form.specifications.trim() || null,
-    }),
+    mutationFn: () => {
+      const category = form.category || (categories[0]?.name ?? 'Kita');
+      const base = {
+        category,
+        brand: form.brand.trim(),
+        model: form.model.trim(),
+        specifications: form.specifications.trim() || null,
+      };
+      // Only attach capacity_kwh when it's an energy-storage item with a value —
+      // omitting the key entirely keeps inserts working even if the column
+      // hasn't been migrated yet (avoids the schema-cache 400).
+      const includeCapacity = isBatteryCategory(category) && form.capacity_kwh !== '';
+      return createCatalogItem(
+        includeCapacity ? { ...base, capacity_kwh: parseFloat(form.capacity_kwh) } : base,
+      );
+    },
     onSuccess: () => {
       toast.success('Įranga pridėta į katalogą!');
       void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] });
       setShowForm(false);
-      setForm({ category: '', brand: '', model: '', specifications: '' });
+      setForm({ category: '', brand: '', model: '', specifications: '', capacity_kwh: '' });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -258,7 +270,7 @@ export default function EquipmentCatalog() {
             Kategorijos
           </button>
           <button
-            onClick={() => { setForm({ category: defaultCatForForm, brand: '', model: '', specifications: '' }); setShowForm(true); }}
+            onClick={() => { setForm({ category: defaultCatForForm, brand: '', model: '', specifications: '', capacity_kwh: '' }); setShowForm(true); }}
             className="flex items-center gap-2 h-[40px] px-5 rounded-[10px] bg-primary text-white font-semibold text-[14px] hover:bg-primary/80 transition-colors shadow-sm cursor-pointer"
           >
             <Plus size={16} />
@@ -345,6 +357,25 @@ export default function EquipmentCatalog() {
                     className="w-full h-[42px] px-3 bg-[#f6f5fa] border border-[#cdc3d4]/60 rounded-[10px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white transition-colors"
                   />
                 </div>
+
+                {/* Battery capacity — only for energy-storage categories */}
+                {isBatteryCategory(form.category) && (
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-1.5">
+                      <BatteryCharging size={13} /> Talpa vienetui (kWh)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={form.capacity_kwh}
+                      onChange={(e) => setForm(f => ({ ...f, capacity_kwh: e.target.value }))}
+                      placeholder="Pvz.: 9 (kWh už 1 bloką)"
+                      className="w-full h-[42px] px-3 bg-[#f6f5fa] border border-[#cdc3d4]/60 rounded-[10px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:bg-white transition-colors"
+                    />
+                    <p className="text-[11px] text-[#7c7484] mt-1">Bazinė talpa už vieną vienetą — bus padauginta iš kiekio objekte.</p>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-2">
                   <button
@@ -615,7 +646,14 @@ export default function EquipmentCatalog() {
                         <td className="py-3 px-5 text-[13px] font-semibold text-[#1d033a]">
                           {item.brand || <span className="text-[#cdc3d4]">—</span>}
                         </td>
-                        <td className="py-3 px-5 text-[13px] text-[#1d033a]">{item.model}</td>
+                        <td className="py-3 px-5 text-[13px] text-[#1d033a]">
+                          {item.model}
+                          {item.capacity_kwh != null && (
+                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30 align-middle">
+                              <BatteryCharging size={11} /> {item.capacity_kwh} kWh
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3 px-5 text-[13px] text-[#4b4452] hidden sm:table-cell">
                           {item.specifications || <span className="text-[#cdc3d4]">—</span>}
                         </td>

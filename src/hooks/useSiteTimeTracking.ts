@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { startWork, pauseWork, completeWork, resumeWork } from '../api/timeTracking';
+import { startWork, pauseWork, completeWork, resumeWork, QcFailedError } from '../api/timeTracking';
 import { getCurrentPositionWithTimeout } from '../lib/geolocation';
 import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
@@ -108,6 +108,11 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
       toast.success('Montavimo darbai sėkmingai užbaigti!');
       void navigate('/m'); // Return to today's list
     } catch (error) {
+      // Server-side QC gate rejected completion (backstop for a bypassed UI gate).
+      if (error instanceof QcFailedError) {
+        toast.error('Negalima užbaigti: ne visi privalomi punktai atlikti arba trūksta privalomų nuotraukų.');
+        return;
+      }
       console.error('Complete error:', error);
       Sentry.captureException(error, { extra: { context: 'Complete error:' } });
       toast.error('Įvyko klaida užbaigiant objektą.');

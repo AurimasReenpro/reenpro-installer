@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, Camera, ZoomIn, Plus, X, DraftingCompass } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSiteFiles, uploadBlueprintFile, groupBlueprints, addBlueprintCategory } from '../../../api/sites';
-import ImageAnnotator from '../../../components/shared/ImageAnnotator';
+import ImageAnnotator from '../../../components/shared/ImageAnnotatorLazy';
 import ImageLightbox from '../../../components/shared/ImageLightbox';
 import PdfPagePreview from '../../../components/shared/PdfPagePreview';
 import { isPdf } from '../../../lib/pdf';

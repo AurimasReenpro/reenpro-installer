@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { MapPin, CalendarClock, Zap, Battery, PlayCircle } from 'lucide-react';
+import { format, isToday, isTomorrow } from 'date-fns';
+import { lt } from 'date-fns/locale/lt';
 import type { Database } from '../../types/database.types';
 
 export type Site = Database['public']['Tables']['sites']['Row'];
@@ -9,100 +11,111 @@ interface SiteCardProps {
   onStartWork?: () => void;
 }
 
+const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
+  in_progress: { label: 'Vykdomas',    cls: 'bg-emerald-50 text-emerald-700' },
+  paused:      { label: 'Sustabdytas', cls: 'bg-amber-50 text-amber-700' },
+  completed:   { label: 'Baigta',      cls: 'bg-gray-100 text-gray-500' },
+};
+
+/** "Šiandien, 10:00" / "Rytoj, 10:00" / "Birželio 2 d., 10:00" (first letter capitalised). */
+function dateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isToday(d)) return `Šiandien, ${format(d, 'HH:mm')}`;
+  if (isTomorrow(d)) return `Rytoj, ${format(d, 'HH:mm')}`;
+  const s = format(d, "MMMM d 'd.,' HH:mm", { locale: lt });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export default function SiteCard({ site, onStartWork }: SiteCardProps) {
   const navigate = useNavigate();
 
-  const getBorderColor = () => {
-    switch (site.status) {
-      case 'in_progress':
-        return 'border-2 border-[#10B981]';
-      case 'paused':
-        return 'border-2 border-[#F59E0B]';
-      case 'pending':
-        return 'border border-outline-variant';
-      case 'completed':
-        return 'border border-outline-variant opacity-60';
-      default:
-        return 'border border-outline-variant';
-    }
+  const isUpcoming = site.status !== 'in_progress' && site.status !== 'paused' && site.status !== 'completed';
+  const isOverdue = isUpcoming && site.scheduled_start && new Date(site.scheduled_start) < new Date();
+
+  const action =
+    site.status === 'pending'     ? { label: 'Pradėti darbą', primary: true }  :
+    site.status === 'in_progress' ? { label: 'Tęsti darbą',   primary: true }  :
+    site.status === 'paused'      ? { label: 'Tęsti darbą',   primary: true }  :
+    site.status === 'completed'   ? { label: 'Peržiūrėti',    primary: false } :
+                                    { label: 'Atidaryti',     primary: true };
+
+  const statusChip = STATUS_CHIP[site.status ?? ''];
+  const hasBattery = site.kwh != null;
+
+  const handleClick = () => {
+    if (site.status === 'pending' && onStartWork) onStartWork();
+    else void navigate(`/m/sites/${site.id}`);
   };
-
-  const getSystemPillColor = () => {
-    switch (site.system_type) {
-      case 'PV+BESS':
-        return 'bg-primary text-white';
-      case 'PV':
-        return 'bg-[#fd7461] text-white';
-      case 'BESS':
-        return 'bg-primary-light text-white';
-      default:
-        return 'bg-app-bg text-primary';
-    }
-  };
-
-  const getButtonProps = () => {
-    switch (site.status) {
-      case 'pending':
-        return { bg: 'bg-[#fc391d]', text: 'text-white', label: 'PRADĖTI DARBĄ' };
-      case 'in_progress':
-        return { bg: 'bg-primary', text: 'text-white', label: 'TĘSTI DARBĄ →' };
-      case 'paused':
-        return { bg: 'bg-primary', text: 'text-white', label: 'TĘSTI DARBĄ' };
-      case 'completed':
-        return { bg: 'bg-app-bg', text: 'text-on-surface-variant', label: 'BAIGTA ✓', disabled: true };
-      default:
-        return { bg: 'bg-primary', text: 'text-white', label: 'ATIDARYTI' };
-    }
-  };
-
-  const btnProps = getButtonProps();
-
-  const isOverdue = site.status === 'pending' && site.scheduled_start && new Date(site.scheduled_start) < new Date();
 
   return (
-    <div className={`bg-white rounded-2xl mx-4 mb-3 p-5 shadow-sm ${getBorderColor()}`}>
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full px-2.5 py-1 bg-app-bg text-primary text-xs font-semibold">
-            {site.code}
+    <div className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
+      {/* Micro-header: object id + status / overdue */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+          Objektas #{site.code}
+        </span>
+        {isOverdue ? (
+          <span className="bg-red-50 text-red-600 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+            Vėluoja
           </span>
-          {isOverdue && (
-            <span className="bg-[#FFF1F0] text-[#fc391d] border border-[#fc391d]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
-              Vėluoja
-            </span>
-          )}
+        ) : statusChip ? (
+          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${statusChip.cls}`}>
+            {statusChip.label}
+          </span>
+        ) : null}
+      </div>
+
+      {/* Title */}
+      <h3 className="text-lg font-bold text-gray-900 mt-1 truncate">{site.client_name}</h3>
+
+      {/* Address */}
+      <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5">
+        <MapPin size={14} className="text-gray-400 shrink-0" />
+        <span className="truncate">{site.address}</span>
+      </div>
+
+      {/* Planuojama — schedule reminder (upcoming jobs) */}
+      {isUpcoming && site.scheduled_start && (
+        <div className="flex items-center gap-2 mt-2 mb-1">
+          <CalendarClock size={14} className="text-indigo-500 shrink-0" />
+          <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Planuojama:</span>
+          <span className="text-sm font-bold text-indigo-700">{dateLabel(site.scheduled_start)}</span>
         </div>
+      )}
+
+      {/* Pradėta — actual start (active jobs) */}
+      {(site.status === 'in_progress' || site.status === 'paused') && site.actual_start && (
+        <div className="flex items-center gap-2 mt-2 mb-1">
+          <PlayCircle size={14} className="text-emerald-500 shrink-0" />
+          <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Pradėta:</span>
+          <span className="text-sm font-bold text-emerald-700">{dateLabel(site.actual_start)}</span>
+        </div>
+      )}
+
+      {/* Capacity summary block */}
+      <div className={`grid ${hasBattery ? 'grid-cols-2 divide-x divide-gray-100' : 'grid-cols-1'} border border-gray-100 rounded-xl bg-gray-50/50 mt-3 mb-4 py-2`}>
+        <div className="flex flex-col items-center">
+          <Zap size={14} className="text-gray-400 mb-1" />
+          <span className="text-sm font-bold text-gray-900">{site.kwp ?? '—'} kWp</span>
+          <span className="text-[10px] text-gray-500 uppercase tracking-wide">Sistemos galia</span>
+        </div>
+        {hasBattery && (
+          <div className="flex flex-col items-center">
+            <Battery size={14} className="text-gray-400 mb-1" />
+            <span className="text-sm font-bold text-gray-900">{site.kwh} kWh</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-wide">Baterija</span>
+          </div>
+        )}
       </div>
 
-      <h3 className="text-on-surface font-bold text-lg mt-2">{site.client_name}</h3>
-      
-      <div className="flex items-center gap-1 text-primary-light text-sm mt-1">
-        <MapPin className="w-4 h-4 text-primary-light" />
-        <span>{site.address}</span>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mt-3">
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getSystemPillColor()}`}>
-          {site.system_type}
-        </span>
-        <span className="bg-app-bg text-primary px-3 py-1 rounded-full text-xs font-semibold">
-          {site.kwp} kWp
-        </span>
-      </div>
-
+      {/* Action */}
       <button
-        onClick={() => {
-          if (btnProps.disabled) return;
-          if (site.status === 'pending' && onStartWork) {
-            onStartWork();
-          } else {
-            void navigate(`/m/sites/${site.id}`);
-          }
-        }}
-        disabled={btnProps.disabled}
-        className={`mt-4 w-full h-[56px] rounded-xl font-semibold text-[15px] flex items-center justify-center transition-transform active:scale-[0.98] ${btnProps.bg} ${btnProps.text} ${btnProps.disabled ? 'cursor-not-allowed opacity-80' : ''}`}
+        onClick={handleClick}
+        className={`w-full py-2.5 rounded-xl font-semibold text-[15px] active:opacity-90 transition-opacity ${
+          action.primary ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+        }`}
       >
-        {btnProps.label}
+        {action.label}
       </button>
     </div>
   );

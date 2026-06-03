@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import * as Sentry from '@sentry/react';
 import imageCompression from 'browser-image-compression';
 import { toast } from 'sonner';
 import { useSyncStore } from '../stores/useSyncStore';
+import { MUTATION_KEYS, type MaterialAddVars, type MaterialDeleteVars } from '../lib/offlineMutations';
 
 /** Extract a human-readable message from any thrown value. */
 function toMsg(err: unknown): string {
@@ -50,8 +51,12 @@ export function useExtraWorks(
 ) {
   const queryClient = useQueryClient();
   const [isCreatingWork, setIsCreatingWork] = useState(false);
-  const [isSavingMaterial, setIsSavingMaterial] = useState(false);
   const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
+
+  // Materials add/delete go through the offline outbox (keyed mutations whose
+  // fn + optimistic updates live in lib/offlineMutations) so they work offline.
+  const materialAddMutation = useMutation<void, Error, MaterialAddVars>({ mutationKey: MUTATION_KEYS.materialAdd });
+  const materialDeleteMutation = useMutation<void, Error, MaterialDeleteVars>({ mutationKey: MUTATION_KEYS.materialDelete });
 
   // Upload one already-compressed file: storage + photos row.
   const uploadOne = async (file: File, itemId: string): Promise<void> => {
@@ -161,44 +166,35 @@ export function useExtraWorks(
     }
   };
 
-  /** Insert a row into site_extra_materials. Returns true on success. */
-  const addMaterial = async (material: NewMaterial): Promise<boolean> => {
+  /**
+   * Queue a new material (optimistic + offline-safe). Returns true once the row
+   * is added to the cache — the actual insert is replayed automatically if the
+   * device is offline. A client-side temp id keeps the optimistic row stable
+   * until the refetch swaps in the server row.
+   */
+  const addMaterial = (material: NewMaterial): boolean => {
     if (!material.name.trim()) {
       toast.error('Įveskite medžiagos pavadinimą.');
       return false;
     }
-    setIsSavingMaterial(true);
-    try {
-      const { error } = await supabase.from('site_extra_materials').insert({
-        site_id: siteId,
-        name: material.name.trim(),
-        quantity: material.quantity || 1,
-        unit: material.unit.trim() || 'vnt.',
-        created_by: profileId ?? null,
-      });
-      if (error) throw new Error(toMsg(error));
-      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-      return true;
-    } catch (err) {
-      toast.error(`Klaida: ${toMsg(err)}`);
-      return false;
-    } finally {
-      setIsSavingMaterial(false);
-    }
+    const tempId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    materialAddMutation.mutate({
+      siteId,
+      tempId,
+      name: material.name.trim(),
+      quantity: material.quantity || 1,
+      unit: material.unit.trim() || 'vnt.',
+      createdBy: profileId ?? null,
+    });
+    return true;
   };
 
-  /** Delete a material row. */
-  const deleteMaterial = async (materialId: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('site_extra_materials')
-        .delete()
-        .eq('id', materialId);
-      if (error) throw new Error(toMsg(error));
-      void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
-    } catch (err) {
-      toast.error(`Klaida ištrinant: ${toMsg(err)}`);
-    }
+  /** Queue a material deletion (optimistic + offline-safe). */
+  const deleteMaterial = (materialId: string): void => {
+    materialDeleteMutation.mutate({ siteId, id: materialId });
   };
 
   /**
@@ -266,7 +262,6 @@ export function useExtraWorks(
 
   return {
     isCreatingWork,
-    isSavingMaterial,
     deletingWorkId,
     createExtraWork,
     addMaterial,

@@ -1,61 +1,40 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'Reenpro Installer',
-        short_name: 'Reenpro',
-        description: 'Lauko operacijų, laiko sekimo ir brėžinių valdymo sistema',
-        theme_color: '#09090b',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
-        icons: [
-          {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: '/pwa-maskable-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        // The bundled PDF worker is large; raise the precache limit so it caches.
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-      },
-    }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy, rarely-changing vendor libs into their own long-cached
+        // chunks so a code change to the app doesn't bust the whole bundle and
+        // the browser can cache vendors across deploys.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@supabase')) return 'supabase';
+          if (id.includes('@tanstack')) return 'query';
+          if (id.includes('/xlsx/') || id.includes('\\xlsx\\')) return 'xlsx';
+          if (
+            id.includes('react-router') ||
+            id.includes('/react-dom/') || id.includes('\\react-dom\\') ||
+            id.includes('/react/') || id.includes('\\react\\')
+          ) return 'react-vendor';
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
-    // Bind all interfaces so the dev server is reachable via an ngrok tunnel
-    // (needed to test the PWA over HTTPS on a real phone).
+    // Bind all interfaces so the dev server is reachable on the LAN (phone on
+    // the same Wi-Fi) or via an ngrok tunnel.
     host: true,
     allowedHosts: ['.ngrok-free.app', '.ngrok-free.dev', '.ngrok.io', '.ngrok.app'],
   },
-  // `vite preview` serves the built dist (real Service Worker + manifest) —
-  // the correct target for an actual PWA install test over an ngrok tunnel.
   preview: {
     port: 3000,
     host: true,

@@ -55,7 +55,7 @@ function createBaseIcon(): L.DivIcon {
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42">
       <path d="M18 0C8.059 0 0 8.059 0 18c0 13.5 18 24 18 24S36 31.5 36 18C36 8.059 27.941 0 18 0z"
             fill="#490891" stroke="white" stroke-width="2.5"/>
-      <text x="18" y="23" font-size="14" text-anchor="middle" fill="white">🏭</text>
+      <path d="M18 10 L26 17 L23.5 17 L23.5 26 L12.5 26 L12.5 17 L10 17 Z" fill="white"/>
     </svg>`;
   return L.divIcon({
     html: svg,

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import FullPageSpinner from '../../components/ui/FullPageSpinner';
 import { getSiteDetailQuery } from '../../types/site.types';
 import type { SitePhoto } from '../../types/site.types';
-import { supabase } from '../../lib/supabase';
 
 // Custom Hooks
 import { useSiteTimeTracking } from '../../hooks/useSiteTimeTracking';
@@ -31,7 +31,7 @@ export default function SiteDetail() {
   const navigate = useNavigate();
   const { profile } = useAuthStore();
   
-  const [activeTab, setActiveTab] = useState('Apžvalga');
+  const [activeTab, setActiveTab] = useState('Objekto info');
   const [selectedPhoto, setSelectedPhoto] = useState<{ photo: SitePhoto; checkId: string } | null>(null);
   const [isConfirmCompleteOpen, setIsConfirmCompleteOpen] = useState(false);
   const [isDeletePhotoConfirmOpen, setIsDeletePhotoConfirmOpen] = useState(false);
@@ -45,20 +45,6 @@ export default function SiteDetail() {
       return data;
     },
     enabled: !!id,
-  });
-
-  const { data: teamMembers } = useQuery({
-    queryKey: ['team_members', site?.team_id],
-    queryFn: async () => {
-      if (!site?.team_id) return [];
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('team_id', site.team_id);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!site?.team_id,
   });
 
   const {
@@ -106,7 +92,7 @@ export default function SiteDetail() {
     return <div className="p-4 text-center mt-10">Objektas nerastas.</div>;
   }
 
-  const tabs = ['Apžvalga', 'Darbai', 'Objekto info', 'Brėžiniai', 'Foto'];
+  const tabs = ['Objekto info', 'Įranga', 'Darbai', 'Brėžiniai', 'Foto'];
 
   const isActive = site?.time_entries?.some((e) => !e.end_time) ?? false;
   const displayStatus = site.status === 'completed'
@@ -117,6 +103,8 @@ export default function SiteDetail() {
         ? 'paused'
         : site.status));
 
+  const isCompleted = site.status === 'completed';
+
   return (
     <div className="fixed inset-0 z-[60] bg-app-bg overflow-y-auto pb-[100px]">
       <SiteDetailHeader 
@@ -125,28 +113,38 @@ export default function SiteDetail() {
         onOpenMaps={openMaps} 
       />
 
-      <HeroSection 
-        clientName={site.client_name} 
-        address={site.address} 
-        systemType={site.system_type} 
-        status={site.status} 
+      <HeroSection
+        clientName={site.client_name}
+        address={site.address}
+        status={displayStatus}
+        teamName={site.team?.name ?? null}
       />
 
-      <TabsBar 
-        tabs={tabs} 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+      <TabsBar
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
-      {activeTab === 'Apžvalga' && (
+      {/* Completed → read-only notice */}
+      {isCompleted && (
+        <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+          <Lock size={14} className="text-amber-600 shrink-0" />
+          <span className="text-[13px] font-medium text-amber-700">Projektas užbaigtas. Redagavimas negalimas.</span>
+        </div>
+      )}
+
+      {activeTab === 'Įranga' && (
         <OverviewTab
-          teamMembers={teamMembers || []}
           equipmentDetails={site.equipment_details}
+          kwp={site.kwp}
+          kwh={site.kwh}
         />
       )}
 
       {activeTab === 'Darbai' && (
         <WorkTab
+          readOnly={isCompleted}
           checklists={(site.site_checklists?.[0]?.site_checklist_items) ?? []}
           photos={site.photos || []}
           extraMaterials={site.site_extra_materials || []}
@@ -175,6 +173,7 @@ export default function SiteDetail() {
 
       {activeTab === 'Foto' && (
         <PhotosTab
+          readOnly={isCompleted}
           photos={site.photos || []}
           siteId={id as string}
           profileId={profile?.id}

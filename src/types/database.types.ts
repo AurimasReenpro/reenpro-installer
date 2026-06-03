@@ -131,6 +131,7 @@ export type Database = {
           brand: string
           model: string
           specifications: string | null
+          capacity_kwh: number | null
           created_at: string
         }
         Insert: {
@@ -139,6 +140,7 @@ export type Database = {
           brand?: string
           model: string
           specifications?: string | null
+          capacity_kwh?: number | null
           created_at?: string
         }
         Update: {
@@ -147,6 +149,7 @@ export type Database = {
           brand?: string
           model?: string
           specifications?: string | null
+          capacity_kwh?: number | null
           created_at?: string
         }
         Relationships: []
@@ -428,6 +431,61 @@ export type Database = {
             referencedRelation: "site_checklist_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "site_extra_materials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_audit_logs: {
+        Row: {
+          id: string
+          site_id: string
+          actor_id: string | null
+          action: string
+          entity_type: string
+          old_data: Json | null
+          new_data: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          actor_id?: string | null
+          action: string
+          entity_type: string
+          old_data?: Json | null
+          new_data?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          actor_id?: string | null
+          action?: string
+          entity_type?: string
+          old_data?: Json | null
+          new_data?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_audit_logs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_audit_logs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sites: {
@@ -445,6 +503,7 @@ export type Database = {
           equipment_details: import('../types/equipment.types').EquipmentItem[] | Record<string, string> | null
           id: string
           kwp: number | null
+          kwh: number | null
           latitude: number | null
           longitude: number | null
           notes: string | null
@@ -472,6 +531,7 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           kwp?: number | null
+          kwh?: number | null
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
@@ -499,6 +559,7 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           kwp?: number | null
+          kwh?: number | null
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
@@ -512,7 +573,15 @@ export type Database = {
           system_type?: string
           team_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
@@ -664,29 +733,11 @@ export type Database = {
     }
     Functions: {
       complete_work: { Args: { p_site_id: string }; Returns: undefined }
+      complete_site_work: { Args: { p_site_id: string; p_user_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_site: { Args: { site_id_param: string }; Returns: boolean }
       pause_work: { Args: { p_site_id: string }; Returns: undefined }
-      start_work: {
-        Args: { p_site_id: string; p_start_lat?: number; p_start_lng?: number }
-        Returns: {
-          created_at: string
-          duration_minutes: number | null
-          end_time: string | null
-          id: string
-          installer_id: string
-          site_id: string
-          start_lat: number | null
-          start_lng: number | null
-          start_time: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "time_entries"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      start_work: { Args: { p_site_id: string; p_start_lat?: number; p_start_lng?: number }; Returns: undefined }
     }
     Enums: {
       site_checklist_status: 'pending' | 'in_progress' | 'completed'

@@ -6,20 +6,24 @@ interface TabsBarProps {
 
 export default function TabsBar({ tabs, activeTab, onTabChange }: TabsBarProps) {
   return (
-    <div className="sticky top-[56px] bg-app-bg z-[65] border-b border-outline-variant overflow-x-auto whitespace-nowrap flex scrollbar-hide">
-      {tabs.map((tab) => (
-        <button
-          key={tab}
-          onClick={() => onTabChange(tab)}
-          className={`transition-colors ${
-            activeTab === tab
-              ? 'border-b-4 border-primary text-primary font-bold px-4 py-3'
-              : 'text-on-surface-variant px-4 py-3'
-          }`}
-        >
-          {tab}
-        </button>
-      ))}
+    <div className="sticky top-[56px] z-[65] flex overflow-x-auto whitespace-nowrap scrollbar-hide bg-white/95 backdrop-blur-sm border-b border-gray-100 px-2">
+      {tabs.map((tab) => {
+        const active = activeTab === tab;
+        return (
+          <button
+            key={tab}
+            onClick={() => onTabChange(tab)}
+            className={`relative px-3.5 py-3 text-[14px] transition-colors ${
+              active ? 'text-gray-900 font-semibold' : 'text-gray-400 font-medium'
+            }`}
+          >
+            {tab}
+            {active && (
+              <span className="absolute left-3.5 right-3.5 bottom-0 h-[2px] rounded-full bg-gray-900" />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

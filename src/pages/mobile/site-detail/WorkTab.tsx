@@ -1,16 +1,64 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '../../../lib/supabase';
 import type { SiteChecklist, SitePhoto, SiteExtraMaterial } from '../../../types/site.types';
 import type { ChecklistItemStatus } from '../../../hooks/useChecklistActions';
 import { useExtraWorks } from '../../../hooks/useExtraWorks';
+import { usePendingPhotos, type QueuedPhoto } from '../../../hooks/usePendingPhotos';
+import { removeQueuedPhoto } from '../../../lib/photoOutbox';
 import {
   Loader2, Camera, Image, X, ChevronDown,
   MessageSquare, CheckCircle2, XCircle, MinusCircle, Circle, Trash2,
-  Plus, Package,
+  Plus, Package, Clock, ClipboardList,
 } from 'lucide-react';
 import ImageLightbox from '../../../components/shared/ImageLightbox';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+
+// ── Pending (locally-stored) photo thumbnails ────────────────────────────────
+// Renders blobs queued in the IndexedDB outbox with a "Laikoma telefone" badge.
+// Each can be deleted locally (it was never uploaded → no network delete).
+function PendingPhotoThumbs({
+  photos,
+  onDelete,
+  readOnly,
+}: {
+  photos: QueuedPhoto[];
+  onDelete: (id: string) => void;
+  readOnly?: boolean;
+}) {
+  const items = useMemo(
+    () => photos.map((p) => ({ id: p.id, url: URL.createObjectURL(p.blob) })),
+    [photos],
+  );
+  useEffect(() => () => { items.forEach((i) => URL.revokeObjectURL(i.url)); }, [items]);
+
+  if (items.length === 0) return null;
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {items.map((i) => (
+        <div key={i.id} className="relative rounded-md overflow-hidden border border-[#F59E0B]/50">
+          <img src={i.url} alt="Laikoma telefone" className="w-full aspect-square object-cover opacity-90" />
+          <span
+            title="Laikoma telefone – bus įkelta atsiradus ryšiui"
+            className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-1 text-[9px] font-bold px-1 py-0.5 rounded bg-[#FFFBEB]/95 text-[#B45309] border border-[#F59E0B]/40"
+          >
+            <Clock size={9} /> Telefone
+          </span>
+          {!readOnly && (
+            <button
+              onClick={() => onDelete(i.id)}
+              className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
+              title="Ištrinti (saugoma telefone)"
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Strict cap on how many photos a single checklist task can hold (mirrors the
 // annotation attachment cap). Upload controls are hidden once reached.
@@ -113,6 +161,7 @@ function PhotoPickerButton({
         className="hidden" onChange={handleFile} />
 
       <button
+        type="button"
         onClick={() => setShowPicker(true)}
         className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors cursor-pointer border border-primary/10"
       >
@@ -162,10 +211,12 @@ function ItemPhotoGrid({
   photos,
   checkId,
   onDeletePhoto,
+  readOnly,
 }: {
   photos: SitePhoto[];
   checkId: string;
   onDeletePhoto: (photo: SitePhoto, checkId: string) => void;
+  readOnly?: boolean;
 }) {
   const paths = useMemo(() => photos.map((p) => p.storage_path), [photos]);
   const { data: signed } = useSignedPhotoUrls(paths);
@@ -193,13 +244,15 @@ function ItemPhotoGrid({
                 </div>
               )}
             </button>
-            <button
-              onClick={() => onDeletePhoto(photo, checkId)}
-              className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
-              title="Ištrinti nuotrauką"
-            >
-              <Trash2 size={11} />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => onDeletePhoto(photo, checkId)}
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
+                title="Ištrinti nuotrauką"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -228,9 +281,15 @@ interface ItemCardProps {
   onSaveComment: (itemId: string, comment: string) => Promise<void>;
   onUploadPhoto: (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => void;
   onDeletePhoto: (photo: SitePhoto, checkId: string) => void;
+  /** Locally-queued (not-yet-uploaded) photos for this item. */
+  pendingPhotos?: QueuedPhoto[];
+  /** Remove a locally-queued photo from the outbox (never uploaded). */
+  onDeletePending: (id: string) => void;
   /** Present only for installer-created extras → renders a delete button. */
   onRequestDelete?: () => void;
   isDeleting?: boolean;
+  /** Completed site → all edit controls disabled/hidden. */
+  readOnly?: boolean;
 }
 
 function ChecklistItemCard({
@@ -239,11 +298,14 @@ function ChecklistItemCard({
   isExpanded,
   compressingCheckId,
   uploadingCheckId,
+  readOnly = false,
   onToggleExpand,
   onSetStatus,
   onSaveComment,
   onUploadPhoto,
   onDeletePhoto,
+  pendingPhotos = [],
+  onDeletePending,
   onRequestDelete,
   isDeleting,
 }: ItemCardProps) {
@@ -258,7 +320,7 @@ function ChecklistItemCard({
   // it can stay stale after photos are deleted (e.g. from the Foto tab, which
   // uses the gallery id and never clears it), which previously left a ghost
   // camera icon in the header + a broken-image placeholder box in the body.
-  const hasPhoto   = linkedPhotos.length > 0;
+  const hasPhoto   = linkedPhotos.length > 0 || pendingPhotos.length > 0;
   const hasComment = !!item.comment?.trim();
 
   // Local comment — initialised from DB value at mount.
@@ -329,8 +391,9 @@ function ChecklistItemCard({
                 return (
                   <button
                     key={s}
-                    onClick={() => handleStatusTap(s)}
-                    className={`h-[52px] rounded-xl font-bold text-[13px] border-2 flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer ${isActive ? sc.btnActiveCls : sc.btnInactiveCls}`}
+                    onClick={() => { if (!readOnly) handleStatusTap(s); }}
+                    disabled={readOnly}
+                    className={`h-[52px] rounded-xl font-bold text-[13px] border-2 flex items-center justify-center gap-1.5 transition-all ${readOnly ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'} ${isActive ? sc.btnActiveCls : sc.btnInactiveCls}`}
                   >
                     <sc.Icon size={15} />
                     {sc.label}
@@ -348,12 +411,13 @@ function ChecklistItemCard({
             <textarea
               value={localComment}
               onChange={(e) => setLocalComment(e.target.value)}
-              onBlur={() => { if (commentChanged) void handleSave(); }}
+              onBlur={() => { if (!readOnly && commentChanged) void handleSave(); }}
+              readOnly={readOnly}
               placeholder="Pridėkite pastabą arba pastebėjimą..."
               rows={2}
-              className="w-full px-3 py-2.5 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
+              className="w-full px-3 py-2.5 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
             />
-            {commentChanged && (
+            {commentChanged && !readOnly && (
               <button
                 onClick={() => { void handleSave(); }}
                 disabled={isSavingComment}
@@ -379,11 +443,17 @@ function ChecklistItemCard({
                   photos={linkedPhotos}
                   checkId={item.id}
                   onDeletePhoto={onDeletePhoto}
+                  readOnly={readOnly}
                 />
               )}
 
-              {/* Upload controls / progress. Hidden once the 5-photo cap is hit. */}
-              {compressingCheckId === item.id ? (
+              {/* Locally-stored photos awaiting upload */}
+              {pendingPhotos.length > 0 && (
+                <PendingPhotoThumbs photos={pendingPhotos} onDelete={onDeletePending} readOnly={readOnly} />
+              )}
+
+              {/* Upload controls / progress. Hidden when read-only or cap reached. */}
+              {readOnly ? null : compressingCheckId === item.id ? (
                 <div className="flex items-center gap-2 text-[#8052b2] text-[12px] font-semibold h-[44px]">
                   <Loader2 size={14} className="animate-spin" /> Spaudžiama...
                 </div>
@@ -403,7 +473,7 @@ function ChecklistItemCard({
 
           {/* 4 ▸ Delete (extras only). Tucked at the bottom of the expanded card
               + behind a confirm dialog so it can't be tapped by accident. */}
-          {onRequestDelete && (
+          {onRequestDelete && !readOnly && (
             <div className="pt-1 flex justify-end">
               <button
                 onClick={onRequestDelete}
@@ -575,19 +645,19 @@ function ExtraMaterialsSection({
   materials,
   onAdd,
   onDelete,
-  isSaving,
+  readOnly,
 }: {
   materials: SiteExtraMaterial[];
-  onAdd: (m: { name: string; quantity: number; unit: string }) => Promise<boolean>;
+  onAdd: (m: { name: string; quantity: number; unit: string }) => boolean;
   onDelete: (id: string) => void;
-  isSaving: boolean;
+  readOnly?: boolean;
 }) {
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
   const [unit, setUnit] = useState('vnt.');
 
-  const handleAdd = async () => {
-    const ok = await onAdd({ name, quantity: Number(qty) || 1, unit });
+  const handleAdd = () => {
+    const ok = onAdd({ name, quantity: Number(qty) || 1, unit });
     if (ok) { setName(''); setQty('1'); setUnit('vnt.'); }
   };
 
@@ -607,19 +677,26 @@ function ExtraMaterialsSection({
                 <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">
                   {m.quantity} {m.unit}
                 </span>
-                <button
-                  onClick={() => onDelete(m.id)}
-                  className="w-7 h-7 rounded-full bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
-                  title="Ištrinti"
-                >
-                  <X size={14} />
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => onDelete(m.id)}
+                    className="w-7 h-7 rounded-full bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
+                    title="Ištrinti"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
 
+        {readOnly && materials.length === 0 && (
+          <p className="text-[13px] text-gray-400 text-center py-1">Papildomų medžiagų nėra.</p>
+        )}
+
         {/* Inline add row: [name][qty][unit][+] */}
+        {!readOnly && (
         <div className="flex items-center gap-2">
           <input
             value={name}
@@ -641,14 +718,15 @@ function ExtraMaterialsSection({
             className="w-[60px] px-2 h-[44px] bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <button
-            onClick={() => { void handleAdd(); }}
-            disabled={isSaving || !name.trim()}
+            onClick={handleAdd}
+            disabled={!name.trim()}
             className="w-[44px] h-[44px] shrink-0 rounded-xl bg-primary text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
             title="Pridėti medžiagą"
           >
-            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
+            <Plus size={20} />
           </button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -664,6 +742,7 @@ interface WorkTabProps {
   profileId: string | undefined;
   compressingCheckId: string | null;
   uploadingCheckId: string | null;
+  readOnly?: boolean;
   onSetStatus: (itemId: string, status: ChecklistItemStatus) => void;
   onSaveComment: (itemId: string, comment: string) => Promise<void>;
   onUploadPhoto: (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => void;
@@ -680,6 +759,7 @@ export default function WorkTab({
   profileId,
   compressingCheckId,
   uploadingCheckId,
+  readOnly = false,
   onSetStatus,
   onSaveComment,
   onUploadPhoto,
@@ -695,13 +775,28 @@ export default function WorkTab({
 
   const {
     isCreatingWork,
-    isSavingMaterial,
     deletingWorkId,
     createExtraWork,
     addMaterial,
     deleteMaterial,
     deleteExtraWork,
   } = useExtraWorks(siteId, siteChecklistId, profileId);
+
+  const queryClient = useQueryClient();
+
+  // Photos still queued in the device outbox (offline / failed uploads).
+  const { data: pendingPhotos } = usePendingPhotos(siteId);
+  const pendingForItem = (itemId: string) =>
+    (pendingPhotos ?? []).filter((p) => p.itemId === itemId);
+
+  // Delete a queued photo locally — it was never uploaded, so no network call.
+  const handleDeletePending = (id: string) => {
+    void (async () => {
+      await removeQueuedPhoto(id);
+      await queryClient.invalidateQueries({ queryKey: ['photo-outbox', siteId] });
+      toast.success('Nuotrauka pašalinta iš telefono.');
+    })();
+  };
 
   const toggleItem = (id: string) =>
     setExpandedId((prev) => (prev === id ? null : id));
@@ -710,14 +805,16 @@ export default function WorkTab({
   // admin-added items and installer-created extras (is_extra=true, phase=null).
   const customItems = checklists?.filter((c) => !KNOWN_PHASES.has(c.phase ?? '')) ?? [];
 
-  const sharedProps: Omit<ItemCardProps, 'item' | 'isExpanded' | 'onToggleExpand'> = {
+  const sharedProps: Omit<ItemCardProps, 'item' | 'isExpanded' | 'onToggleExpand' | 'pendingPhotos'> = {
     photos,
     compressingCheckId,
     uploadingCheckId,
+    readOnly,
     onSetStatus,
     onSaveComment,
     onUploadPhoto,
     onDeletePhoto,
+    onDeletePending: handleDeletePending,
   };
 
   return (
@@ -739,6 +836,7 @@ export default function WorkTab({
                 item={item}
                 isExpanded={expandedId === item.id}
                 onToggleExpand={() => toggleItem(item.id)}
+                pendingPhotos={pendingForItem(item.id)}
                 {...sharedProps}
               />
             ))}
@@ -755,6 +853,7 @@ export default function WorkTab({
             item={item}
             isExpanded={expandedId === item.id}
             onToggleExpand={() => toggleItem(item.id)}
+            pendingPhotos={pendingForItem(item.id)}
             {...sharedProps}
             {...(item.is_extra
               ? {
@@ -767,35 +866,40 @@ export default function WorkTab({
         ))}
 
         {/* + Pridėti papildomą darbą (secondary outline) */}
-        <button
-          onClick={() => setShowAddWork(true)}
-          disabled={!siteChecklistId}
-          className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-white active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
-        >
-          <Plus size={18} /> Pridėti papildomą darbą
-        </button>
-        {!siteChecklistId && (
-          <p className="text-[11px] text-[#574f61] italic mt-2 text-center">
-            Papildomus darbus galima pridėti tik priskirus checklist sesiją.
-          </p>
+        {!readOnly && (
+          <>
+            <button
+              onClick={() => setShowAddWork(true)}
+              disabled={!siteChecklistId}
+              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-white active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Plus size={18} /> Pridėti papildomą darbą
+            </button>
+            {!siteChecklistId && (
+              <p className="text-[11px] text-[#574f61] italic mt-2 text-center">
+                Papildomus darbus galima pridėti tik priskirus checklist sesiją.
+              </p>
+            )}
+          </>
         )}
       </div>
 
       {/* ── Extra materials ── */}
       <ExtraMaterialsSection
         materials={extraMaterials}
+        readOnly={readOnly}
         onAdd={addMaterial}
         onDelete={(id) => {
           const m = extraMaterials.find((x) => x.id === id);
           setDeleteTarget({ type: 'material', id, name: m?.name ?? 'medžiaga' });
         }}
-        isSaving={isSavingMaterial}
       />
 
       {/* ── Empty state (no checklist items at all) ── */}
       {(!checklists || checklists.length === 0) && customItems.length === 0 && (
-        <div className="text-center text-[#574f61] py-6 bg-white rounded-2xl shadow-sm border border-[#e2d9f0]/50">
-          Standartinių užduočių nėra.
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-2">
+          <ClipboardList className="w-9 h-9 text-gray-300" />
+          <p className="text-[14px] text-gray-400">Standartinių užduočių nėra.</p>
         </div>
       )}
 
@@ -819,8 +923,11 @@ export default function WorkTab({
         cancelText="Atšaukti"
         variant="danger"
         onConfirm={() => {
-          if (deleteTarget?.type === 'work') void deleteExtraWork(deleteTarget.id);
-          else if (deleteTarget?.type === 'material') void deleteMaterial(deleteTarget.id);
+          if (deleteTarget?.type === 'work') {
+            void deleteExtraWork(deleteTarget.id);
+          } else if (deleteTarget?.type === 'material') {
+            deleteMaterial(deleteTarget.id);
+          }
           setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}

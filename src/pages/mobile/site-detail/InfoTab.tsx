@@ -1,141 +1,109 @@
-import type { ElementType } from 'react';
+import type { ElementType, ReactNode } from 'react';
 import {
-  Zap, Wrench, Home, Layers, Ruler,
-  User, UserCheck, MapPin, Navigation, Phone, AlertTriangle,
+  Zap, Battery, Wrench, Home, Layers, Ruler, Calendar, CheckCircle2,
+  User, Building2, Mail, Navigation, Phone, AlertTriangle,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import type { SiteDetailData } from '../../../types/site.types';
 
 interface InfoTabProps {
   site: SiteDetailData;
 }
 
-interface SpecCellProps {
-  icon: ElementType;
-  label: string;
-  value: string | number | null | undefined;
-}
+const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d), 'yyyy-MM-dd') : null);
 
-function SpecCell({ icon: Icon, label, value }: SpecCellProps) {
+/** iOS list row: muted icon + label on the left, focal value on the right. */
+function Row({ icon: Icon, label, children, last }: { icon: ElementType; label: string; children: ReactNode; last?: boolean }) {
   return (
-    <div className="flex flex-col gap-1 min-w-0">
-      <div className="flex items-center gap-1.5">
-        <Icon size={13} className="text-primary flex-shrink-0" />
-        <span className="text-[10px] text-[#574f61] font-bold uppercase tracking-wider leading-none">
-          {label}
-        </span>
-      </div>
-      <span className="text-[15px] font-bold text-[#1d033a] leading-snug break-words">
-        {value != null
-          ? value
-          : <span className="text-[#cdc3d4] font-normal text-[13px]">—</span>}
+    <div className={`flex items-center justify-between gap-3 px-4 py-3 ${last ? '' : 'border-b border-gray-50'}`}>
+      <span className="flex items-center gap-2.5 text-[14px] text-gray-500 shrink-0">
+        <Icon size={16} className="text-gray-400 shrink-0" />
+        {label}
       </span>
+      <span className="text-[14px] font-semibold text-gray-900 text-right min-w-0 truncate">{children}</span>
     </div>
   );
 }
 
-function FieldLabel({ icon: Icon, text }: { icon: ElementType; text: string }) {
-  return (
-    <div className="flex items-center gap-1.5 mb-0.5">
-      <Icon size={13} className="text-primary flex-shrink-0" />
-      <p className="text-[10px] text-[#574f61] font-bold uppercase tracking-wider leading-none">
-        {text}
-      </p>
-    </div>
-  );
+/** iOS grouped-list section label. */
+function SectionLabel({ children }: { children: ReactNode }) {
+  return <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-wide px-1 mb-1.5">{children}</p>;
 }
 
 export default function InfoTab({ site }: InfoTabProps) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.address)}`;
+  const scheduled = fmtDate(site.scheduled_start);
+  const completed = fmtDate(site.actual_end);
+
+  const quickAction = 'flex-1 flex flex-col items-center gap-1.5 bg-[#fbf0ff] text-primary rounded-xl py-3 active:bg-[#f3e2ff] transition-colors';
 
   return (
-    <div className="px-4 pb-[120px] pt-4 flex flex-col gap-3">
+    <div className="px-4 pb-[140px] pt-4 flex flex-col gap-5">
 
-      {/* ── Card 1: Techniniai duomenys ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e2d9f0]/50 overflow-hidden">
-        <div className="bg-[#f6f5fa] px-4 py-2.5 border-b border-[#e2d9f0]/40">
-          <p className="font-bold text-[#1d033a] text-[13px] uppercase tracking-wide">
-            Techniniai duomenys
-          </p>
-        </div>
-        <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-4">
-          <SpecCell icon={Zap}    label="Galia"       value={site.kwp != null ? `${site.kwp} kWp` : null} />
-          <SpecCell icon={Wrench} label="Tipas"       value={site.system_type} />
-          <SpecCell icon={Home}   label="Stogo tipas" value={site.roof_type} />
-          <SpecCell icon={Layers} label="Danga"       value={site.roof_material} />
-          <SpecCell icon={Ruler}  label="Nuolydis"    value={site.roof_angle} />
+      {/* ── Quick actions (iOS Contacts style) ── */}
+      <div className="flex gap-2">
+        {site.client_phone && (
+          <a href={`tel:${site.client_phone}`} className={quickAction}>
+            <Phone size={20} />
+            <span className="text-xs font-medium">Skambinti</span>
+          </a>
+        )}
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className={quickAction}>
+          <Navigation size={20} />
+          <span className="text-xs font-medium">Naviguoti</span>
+        </a>
+        {site.client_email && (
+          <a href={`mailto:${site.client_email}`} className={quickAction}>
+            <Mail size={20} />
+            <span className="text-xs font-medium">El. paštas</span>
+          </a>
+        )}
+      </div>
+
+      {/* ── Kontaktai ── */}
+      <div>
+        <SectionLabel>Kontaktai</SectionLabel>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <Row icon={Building2} label="Įmonė / Klientas">{site.client_name || '—'}</Row>
+          <Row icon={User} label="Kontaktinis asmuo">{site.contact_person || '—'}</Row>
+          <Row icon={Phone} label="Tel. numeris">
+            {site.client_phone ? <a href={`tel:${site.client_phone}`} className="text-primary">{site.client_phone}</a> : '—'}
+          </Row>
+          <Row icon={Mail} label="El. paštas" last>
+            {site.client_email ? <a href={`mailto:${site.client_email}`} className="text-primary">{site.client_email}</a> : '—'}
+          </Row>
         </div>
       </div>
 
-      {/* ── Card 2: Kontaktai ir Navigacija ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e2d9f0]/50 overflow-hidden">
-        <div className="bg-[#f6f5fa] px-4 py-2.5 border-b border-[#e2d9f0]/40">
-          <p className="font-bold text-[#1d033a] text-[13px] uppercase tracking-wide">
-            Kontaktai ir Navigacija
-          </p>
-        </div>
-        <div className="p-4 flex flex-col gap-3">
-
-          {/* Client name */}
-          <div>
-            <FieldLabel icon={User} text="Klientas" />
-            <p className="text-[16px] font-bold text-[#1d033a]">{site.client_name}</p>
-          </div>
-
-          {/* Contact person */}
-          {site.contact_person && (
-            <div>
-              <FieldLabel icon={UserCheck} text="Kontaktinis asmuo" />
-              <p className="text-[14px] font-semibold text-[#1d033a]">{site.contact_person}</p>
-            </div>
+      {/* ── Techniniai duomenys ── */}
+      <div>
+        <SectionLabel>Techniniai duomenys</SectionLabel>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <Row icon={Zap} label="Saulės galia">
+            {site.kwp != null ? <>{site.kwp} <span className="text-gray-400 font-medium">kWp</span></> : '—'}
+          </Row>
+          {site.kwh != null && (
+            <Row icon={Battery} label="Baterija">
+              {site.kwh} <span className="text-gray-400 font-medium">kWh</span>
+            </Row>
           )}
-
-          {/* Address + navigate button */}
-          <div>
-            <FieldLabel icon={MapPin} text="Adresas" />
-            <div className="flex items-start gap-3 mt-1">
-              <p className="flex-1 text-[14px] font-semibold text-[#1d033a] leading-snug">
-                {site.address}
-              </p>
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 flex items-center gap-1.5 h-[40px] px-3 rounded-xl bg-primary active:bg-primary/80 text-white font-bold text-[12px] transition-colors"
-              >
-                <Navigation size={14} />
-                Naviguoti
-              </a>
-            </div>
-          </div>
-
-          {/* Phone call button */}
-          {site.client_phone && (
-            <a
-              href={`tel:${site.client_phone}`}
-              className="flex items-center justify-center gap-2 h-[52px] rounded-xl bg-[#16a34a] active:bg-[#15803d] text-white font-bold text-[16px] transition-colors shadow-sm"
-            >
-              <Phone size={18} />
-              <span>Skambinti</span>
-              <span className="font-normal text-[14px] opacity-90">{site.client_phone}</span>
-            </a>
-          )}
+          <Row icon={Wrench} label="Sistemos tipas">{site.system_type || '—'}</Row>
+          {scheduled && <Row icon={Calendar} label="Planuojama pradžia">{scheduled}</Row>}
+          {completed && <Row icon={CheckCircle2} label="Užbaigta">{completed}</Row>}
+          {site.roof_type && <Row icon={Home} label="Stogo tipas">{site.roof_type}</Row>}
+          {site.roof_material && <Row icon={Layers} label="Stogo danga">{site.roof_material}</Row>}
+          <Row icon={Ruler} label="Stogo nuolydis" last>{site.roof_angle || '—'}</Row>
         </div>
       </div>
 
-      {/* ── Card 3: Svarbios pastabos ── */}
+      {/* ── Office notes ── */}
       {site.notes && (
-        <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 overflow-hidden shadow-sm">
-          <div className="bg-amber-100 px-4 py-2.5 border-b border-amber-300 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-amber-700 flex-shrink-0" />
-            <p className="font-bold text-amber-800 text-[13px] uppercase tracking-wide">
-              Svarbios pastabos iš ofiso
-            </p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            <p className="font-semibold text-gray-900 text-[14px]">Svarbios pastabos iš ofiso</p>
           </div>
-          <div className="px-4 py-4">
-            <p className="text-[14px] text-amber-900 font-medium leading-relaxed whitespace-pre-wrap">
-              {site.notes}
-            </p>
-          </div>
+          <p className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-wrap">{site.notes}</p>
         </div>
       )}
     </div>

@@ -1,150 +1,60 @@
 import { supabase } from "../lib/supabase";
 
+/**
+ * Thrown when the server-side QC gate rejects completion. The UI already gates
+ * via validateJobCompletion(), so this is the backstop for any request that
+ * bypassed the client. Normalised to exactly 'QC_FAILED' for clean branching.
+ */
+export class QcFailedError extends Error {
+  constructor(message = 'QC_FAILED') {
+    super(message);
+    this.name = 'QcFailedError';
+  }
+}
+
+// All time-tracking writes go through SECURITY DEFINER RPCs. The `time_entries`
+// table and the workflow columns of `sites` (status/timestamps) are locked down
+// by RLS + a guard trigger, so the client can no longer mutate them directly —
+// it can only invoke these authoritative functions. The DB validates assignment
+// and (on completion) the full QC checklist before changing anything.
+
+/** Begin or resume work on a site (records an open time entry + sets status). */
 export async function startWork(siteId: string, lat?: number | null, lng?: number | null) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User not authenticated");
-
-  const nowStr = new Date().toISOString();
-
-  // Check if there's already an active entry for this user and site
-  const { data: existingActive, error: checkError } = await supabase
-    .from('time_entries')
-    .select('id')
-    .match({ site_id: siteId, installer_id: user.id })
-    .is('end_time', null);
-
-  if (checkError) throw checkError;
-
-  if (!existingActive || existingActive.length === 0) {
-    // Insert time entry
-    const { error: insertError } = await supabase
-      .from('time_entries')
-      .insert({
-        site_id: siteId,
-        installer_id: user.id,
-        start_time: nowStr,
-        start_lat: lat ?? null,
-        start_lng: lng ?? null
-      });
-    if (insertError) throw insertError;
-  }
-
-  // Get current site to check actual_start
-  const { data: site, error: siteError } = await supabase
-    .from('sites')
-    .select('actual_start')
-    .eq('id', siteId)
-    .single();
-
-  if (siteError) throw siteError;
-
-  // Update site status to 'in_progress', and actual_start if null
-  const updateData: { status: string; actual_start?: string } = { status: 'in_progress' };
-  if (!site.actual_start) {
-    updateData.actual_start = nowStr;
-  }
-
-  const { error: updateSiteError } = await supabase
-    .from('sites')
-    .update(updateData)
-    .eq('id', siteId);
-  if (updateSiteError) throw updateSiteError;
+  const { error } = await supabase.rpc('start_work', {
+    p_site_id: siteId,
+    p_start_lat: lat ?? undefined,
+    p_start_lng: lng ?? undefined,
+  });
+  if (error) throw error;
 }
 
+/** Pause work: closes the caller's open time entry + sets the site to paused. */
 export async function pauseWork(siteId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User not authenticated");
-
-  // Close active time entry
-  const { data: activeEntries, error: activeError } = await supabase
-    .from('time_entries')
-    .select('id')
-    .match({ site_id: siteId, installer_id: user.id })
-    .is('end_time', null);
-
-  if (activeError) throw activeError;
-
-  if (activeEntries && activeEntries.length > 0) {
-    const { error: updateTimeError } = await supabase
-      .from('time_entries')
-      .update({ end_time: new Date().toISOString() })
-      .match({ site_id: siteId, installer_id: user.id })
-      .is('end_time', null);
-    if (updateTimeError) throw updateTimeError;
-  }
-
-  // Update site status to paused
-  const { error: siteError } = await supabase
-    .from('sites')
-    .update({ status: 'paused' })
-    .eq('id', siteId);
-  if (siteError) throw siteError;
+  const { error } = await supabase.rpc('pause_work', { p_site_id: siteId });
+  if (error) throw error;
 }
 
+/**
+ * Complete work. The RPC re-runs the QC checklist on the server and RAISEs
+ * 'QC_FAILED: …' if anything is unmet; otherwise it closes the open time entry
+ * and stamps the site completed. Throws QcFailedError on a QC rejection.
+ */
 export async function completeWork(siteId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
 
-  // Get current site to check actual_start
-  const { data: site, error: siteError } = await supabase
-    .from('sites')
-    .select('actual_start')
-    .eq('id', siteId)
-    .single();
-
-  if (siteError) throw siteError;
-
-  // If actual_start is null, update it to now
-  if (!site.actual_start) {
-    const nowStr = new Date().toISOString();
-    const { error: updateStartError } = await supabase
-      .from('sites')
-      .update({ actual_start: nowStr })
-      .eq('id', siteId);
-    
-    if (updateStartError) throw updateStartError;
-  }
-
-  // Check if there is an active time entry for this user and site
-  const { data: activeEntries, error: activeError } = await supabase
-    .from('time_entries')
-    .select('id')
-    .match({ site_id: siteId, installer_id: user.id })
-    .is('end_time', null);
-
-  if (activeError) throw activeError;
-
-  const nowStr = new Date().toISOString();
-  if (activeEntries && activeEntries.length > 0) {
-    // If active entry exists, close it
-    const { error: updateTimeError } = await supabase
-      .from('time_entries')
-      .update({ end_time: nowStr })
-      .match({ site_id: siteId, installer_id: user.id })
-      .is('end_time', null);
-    
-    if (updateTimeError) throw updateTimeError;
-  } else {
-    // If no active entry exists, create a closed one
-    const { error: insertTimeError } = await supabase
-      .from('time_entries')
-      .insert({
-        site_id: siteId,
-        installer_id: user.id,
-        start_time: nowStr,
-        end_time: nowStr
-      });
-    
-    if (insertTimeError) throw insertTimeError;
-  }
-
-  const { data, error } = await supabase.rpc("complete_work", {
+  const { data, error } = await supabase.rpc('complete_site_work', {
     p_site_id: siteId,
+    p_user_id: user.id,
   });
-  if (error) throw error;
+  if (error) {
+    if (error.message?.includes('QC_FAILED')) throw new QcFailedError();
+    throw error;
+  }
   return data;
 }
 
+/** Resume is identical to start (re-opens a time entry). */
 export async function resumeWork(siteId: string, lat?: number | null, lng?: number | null) {
   return startWork(siteId, lat, lng);
 }

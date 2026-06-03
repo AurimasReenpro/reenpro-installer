@@ -1,19 +1,69 @@
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User, Download } from 'lucide-react';
+import { Menu as MenuIcon, Bell, Calendar, List, Clock, Coins, User, WifiOff, RefreshCw, BarChart3 } from 'lucide-react';
+import { useIsMutating } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { FEATURES } from '../../config/features';
 import { useBranding } from '../../hooks/useBranding';
-import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useSyncStore } from '../../stores/useSyncStore';
+
+// Track real connectivity via the browser's online/offline events.
+function useOnlineStatus() {
+  const [online, setOnline] = useState(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true,
+  );
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+  return online;
+}
+
+/** Subtle header chip: amber when offline, blue while flushing the outbox. */
+function NetworkStatusChip() {
+  const online = useOnlineStatus();
+  // Pending mutations (incl. queued/paused offline writes) — used to show the
+  // brief "syncing" state once connectivity returns and the outbox flushes.
+  const pending = useIsMutating();
+  // Photos sitting in the durable IndexedDB outbox.
+  const pendingPhotos = useSyncStore((s) => s.pendingPhotos);
+
+  if (!online) {
+    return (
+      <span
+        title="Neprisijungta — duomenys saugomi telefone ir bus išsiųsti atsiradus ryšiui"
+        className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[#FFFBEB] text-[#B45309] border border-[#F59E0B]/40 text-[11px] font-semibold whitespace-nowrap"
+      >
+        <WifiOff className="w-3.5 h-3.5" />
+        {pendingPhotos > 0 ? `Neprisijungta · ${pendingPhotos} nuotr.` : 'Neprisijungta'}
+      </span>
+    );
+  }
+  if (pending > 0 || pendingPhotos > 0) {
+    return (
+      <span className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#2563EB]/20 text-[11px] font-semibold whitespace-nowrap">
+        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+        {pendingPhotos > 0 ? `Keliama (${pendingPhotos})` : 'Sinchronizuojama…'}
+      </span>
+    );
+  }
+  return null;
+}
 
 export default function MobileLayout() {
   const location = useLocation();
   const { logoUrl, companyName } = useBranding();
-  const { canInstall, promptInstall } = usePWAInstall();
 
   const navItems = [
     { path: '/m', icon: 'today', label: 'Šiandien', exact: true },
     { path: '/m/sites', icon: 'list', label: 'Visi' },
-    { path: '/m/time', icon: 'schedule', label: 'Laikas' },
+    { path: '/m/stats', icon: 'stats', label: 'Statistika' },
     ...(FEATURES.INSTALLER_BONUS_VIEW
       ? [{ path: '/m/bonus', icon: 'payments', label: 'Priedai' }]
       : []),
@@ -30,6 +80,8 @@ export default function MobileLayout() {
         return Clock;
       case 'payments':
         return Coins;
+      case 'stats':
+        return BarChart3;
       case 'person':
         return User;
       default:
@@ -53,31 +105,22 @@ export default function MobileLayout() {
         ) : (
           <h1 className="text-primary font-bold text-lg truncate px-2">{companyName || 'InstallerApp'}</h1>
         )}
-        <button
-          onClick={() => toast.info('Pranešimų centras kuriamas.')}
-          aria-label="Pranešimai"
-          className="text-on-surface-variant flex items-center justify-center min-w-[48px] min-h-[48px]"
-        >
-          <Bell className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <NetworkStatusChip />
+          <button
+            onClick={() => toast.info('Pranešimų centras kuriamas.')}
+            aria-label="Pranešimai"
+            className="text-on-surface-variant flex items-center justify-center min-w-[48px] min-h-[48px]"
+          >
+            <Bell className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pt-[56px] pb-[72px] bg-app-bg">
         <Outlet />
       </main>
-
-      {/* Install App prompt (only when the browser offers installation) */}
-      {canInstall && (
-        <button
-          onClick={() => { void promptInstall(); }}
-          aria-label="Įdiegti programėlę"
-          className="fixed bottom-[84px] right-4 z-50 flex items-center gap-2 h-12 px-4 rounded-full bg-primary text-white text-sm font-semibold shadow-lg active:scale-[0.97] transition-transform"
-        >
-          <Download className="w-5 h-5" />
-          Įdiegti programėlę
-        </button>
-      )}
 
       {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-surface-bright border-t border-outline-variant shadow-[0_-2px_10px_rgba(29,3,58,0.05)] z-50 flex">

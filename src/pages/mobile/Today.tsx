@@ -78,44 +78,43 @@ export default function Today() {
     }
   });
 
+  // "Aktyvūs": work currently started/paused. "Ateinantys": assigned but not yet
+  // started — and STRICTLY never completed jobs.
   const activeSites = sitesData?.filter(s => s.status === 'in_progress' || s.status === 'paused') || [];
-  const pendingSites = sitesData?.filter(s => s.status !== 'in_progress' && s.status !== 'paused') || [];
-  const currentViewSites = activeTab === 'active' ? activeSites : pendingSites;
+  const upcomingSites = sitesData?.filter(
+    s => s.status !== 'in_progress' && s.status !== 'paused' && s.status !== 'completed',
+  ) || [];
+  const currentViewSites = activeTab === 'active' ? activeSites : upcomingSites;
 
   return (
     <div>
-      {/* Greeting Card */}
-      <div className="bg-white rounded-2xl mx-4 mt-4 p-6 shadow-sm">
-        <h2 className="text-primary font-bold text-2xl">
-          {greeting}, {firstName}! ☀️
+      {/* Greeting — clean iOS header on the page background (no card) */}
+      <div className="px-4 pt-5">
+        <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+          {greeting}, {firstName}!
         </h2>
-        <p className="text-primary-light text-sm mt-1 capitalize">
+        <p className="text-sm text-gray-500 mt-0.5 capitalize">
           {format(new Date(), "yyyy 'm.' MMMM d 'd.,' EEEE", { locale: lt })}
         </p>
-
       </div>
 
-      {/* Tabs */}
-      <div className="mx-4 mt-6 mb-4 flex rounded-xl bg-outline-variant/20 p-1">
+      {/* iOS segmented control */}
+      <div className="mx-4 mt-5 mb-4 flex rounded-xl bg-gray-100 p-1">
         <button
           onClick={() => setActiveTab('active')}
-          className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-colors ${
-            activeTab === 'active' 
-              ? 'bg-white shadow-sm text-primary' 
-              : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex-1 py-2 text-[14px] font-semibold rounded-md transition-colors ${
+            activeTab === 'active' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
           }`}
         >
-          Aktyvūs objektai ({activeSites.length})
+          Aktyvūs ({activeSites.length})
         </button>
         <button
           onClick={() => setActiveTab('upcoming')}
-          className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-colors ${
-            activeTab === 'upcoming' 
-              ? 'bg-white shadow-sm text-primary' 
-              : 'text-on-surface-variant hover:text-on-surface'
+          className={`flex-1 py-2 text-[14px] font-semibold rounded-md transition-colors ${
+            activeTab === 'upcoming' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
           }`}
         >
-          Ateinantys ({pendingSites.length})
+          Ateinantys ({upcomingSites.length})
         </button>
       </div>
 
@@ -133,15 +132,13 @@ export default function Today() {
           />
         ))
       ) : (
-        <div className="mx-4 text-center py-12">
-          <div className="flex justify-center mb-2">
-            {activeTab === 'active' ? (
-              <CheckCircle2 className="w-12 h-12 text-[#b69cd3] opacity-80" />
-            ) : (
-              <CalendarX className="w-12 h-12 text-[#b69cd3] opacity-80" />
-            )}
-          </div>
-          <p className="text-on-surface-variant mt-2 font-medium">
+        <div className="mx-4 text-center py-14 flex flex-col items-center gap-2">
+          {activeTab === 'active' ? (
+            <CheckCircle2 className="w-10 h-10 text-gray-300" />
+          ) : (
+            <CalendarX className="w-10 h-10 text-gray-300" />
+          )}
+          <p className="text-[14px] text-gray-400">
             {activeTab === 'active' ? 'Šiuo metu aktyvių objektų nėra.' : 'Šiuo metu ateinančių objektų nėra.'}
           </p>
         </div>
