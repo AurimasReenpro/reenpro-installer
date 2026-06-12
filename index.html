@@ -12,8 +12,19 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Installer App</title>
+    <script>
+      // Apply persisted/system theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t === 'dark' || ((!t || t === 'system') &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

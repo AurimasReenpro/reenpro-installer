@@ -45,17 +45,17 @@ export default function JobCompletionBlockedModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
-            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl flex flex-col gap-4 max-h-[80vh] overflow-y-auto"
+            className="bg-white dark:bg-[#18181b] rounded-2xl max-w-sm w-full p-6 shadow-xl flex flex-col gap-4 max-h-[80vh] overflow-y-auto"
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#FFF1F0] flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-[#DC2626]" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-[#1d033a] leading-tight">
+                <h3 className="text-lg font-bold text-[#1d033a] dark:text-zinc-100 leading-tight">
                   Negalite užbaigti darbo
                 </h3>
-                <p className="text-[13px] text-[#574f61] mt-1 leading-relaxed font-medium">
+                <p className="text-[13px] text-[#574f61] dark:text-zinc-300 mt-1 leading-relaxed font-medium">
                   Užbaikite šiuos punktus prieš baigdami darbą:
                 </p>
               </div>
@@ -64,7 +64,7 @@ export default function JobCompletionBlockedModal({
             <div className="flex flex-col gap-3">
               {result.pendingItems.length > 0 && (
                 <BlockSection
-                  icon={<Circle className="w-4 h-4 text-[#6B7280]" />}
+                  icon={<Circle className="w-4 h-4 text-[#6B7280] dark:text-zinc-400" />}
                   title={`Nepažymėti punktai (${result.pendingItems.length})`}
                   items={result.pendingItems.map((i) => i.question_text)}
                 />
@@ -110,15 +110,15 @@ function BlockSection({
   items: string[];
 }) {
   return (
-    <div className="rounded-xl border border-[#cdc3d4]/40 bg-[#f6f5fa] p-3">
+    <div className="rounded-xl border border-[#cdc3d4]/40 dark:border-white/5 bg-[#f6f5fa] dark:bg-white/5 p-3">
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <p className="text-[12px] font-bold text-[#1d033a] uppercase tracking-wider">{title}</p>
+        <p className="text-[12px] font-bold text-[#1d033a] dark:text-zinc-100 uppercase tracking-wider">{title}</p>
       </div>
       <ul className="flex flex-col gap-1">
         {items.map((text, i) => (
-          <li key={i} className="text-[13px] text-[#39323f] font-medium leading-snug flex gap-1.5">
-            <span className="text-[#cdc3d4]">•</span>
+          <li key={i} className="text-[13px] text-[#39323f] dark:text-zinc-200 font-medium leading-snug flex gap-1.5">
+            <span className="text-[#cdc3d4] dark:text-zinc-600">•</span>
             <span>{text}</span>
           </li>
         ))}

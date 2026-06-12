@@ -96,12 +96,12 @@ const STATUS_CFG: Record<ChecklistItemStatus, {
 }> = {
   pending: {
     label:        'Laukia',
-    badgeCls:     'bg-[#f6f5fa] text-[#574f61]',
-    borderCls:    'border-[#e2d9f0]/50',
+    badgeCls:     'bg-[#f6f5fa] dark:bg-white/5 text-[#574f61] dark:text-zinc-300',
+    borderCls:    'border-[#e2d9f0]/50 dark:border-white/10',
     Icon:         Circle,
-    iconCls:      'text-[#cdc3d4]',
+    iconCls:      'text-[#cdc3d4] dark:text-zinc-600',
     btnActiveCls: 'bg-[#6B7280] text-white border-[#6B7280]',
-    btnInactiveCls:'bg-[#F3F4F6] text-[#6B7280] border-[#6B7280]/20',
+    btnInactiveCls:'bg-[#F3F4F6] text-[#6B7280] dark:text-zinc-400 border-[#6B7280]/20',
   },
   pass: {
     label:        'Atlikta',
@@ -163,19 +163,19 @@ function PhotoPickerButton({
       <button
         type="button"
         onClick={() => setShowPicker(true)}
-        className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-[#f6e9ff] active:bg-[#e4cbf8] transition-colors cursor-pointer border border-primary/10"
+        className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-[#f6e9ff] dark:bg-purple-500/10 active:bg-[#e4cbf8] transition-colors cursor-pointer border border-primary/10"
       >
-        <Camera className="text-[#8052b2] w-5 h-5" />
-        <span className="text-[#8052b2] font-semibold text-[13px]">Įkelti nuotrauką</span>
+        <Camera className="text-[#8052b2] dark:text-purple-300 w-5 h-5" />
+        <span className="text-[#8052b2] dark:text-purple-300 font-semibold text-[13px]">Įkelti nuotrauką</span>
       </button>
 
       {showPicker && (
         <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={() => setShowPicker(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div className="relative bg-white rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
+          <div className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto mb-2" />
-            <p className="text-center text-[#1d033a] font-bold text-base mb-1">Pridėti nuotrauką</p>
+            <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base mb-1">Pridėti nuotrauką</p>
             {/* Native label triggers — no programmatic click(), so the OS keeps full
                 picker privileges (multi-select). The sheet closes on the input's onChange. */}
             <label
@@ -186,13 +186,13 @@ function PhotoPickerButton({
             </label>
             <label
               htmlFor={galleryId}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] text-primary font-semibold text-base active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 text-primary font-semibold text-base active:scale-95 transition-all cursor-pointer"
             >
               <Image className="w-5 h-5 shrink-0" /> Pasirinkti iš galerijos
             </label>
             <button
               onClick={() => setShowPicker(false)}
-              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] text-[#39323f] font-semibold text-sm active:scale-95 transition-all mt-1"
+              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 font-semibold text-sm active:scale-95 transition-all mt-1"
             >
               <X className="w-4 h-4 mr-2" /> Atšaukti
             </button>
@@ -233,14 +233,14 @@ function ItemPhotoGrid({
           <div key={photo.id} className="relative">
             <button
               onClick={() => setLightboxIndex(idx)}
-              className="block w-full aspect-square rounded-md overflow-hidden border border-[#cdc3d4]/60 bg-[#f6f5fa] active:scale-95 transition-transform cursor-pointer"
+              className="block w-full aspect-square rounded-md overflow-hidden border border-[#cdc3d4]/60 dark:border-white/10 bg-[#f6f5fa] dark:bg-white/5 active:scale-95 transition-transform cursor-pointer"
               title="Peržiūrėti"
             >
               {url ? (
                 <img src={url} alt="Nuotrauka" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Loader2 size={16} className="text-[#cdc3d4] animate-spin" />
+                  <Loader2 size={16} className="text-[#cdc3d4] dark:text-zinc-600 animate-spin" />
                 </div>
               )}
             </button>
@@ -348,7 +348,7 @@ function ChecklistItemCard({
   };
 
   return (
-    <div className={`bg-white rounded-2xl mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
+    <div className={`bg-white dark:bg-[#18181b] rounded-2xl mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
 
       {/* ── Collapsed header (always visible) ── */}
       <button
@@ -359,7 +359,7 @@ function ChecklistItemCard({
         <StatusIcon size={20} className={`flex-shrink-0 ${cfg.iconCls}`} />
 
         {/* Task label */}
-        <span className={`flex-1 text-[#1d033a] font-semibold text-[14px] leading-snug ${currentStatus === 'pass' ? 'line-through opacity-60' : ''}`}>
+        <span className={`flex-1 text-[#1d033a] dark:text-zinc-100 font-semibold text-[14px] leading-snug ${currentStatus === 'pass' ? 'line-through opacity-60' : ''}`}>
           {item.question_text}
         </span>
 
@@ -372,18 +372,18 @@ function ChecklistItemCard({
           </span>
           <ChevronDown
             size={16}
-            className={`text-[#cdc3d4] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            className={`text-[#cdc3d4] dark:text-zinc-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
           />
         </div>
       </button>
 
       {/* ── Expanded action area ── */}
       {isExpanded && (
-        <div className="border-t border-[#f0ebf8] px-4 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="border-t border-[#f0ebf8] dark:border-white/10 px-4 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 fade-in duration-200">
 
           {/* 1 ▸ Status toggle buttons */}
           <div>
-            <p className="text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">Statusas</p>
+            <p className="text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">Statusas</p>
             <div className="grid grid-cols-3 gap-2">
               {(['pass', 'fail', 'n_a'] as const).map((s) => {
                 const sc = STATUS_CFG[s];
@@ -405,7 +405,7 @@ function ChecklistItemCard({
 
           {/* 2 ▸ Comment textarea */}
           <div>
-            <label className="block text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
               Komentaras / Pastaba
             </label>
             <textarea
@@ -415,7 +415,7 @@ function ChecklistItemCard({
               readOnly={readOnly}
               placeholder="Pridėkite pastabą arba pastebėjimą..."
               rows={2}
-              className="w-full px-3 py-2.5 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
+              className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
             />
             {commentChanged && !readOnly && (
               <button
@@ -431,7 +431,7 @@ function ChecklistItemCard({
 
           {/* 3 ▸ Photo area */}
           <div>
-            <label className="block text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
               Nuotrauka{item.is_required && <span className="text-[#EF4444] ml-0.5">*</span>}
             </label>
 
@@ -454,15 +454,15 @@ function ChecklistItemCard({
 
               {/* Upload controls / progress. Hidden when read-only or cap reached. */}
               {readOnly ? null : compressingCheckId === item.id ? (
-                <div className="flex items-center gap-2 text-[#8052b2] text-[12px] font-semibold h-[44px]">
+                <div className="flex items-center gap-2 text-[#8052b2] dark:text-purple-300 text-[12px] font-semibold h-[44px]">
                   <Loader2 size={14} className="animate-spin" /> Spaudžiama...
                 </div>
               ) : uploadingCheckId === item.id ? (
-                <div className="flex items-center gap-2 text-[#8052b2] text-[12px] font-semibold h-[44px]">
+                <div className="flex items-center gap-2 text-[#8052b2] dark:text-purple-300 text-[12px] font-semibold h-[44px]">
                   <Loader2 size={14} className="animate-spin" /> Keliama į serverį...
                 </div>
               ) : linkedPhotos.length >= MAX_PHOTOS ? (
-                <p className="text-[12px] text-[#574f61] italic">
+                <p className="text-[12px] text-[#574f61] dark:text-zinc-300 italic">
                   Pasiektas {MAX_PHOTOS} nuotraukų limitas.
                 </p>
               ) : (
@@ -536,15 +536,15 @@ function AddExtraWorkSheet({
     <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50" />
       <div
-        className="relative bg-white rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-4 shadow-2xl max-h-[88vh] overflow-y-auto"
+        className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-4 shadow-2xl max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto" />
-        <p className="text-center text-[#1d033a] font-bold text-base">Pridėti papildomą darbą</p>
+        <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base">Pridėti papildomą darbą</p>
 
         {/* Name (required) */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">
+          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
             Darbo pavadinimas <span className="text-[#EF4444]">*</span>
           </label>
           <input
@@ -552,13 +552,13 @@ function AddExtraWorkSheet({
             onChange={(e) => setName(e.target.value)}
             placeholder="Pvz.: Papildoma kabelių trasa..."
             autoFocus
-            className="w-full px-3 py-2.5 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[14px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
+            className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[14px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
           />
         </div>
 
         {/* Comment */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">
+          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
             Pastaba / Komentaras
           </label>
           <textarea
@@ -566,13 +566,13 @@ function AddExtraWorkSheet({
             onChange={(e) => setComment(e.target.value)}
             placeholder="Aprašykite atliktą darbą..."
             rows={3}
-            className="w-full px-3 py-2.5 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
+            className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
           />
         </div>
 
         {/* Photos */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] uppercase tracking-wider mb-2">
+          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
             Nuotraukos <span className="text-[#574f61]/70 normal-case font-medium">(rekomenduojama bent 1)</span>
           </label>
 
@@ -586,7 +586,7 @@ function AddExtraWorkSheet({
                   <img
                     src={URL.createObjectURL(f)}
                     alt="Peržiūra"
-                    className="w-full aspect-square rounded-md object-cover border border-[#cdc3d4]/60"
+                    className="w-full aspect-square rounded-md object-cover border border-[#cdc3d4]/60 dark:border-white/10"
                   />
                   <button
                     onClick={() => removeFile(idx)}
@@ -609,7 +609,7 @@ function AddExtraWorkSheet({
               </label>
               <label
                 htmlFor={galleryId}
-                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-[#f3ebff] text-primary font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 text-primary font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
               >
                 <Image className="w-4 h-4" /> Galerija
               </label>
@@ -622,7 +622,7 @@ function AddExtraWorkSheet({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="flex-1 h-[50px] rounded-xl bg-[#f5f0fa] text-[#39323f] font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+            className="flex-1 h-[50px] rounded-xl bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
           >
             Atšaukti
           </button>
@@ -663,18 +663,18 @@ function ExtraMaterialsSection({
 
   return (
     <div className="mb-6">
-      <h3 className="text-[#1d033a] font-bold text-[15px] mb-3 flex items-center gap-2">
+      <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3 flex items-center gap-2">
         <Package size={16} className="text-primary" /> Papildomos medžiagos
       </h3>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e2d9f0]/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-sm border border-[#e2d9f0]/50 dark:border-white/10 p-4 space-y-3">
         {/* Existing rows */}
         {materials.length > 0 && (
           <div className="space-y-2">
             {materials.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 bg-[#f6f5fa] rounded-xl px-3 py-2.5 border border-[#cdc3d4]/30">
-                <span className="flex-1 text-[13px] font-semibold text-[#1d033a] truncate">{m.name}</span>
-                <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">
+              <div key={m.id} className="flex items-center gap-2 bg-[#f6f5fa] dark:bg-white/5 rounded-xl px-3 py-2.5 border border-[#cdc3d4]/30 dark:border-white/5">
+                <span className="flex-1 text-[13px] font-semibold text-[#1d033a] dark:text-zinc-100 truncate">{m.name}</span>
+                <span className="text-[13px] text-[#574f61] dark:text-zinc-300 font-medium whitespace-nowrap">
                   {m.quantity} {m.unit}
                 </span>
                 {!readOnly && (
@@ -692,7 +692,7 @@ function ExtraMaterialsSection({
         )}
 
         {readOnly && materials.length === 0 && (
-          <p className="text-[13px] text-gray-400 text-center py-1">Papildomų medžiagų nėra.</p>
+          <p className="text-[13px] text-gray-400 dark:text-zinc-500 text-center py-1">Papildomų medžiagų nėra.</p>
         )}
 
         {/* Inline add row: [name][qty][unit][+] */}
@@ -702,20 +702,20 @@ function ExtraMaterialsSection({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Medžiaga"
-            className="flex-1 min-w-0 px-3 h-[44px] bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="flex-1 min-w-0 px-3 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={qty}
             onChange={(e) => setQty(e.target.value.replace(/[^0-9.]/g, ''))}
             inputMode="decimal"
             placeholder="Kiekis"
-            className="w-[64px] px-2 h-[44px] bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[64px] px-2 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
             placeholder="vnt."
-            className="w-[60px] px-2 h-[44px] bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-xl text-[13px] text-[#1d033a] text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[60px] px-2 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <button
             onClick={handleAdd}
@@ -827,7 +827,7 @@ export default function WorkTab({
 
         return (
           <div key={phaseCode} className="mb-6">
-            <h3 className="text-[#1d033a] font-bold text-[15px] mb-3">
+            <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3">
               {PHASE_TITLES[phaseCode] ?? phaseCode}
             </h3>
             {phaseItems.map((item) => (
@@ -846,7 +846,7 @@ export default function WorkTab({
 
       {/* ── Custom / additional tasks (admin-added + installer extras, phase = null) ── */}
       <div className="mb-6">
-        <h3 className="text-[#1d033a] font-bold text-[15px] mb-3">Papildomi darbai</h3>
+        <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3">Papildomi darbai</h3>
         {customItems.map((item) => (
           <ChecklistItemCard
             key={item.id}
@@ -871,12 +871,12 @@ export default function WorkTab({
             <button
               onClick={() => setShowAddWork(true)}
               disabled={!siteChecklistId}
-              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-white active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-white dark:bg-[#18181b] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
               <Plus size={18} /> Pridėti papildomą darbą
             </button>
             {!siteChecklistId && (
-              <p className="text-[11px] text-[#574f61] italic mt-2 text-center">
+              <p className="text-[11px] text-[#574f61] dark:text-zinc-300 italic mt-2 text-center">
                 Papildomus darbus galima pridėti tik priskirus checklist sesiją.
               </p>
             )}
@@ -897,9 +897,9 @@ export default function WorkTab({
 
       {/* ── Empty state (no checklist items at all) ── */}
       {(!checklists || checklists.length === 0) && customItems.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-2">
-          <ClipboardList className="w-9 h-9 text-gray-300" />
-          <p className="text-[14px] text-gray-400">Standartinių užduočių nėra.</p>
+        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm py-10 flex flex-col items-center gap-2">
+          <ClipboardList className="w-9 h-9 text-gray-300 dark:text-zinc-600" />
+          <p className="text-[14px] text-gray-400 dark:text-zinc-500">Standartinių užduočių nėra.</p>
         </div>
       )}
 

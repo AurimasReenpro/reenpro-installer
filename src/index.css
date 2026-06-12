@@ -1,13 +1,18 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+/* Class-based dark mode (Tailwind v4): `dark:` activates when an ancestor has .dark */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  --color-primary: #490891;
-  --color-primary-light: #8052b2;
-  --color-primary-fixed: #ecdcff;
-  --color-on-primary-fixed: #280056;
+@theme {
+  /* Inter universally — no OS system-font stack, for 100% cross-platform consistency. */
+  --font-sans: "Inter", sans-serif;
+
+  /* Unified brand purple = Tailwind purple-600 family (one crisp shade everywhere) */
+  --color-primary: #9333ea;          /* purple-600 */
+  --color-primary-light: #a855f7;    /* purple-500 */
+  --color-primary-fixed: #f3e8ff;    /* purple-100 */
+  --color-on-primary-fixed: #581c87; /* purple-900 */
   --color-surface-bright: #fff7ff;
   --color-surface-container-low: #fbf0ff;
   --color-app-bg: #f6f5fa;
@@ -25,7 +30,27 @@
   color: var(--color-on-surface);
 }
 
+/*
+ * Dark theme for the installer (mobile) app. These Material-style surface tokens
+ * are used ONLY by the mobile components, so overriding them under .dark themes
+ * the entire mobile chrome (background, header, bottom nav, cards, text, borders)
+ * in one place. Admin uses its own explicit zinc `dark:` utilities and is
+ * unaffected. The brand `--color-primary` purple is intentionally kept.
+ */
+html.dark {
+  --color-app-bg: #09090b;                       /* near-black page background      */
+  --color-surface-bright: #18181b;               /* zinc-900 — header / nav / cards */
+  --color-surface-container-low: #27272a;        /* zinc-800 — insets               */
+  --color-on-surface: #f4f4f5;                    /* zinc-100 — primary text         */
+  --color-on-surface-variant: #a1a1aa;            /* zinc-400 — secondary text       */
+  --color-outline-variant: rgba(255, 255, 255, 0.10); /* subtle separators          */
+  --color-primary-fixed: rgba(147, 51, 234, 0.16);    /* translucent purple accent  */
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
+  /* Apple-like crisp text rendering across platforms. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

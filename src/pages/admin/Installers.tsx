@@ -158,14 +158,14 @@ export default function Installers() {
       {/* Page Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-[24px] font-bold text-[#1d033a]">Montuotojai</h2>
-          <p className="text-[14px] text-[#4b4452]">Sistemos montuotojų paskyros ir komandos</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Montuotojai</h2>
+          <p className="text-[14px] text-gray-500 dark:text-gray-400">Sistemos montuotojų paskyros ir komandos</p>
         </div>
 
         {activeTab === 'installers' ? (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
             <Plus size={18} />
             Pridėti montuotoją
@@ -173,7 +173,7 @@ export default function Installers() {
         ) : (
           <button
             onClick={() => { setIsCreateTeamOpen(true); setTimeout(() => createTeamInputRef.current?.focus(), 50); }}
-            className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
             <Plus size={18} />
             Sukurti komandą
@@ -182,18 +182,21 @@ export default function Installers() {
       </div>
 
       {/* Tabs */}
-      <div className="relative flex gap-1 bg-[#f6f5fa] rounded-[10px] p-1 w-fit">
+      <div className="relative flex gap-1 bg-gray-100 dark:bg-[#27272a] rounded-[10px] p-1 w-fit">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-[8px] text-[14px] font-semibold transition-colors cursor-pointer"
-            style={{ color: activeTab === tab.id ? '#490891' : '#7c7484' }}
+            className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-[8px] text-[14px] font-semibold transition-colors cursor-pointer ${
+              activeTab === tab.id
+                ? 'text-purple-600 dark:text-purple-300'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
           >
             {activeTab === tab.id && (
               <motion.div
                 layoutId="tab-indicator"
-                className="absolute inset-0 bg-white rounded-[8px] shadow-sm"
+                className="absolute inset-0 bg-white dark:bg-[#3f3f46] rounded-[8px] shadow-sm"
                 style={{ zIndex: -1 }}
                 transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
               />
@@ -213,30 +216,30 @@ export default function Installers() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] border border-[#cdc3d4]/20 flex-1 overflow-hidden flex flex-col"
+            className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none flex-1 overflow-hidden flex flex-col"
           >
             {installersLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <p className="text-[#4b4452] text-[14px] font-medium">Kraunami montuotojai...</p>
+                <p className="text-gray-400 dark:text-gray-500 text-[14px] font-medium">Kraunami montuotojai...</p>
               </div>
             ) : (
               <div className="overflow-x-auto flex-1">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[#cdc3d4]/40 bg-[#f6f5fa]/50">
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Vardas</th>
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">El. Paštas</th>
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Telefonas</th>
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Rolė</th>
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider">Sukurta</th>
-                      <th className="py-4 px-6 text-[13px] font-bold text-[#4b4452] uppercase tracking-wider text-right">Veiksmai</th>
+                    <tr className="border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-[#27272a]">
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Vardas</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">El. Paštas</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Telefonas</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rolė</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Sukurta</th>
+                      <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Veiksmai</th>
                     </tr>
                   </thead>
                   <tbody>
                     {installers?.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-[#4b4452] text-[14px]">
+                        <td colSpan={6} className="py-12 text-center text-gray-400 dark:text-gray-500 text-[14px]">
                           Montuotojų nerasta.
                         </td>
                       </tr>
@@ -244,31 +247,31 @@ export default function Installers() {
                       installers?.map((installer) => {
                         const initials = getInitials(installer.full_name);
                         return (
-                          <tr key={installer.id} className="border-b border-[#cdc3d4]/20 hover:bg-[#f6f5fa]/30 transition-colors">
-                            <td className="py-4 px-6 font-bold text-[#1d033a] flex items-center gap-3">
+                          <tr key={installer.id} className="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-[#27272a] transition-colors">
+                            <td className="py-4 px-6 font-bold text-[#1d033a] dark:text-gray-100 flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 shadow-sm">
                                 {initials}
                               </div>
                               <span>{installer.full_name || 'Be vardo'}</span>
                             </td>
-                            <td className="py-4 px-6 text-[#4b4452] text-[14px]">
+                            <td className="py-4 px-6 text-[#4b4452] dark:text-gray-400 text-[14px]">
                               <div className="flex items-center gap-1.5">
-                                <Mail size={16} className="text-[#cdc3d4]" />
+                                <Mail size={16} className="text-[#cdc3d4] dark:text-gray-600" />
                                 {installer.email}
                               </div>
                             </td>
-                            <td className="py-4 px-6 text-[#4b4452] text-[14px]">
+                            <td className="py-4 px-6 text-[#4b4452] dark:text-gray-400 text-[14px]">
                               <div className="flex items-center gap-1.5">
-                                <Phone size={16} className="text-[#cdc3d4]" />
+                                <Phone size={16} className="text-[#cdc3d4] dark:text-gray-600" />
                                 {installer.phone || '-'}
                               </div>
                             </td>
                             <td className="py-4 px-6">
                               {getRoleBadge(installer.role)}
                             </td>
-                            <td className="py-4 px-6 text-[#4b4452] text-[14px] font-medium">
+                            <td className="py-4 px-6 text-[#4b4452] dark:text-gray-400 text-[14px] font-medium">
                               <div className="flex items-center gap-1.5">
-                                <Calendar size={16} className="text-[#cdc3d4]" />
+                                <Calendar size={16} className="text-[#cdc3d4] dark:text-gray-600" />
                                 {formatDate(installer.created_at)}
                               </div>
                             </td>
@@ -276,7 +279,7 @@ export default function Installers() {
                               <div className="flex items-center justify-end gap-3">
                                 <button
                                   onClick={() => setEditingInstaller(installer)}
-                                  className="text-primary font-semibold text-[14px] hover:underline cursor-pointer"
+                                  className="text-primary dark:text-purple-300 font-semibold text-[14px] hover:underline cursor-pointer"
                                 >
                                   Redaguoti
                                 </button>
@@ -318,7 +321,7 @@ export default function Installers() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.97, y: -6 }}
                   transition={{ type: 'spring', bounce: 0.25, duration: 0.35 }}
-                  className="bg-white rounded-[16px] border border-[#cdc3d4]/30 shadow-[0px_4px_20px_rgba(29,3,58,0.06)] p-5 flex items-center gap-3"
+                  className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm dark:shadow-none p-5 flex items-center gap-3"
                 >
                   <input
                     ref={createTeamInputRef}
@@ -328,12 +331,12 @@ export default function Installers() {
                     onKeyDown={(e) => { if (e.key === 'Enter') handleCreateTeam(); if (e.key === 'Escape') { setIsCreateTeamOpen(false); setNewTeamName(''); } }}
                     placeholder="Komandos pavadinimas..."
                     disabled={createTeamMutation.isPending}
-                    className="flex-1 h-[40px] px-3 bg-[#f6f5fa] border border-[#cdc3d4] rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60"
+                    className="flex-1 h-[40px] px-4 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all disabled:opacity-60"
                   />
                   <button
                     onClick={handleCreateTeam}
                     disabled={createTeamMutation.isPending}
-                    className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors flex items-center gap-2 disabled:opacity-70 cursor-pointer"
+                    className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all flex items-center gap-2 disabled:opacity-70 cursor-pointer"
                   >
                     {createTeamMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : null}
                     Sukurti
@@ -341,7 +344,7 @@ export default function Installers() {
                   <button
                     onClick={() => { setIsCreateTeamOpen(false); setNewTeamName(''); }}
                     disabled={createTeamMutation.isPending}
-                    className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] text-[#4b4452] hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                    className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer"
                   >
                     Atšaukti
                   </button>
@@ -353,15 +356,15 @@ export default function Installers() {
             {teamsLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <p className="text-[#4b4452] text-[14px] font-medium">Kraunamos komandos...</p>
+                <p className="text-gray-400 dark:text-gray-500 text-[14px] font-medium">Kraunamos komandos...</p>
               </div>
             ) : !teams || teams.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-[#f6f5fa] flex items-center justify-center">
-                  <UsersRound size={28} className="text-[#cdc3d4]" />
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-[#27272a] flex items-center justify-center">
+                  <UsersRound size={28} className="text-[#cdc3d4] dark:text-gray-600" />
                 </div>
-                <p className="text-[#1d033a] font-bold text-[16px]">Komandų nėra</p>
-                <p className="text-[#7c7484] text-[14px]">Sukurkite pirmą komandą paspausdami mygtuką viršuje</p>
+                <p className="text-[#1d033a] dark:text-gray-100 font-bold text-[16px]">Komandų nėra</p>
+                <p className="text-[#7c7484] dark:text-gray-400 text-[14px]">Sukurkite pirmą komandą paspausdami mygtuką viršuje</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -375,22 +378,22 @@ export default function Installers() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.96 }}
                       transition={{ duration: 0.2 }}
-                      className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-5 flex flex-col gap-3"
+                      className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm dark:shadow-none p-5 flex flex-col gap-3"
                     >
                       {/* Card header */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-[#490891] to-[#8052b2] flex items-center justify-center shadow-sm flex-shrink-0">
+                          <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-purple-600 to-purple-500 flex items-center justify-center shadow-sm flex-shrink-0">
                             <UsersRound size={16} className="text-white" />
                           </div>
                           <div>
-                            <p className="text-[15px] font-bold text-[#1d033a] leading-tight">{team.name}</p>
-                            <p className="text-[12px] text-[#7c7484]">{members.length} montuotojas(-ai)</p>
+                            <p className="text-[15px] font-bold text-[#1d033a] dark:text-gray-100 leading-tight">{team.name}</p>
+                            <p className="text-[12px] text-[#7c7484] dark:text-gray-400">{members.length} montuotojas(-ai)</p>
                           </div>
                         </div>
                         <button
                           onClick={() => void handleDeleteTeam(team)}
-                          className="text-[#cdc3d4] hover:text-red-500 transition-colors cursor-pointer flex-shrink-0 mt-0.5"
+                          className="text-[#cdc3d4] dark:text-gray-600 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0 mt-0.5"
                           title="Ištrinti komandą"
                         >
                           <Trash2 size={15} />
@@ -398,25 +401,25 @@ export default function Installers() {
                       </div>
 
                       {/* Divider */}
-                      <div className="h-px bg-[#cdc3d4]/20" />
+                      <div className="h-px bg-[#cdc3d4]/20 dark:bg-white/5" />
 
                       {/* Members list */}
                       {members.length === 0 ? (
-                        <p className="text-[13px] text-[#7c7484] italic">Nėra priskirtų montuotojų</p>
+                        <p className="text-[13px] text-[#7c7484] dark:text-gray-400 italic">Nėra priskirtų montuotojų</p>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {members.slice(0, 5).map((m) => (
                             <div key={m.id} className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-purple-900/30 text-primary dark:text-purple-300 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
                                 {getInitials(m.full_name)}
                               </div>
-                              <span className="text-[13px] text-[#1d033a] font-medium truncate">
+                              <span className="text-[13px] text-[#1d033a] dark:text-gray-200 font-medium truncate">
                                 {m.full_name || m.email}
                               </span>
                             </div>
                           ))}
                           {members.length > 5 && (
-                            <p className="text-[12px] text-[#7c7484] pl-8">
+                            <p className="text-[12px] text-[#7c7484] dark:text-gray-400 pl-8">
                               +{members.length - 5} daugiau...
                             </p>
                           )}

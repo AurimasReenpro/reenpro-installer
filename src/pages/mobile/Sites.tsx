@@ -89,7 +89,7 @@ export default function Sites() {
 
   return (
     <div className="pb-20">
-      <div className="bg-white px-4 pt-8 pb-4 shadow-sm sticky top-0 z-20">
+      <div className="bg-white dark:bg-[#18181b] px-4 pt-8 pb-4 shadow-sm sticky top-0 z-20">
         <h2 className="text-on-surface font-bold text-2xl mb-4">Visi objektai</h2>
         
         {/* Status Filters */}
@@ -174,8 +174,8 @@ export default function Sites() {
       <div className="mt-4">
         {isLoading ? (
           <>
-            <div className="rounded-2xl bg-white animate-pulse h-48 mx-4 mb-3"></div>
-            <div className="rounded-2xl bg-white animate-pulse h-48 mx-4 mb-3"></div>
+            <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
+            <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
           </>
         ) : filteredSites.length > 0 ? (
           filteredSites.map((site) => (

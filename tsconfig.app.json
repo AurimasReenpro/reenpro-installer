@@ -4,7 +4,7 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -32,5 +32,6 @@
     "alwaysStrict": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

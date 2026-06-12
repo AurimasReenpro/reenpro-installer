@@ -155,8 +155,8 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-[#1d033a] font-bold text-base">Nuotraukų galerija</h3>
-          <p className="text-[#39323f] text-xs mt-0.5">
+          <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-base">Nuotraukų galerija</h3>
+          <p className="text-[#39323f] dark:text-zinc-200 text-xs mt-0.5">
             {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
 
       {/* Global upload progress */}
       {isBusy && (
-        <div className="mb-4 rounded-xl bg-[#f3ebff] border border-primary/20 p-3 flex items-center gap-3">
+        <div className="mb-4 rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 border border-primary/20 p-3 flex items-center gap-3">
           <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
           <p className="text-sm text-primary font-medium">
             {isCompressing ? 'Glaudinamas failas…' : 'Nuotrauka keliama į serverį…'}
@@ -188,14 +188,14 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
           return (
             <div
               key={sectionName}
-              className="rounded-2xl border border-[#cdc3d4]/40 bg-white overflow-hidden shadow-sm"
+              className="rounded-2xl border border-[#cdc3d4]/40 dark:border-white/5 bg-white dark:bg-[#18181b] overflow-hidden shadow-sm"
             >
               {/* Section header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-[#f8f3ff] border-b border-[#cdc3d4]/30">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#f8f3ff] dark:bg-purple-500/10 border-b border-[#cdc3d4]/30 dark:border-white/5">
                 <div className="flex items-center gap-2 min-w-0">
                   <Folder className="w-4 h-4 text-primary shrink-0" />
-                  <span className="font-semibold text-[#1d033a] text-sm truncate">{sectionName}</span>
-                  <span className="text-xs text-[#39323f] shrink-0">({sectionPhotos.length})</span>
+                  <span className="font-semibold text-[#1d033a] dark:text-zinc-100 text-sm truncate">{sectionName}</span>
+                  <span className="text-xs text-[#39323f] dark:text-zinc-200 shrink-0">({sectionPhotos.length})</span>
                 </div>
                 {!readOnly && (
                   <button
@@ -214,15 +214,15 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
               <div className="p-3">
                 {sectionPhotos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <ImageOff className="w-8 h-8 text-[#cdc3d4] mb-2" />
-                    <p className="text-[#39323f] text-xs">Nėra nuotraukų šioje skiltyje</p>
+                    <ImageOff className="w-8 h-8 text-[#cdc3d4] dark:text-zinc-600 mb-2" />
+                    <p className="text-[#39323f] dark:text-zinc-200 text-xs">Nėra nuotraukų šioje skiltyje</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {sectionPhotos.map((photo) => (
                       <div
                         key={photo.id}
-                        className="relative aspect-square rounded-xl overflow-hidden bg-[#f0e8f8] border border-[#cdc3d4]/30"
+                        className="relative aspect-square rounded-xl overflow-hidden bg-[#f0e8f8] dark:bg-purple-500/10 border border-[#cdc3d4]/30 dark:border-white/5"
                       >
                         <SignedPhoto
                           storage_path={photo.storage_path}
@@ -288,7 +288,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             })()}
             <button
               onClick={() => setViewerPath(null)}
-              className="w-full h-[50px] bg-white text-[#1d033a] rounded-xl font-bold flex items-center justify-center gap-2"
+              className="w-full h-[50px] bg-white dark:bg-[#18181b] text-[#1d033a] dark:text-zinc-100 rounded-xl font-bold flex items-center justify-center gap-2"
             >
               <X className="w-5 h-5" />
               Uždaryti
@@ -305,12 +305,12 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
         >
           <div className="absolute inset-0 bg-black/50" />
           <div
-            className="relative bg-white rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
+            className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto mb-2" />
-            <p className="text-center text-[#1d033a] font-bold text-base">Pridėti nuotrauką</p>
-            <p className="text-center text-xs text-[#39323f] -mt-1 mb-1">{pickerSection}</p>
+            <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base">Pridėti nuotrauką</p>
+            <p className="text-center text-xs text-[#39323f] dark:text-zinc-200 -mt-1 mb-1">{pickerSection}</p>
 
             <button
               type="button"
@@ -323,14 +323,14 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             <button
               type="button"
               onClick={() => handleSourceSelect('gallery')}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] text-primary font-semibold text-base active:scale-95 transition-all"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 text-primary font-semibold text-base active:scale-95 transition-all"
             >
               <Image className="w-5 h-5 shrink-0" />
               Pasirinkti iš galerijos
             </button>
             <button
               onClick={() => setPickerSection(null)}
-              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] text-[#39323f] font-semibold text-sm active:scale-95 transition-all mt-1"
+              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 font-semibold text-sm active:scale-95 transition-all mt-1"
             >
               Atšaukti
             </button>
@@ -346,11 +346,11 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
         >
           <div className="absolute inset-0 bg-black/50" />
           <div
-            className="relative bg-white rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
+            className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto mb-2" />
-            <p className="text-center text-[#1d033a] font-bold text-base mb-1">
+            <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base mb-1">
               Nauja nuotraukų skiltis
             </p>
             <input
@@ -358,7 +358,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
               value={newSectionName}
               onChange={(e) => setNewSectionName(e.target.value)}
               placeholder="Skilęs modulis"
-              className="w-full h-[50px] px-4 rounded-xl border border-[#cdc3d4] text-[#1d033a] text-sm focus:outline-none focus:border-primary bg-[#faf7ff]"
+              className="w-full h-[50px] px-4 rounded-xl border border-[#cdc3d4] dark:border-white/10 text-[#1d033a] dark:text-zinc-100 text-sm focus:outline-none focus:border-primary bg-[#faf7ff] dark:bg-purple-500/10"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddSection(); }}
             />
@@ -371,7 +371,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             </button>
             <button
               onClick={() => { setShowNewSectionDialog(false); setNewSectionName(''); }}
-              className="w-full h-[46px] bg-[#f5f0fa] text-[#39323f] rounded-xl font-semibold text-sm active:scale-95 transition-all"
+              className="w-full h-[46px] bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 rounded-xl font-semibold text-sm active:scale-95 transition-all"
             >
               Atšaukti
             </button>

@@ -1,0 +1,233 @@
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Loader2, Sun, Battery } from 'lucide-react';
+import { format } from 'date-fns';
+import { updateClientInfo, updateSiteDetails } from '../../../api/sites';
+import TechDataModal from './TechDataModal';
+import type { SiteWithTeam } from './types';
+
+/** Clean iOS-style list row: muted label left, focal value right, hairline divider. */
+function FieldRow({ label, icon: Icon, last, children }: { label: string; icon?: React.ElementType; last?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex items-start justify-between gap-4 py-2.5 ${last ? '' : 'border-b border-gray-100 dark:border-white/10'}`}>
+      <span className="flex items-center gap-2 text-[12px] text-gray-400 font-medium tracking-wide shrink-0 pt-0.5">
+        {Icon && <Icon className="w-4 h-4 text-gray-400" />}
+        {label}
+      </span>
+      <span className="text-[14px] text-gray-900 dark:text-gray-100 font-semibold text-right min-w-0 break-words">{children}</span>
+    </div>
+  );
+}
+
+export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: string }) {
+  const queryClient = useQueryClient();
+
+  const [editingClient, setEditingClient] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    client_name: '',
+    contact_person: '',
+    client_phone: '',
+    client_email: '',
+    address: '',
+  });
+  const [editingTech, setEditingTech] = useState(false);
+
+  const [localNotes, setLocalNotes] = useState<string | null>(null);
+  const notes = localNotes ?? site.notes ?? '';
+
+  const startEditingClient = () => {
+    setClientForm({
+      client_name:    site.client_name    ?? '',
+      contact_person: site.contact_person ?? '',
+      client_phone:   site.client_phone   ?? '',
+      client_email:   site.client_email   ?? '',
+      address:        site.address        ?? '',
+    });
+    setEditingClient(true);
+  };
+
+  const saveClientMutation = useMutation({
+    mutationFn: () => updateClientInfo(siteId, {
+      client_name:    clientForm.client_name,
+      contact_person: clientForm.contact_person || null,
+      client_phone:   clientForm.client_phone   || null,
+      client_email:   clientForm.client_email   || null,
+      address:        clientForm.address,
+    }),
+    onSuccess: () => {
+      toast.success('Kliento informacija išsaugota!');
+      setEditingClient(false);
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', siteId] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  const saveNotesMutation = useMutation({
+    mutationFn: () => updateSiteDetails(siteId, { notes }),
+    onSuccess: () => {
+      toast.success('Pastabos išsaugotos!');
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', siteId] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      <div className="lg:col-span-2 space-y-5">
+        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Kliento informacija</h3>
+            {!editingClient ? (
+              <button
+                onClick={startEditingClient}
+                className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
+              >
+                Redaguoti
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setEditingClient(false)}
+                  disabled={saveClientMutation.isPending}
+                  className="text-[13px] text-gray-400 font-medium hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  Atšaukti
+                </button>
+                <button
+                  onClick={() => saveClientMutation.mutate()}
+                  disabled={saveClientMutation.isPending}
+                  className="flex items-center gap-1 text-[13px] text-primary font-semibold hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-60"
+                >
+                  {saveClientMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Išsaugoti
+                </button>
+              </div>
+            )}
+          </div>
+
+          {editingClient ? (
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Įmonė / Klientas</label>
+                <input
+                  type="text"
+                  value={clientForm.client_name}
+                  onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
+                  disabled={saveClientMutation.isPending}
+                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Kontaktinis asmuo</label>
+                <input
+                  type="text"
+                  value={clientForm.contact_person}
+                  onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
+                  disabled={saveClientMutation.isPending}
+                  placeholder="Vardas Pavardė"
+                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Tel. numeris</label>
+                  <input
+                    type="tel"
+                    value={clientForm.client_phone}
+                    onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
+                    disabled={saveClientMutation.isPending}
+                    placeholder="+370 600 00000"
+                    className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">El. paštas</label>
+                  <input
+                    type="email"
+                    value={clientForm.client_email}
+                    onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
+                    disabled={saveClientMutation.isPending}
+                    placeholder="vardas@imone.lt"
+                    className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Adresas</label>
+                <input
+                  type="text"
+                  value={clientForm.address}
+                  onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
+                  disabled={saveClientMutation.isPending}
+                  placeholder="Pvz.: Vilniaus g. 1, Vilnius"
+                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                />
+                <p className="text-[12px] text-gray-400 italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <FieldRow label="Įmonė / Klientas">{site.client_name}</FieldRow>
+              <FieldRow label="Kontaktinis asmuo">{site.contact_person || '—'}</FieldRow>
+              <FieldRow label="Tel. numeris">{site.client_phone || '—'}</FieldRow>
+              <FieldRow label="El. paštas">{site.client_email || '—'}</FieldRow>
+              <FieldRow label="Adresas" last>{site.address || '—'}</FieldRow>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Techniniai duomenys</h3>
+            <button
+              onClick={() => setEditingTech(true)}
+              className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
+            >
+              Redaguoti
+            </button>
+          </div>
+          <div>
+            <FieldRow label="Saulės galia" icon={Sun}>
+              {site.kwp != null ? <>{site.kwp} <span className="text-gray-400 font-medium">kWp</span></> : '—'}
+            </FieldRow>
+            <FieldRow label="Baterijos talpa" icon={Battery}>
+              {site.kwh != null ? <>{site.kwh} <span className="text-gray-400 font-medium">kWh</span></> : '—'}
+            </FieldRow>
+            <FieldRow label="Planuojama pradžia">
+              {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd HH:mm') : '—'}
+            </FieldRow>
+            <FieldRow label="Stogo tipas">{site.roof_type || '—'}</FieldRow>
+            <FieldRow label="Stogo danga">{site.roof_material || '—'}</FieldRow>
+            <FieldRow label="Stogo nuolydis" last>{site.roof_angle || '—'}</FieldRow>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5 lg:col-span-1">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Pastabos / komentarai</h3>
+          <button
+            onClick={() => saveNotesMutation.mutate()}
+            disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
+            className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
+          >
+            {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Išsaugoti
+          </button>
+        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setLocalNotes(e.target.value)}
+          placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
+          rows={8}
+          className="w-full min-h-[180px] p-3.5 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+        />
+      </div>
+
+      {editingTech && (
+        <TechDataModal site={site} siteId={siteId} onClose={() => setEditingTech(false)} />
+      )}
+    </div>
+  );
+}

@@ -488,6 +488,48 @@ export type Database = {
           },
         ]
       }
+      site_revisits: {
+        Row: {
+          id: string
+          site_id: string
+          category: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          category: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          category?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_revisits_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_revisits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           actual_end: string | null
@@ -512,6 +554,7 @@ export type Database = {
           roof_angle: string | null
           roof_material: string | null
           roof_type: string | null
+          inverter_brand: string | null
           stringing_details: any | null
           blueprint_categories: string[] | null
           system_type: string
@@ -538,6 +581,7 @@ export type Database = {
           roof_angle?: string | null
           roof_material?: string | null
           roof_type?: string | null
+          inverter_brand?: string | null
           scheduled_start?: string | null
           status?: string | null
           stringing_details?: any | null
@@ -566,6 +610,7 @@ export type Database = {
           roof_angle?: string | null
           roof_material?: string | null
           roof_type?: string | null
+          inverter_brand?: string | null
           scheduled_start?: string | null
           status?: string | null
           stringing_details?: any | null

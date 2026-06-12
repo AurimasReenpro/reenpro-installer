@@ -1,227 +1,292 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import * as XLSX from 'xlsx';
-import { BarChart3, Download, Loader2, Users, CalendarRange, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+} from 'recharts';
+import { getTeams } from '../../api/installers';
+import { ROOF_TYPES, ROOF_ANGLES } from '../../lib/siteOptions';
+import {
+  BarChart3, Loader2, Gauge, Clock, CheckCircle2, CalendarRange, Users, Home, Triangle,
+} from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface TimeReportRow {
+interface ReportSite {
   id: string;
-  start_time: string;
-  end_time: string | null;
-  installer: { full_name: string | null } | null;
-  site: { code: string | null; client_name: string | null; address: string | null } | null;
+  code: string | null;
+  client_name: string | null;
+  kwp: number | null;
+  roof_type: string | null;
+  roof_angle: string | null;
+  status: string | null;
+  actual_end: string | null;
+  scheduled_start: string | null;
+  team_id: string | null;
+  team: { name: string } | null;
+  time_entries: { start_time: string; end_time: string | null }[] | null;
 }
 
-interface InstallerOption {
-  id: string;
-  full_name: string | null;
-}
-
+const BRAND = '#5E5CE6';
 const currentMonth = () => format(new Date(), 'yyyy-MM');
 
-/** Decimal hours between two ISO timestamps (0 if either is missing). */
+/** Decimal hours between two ISO timestamps (0 if open/invalid). */
 function hoursBetween(start: string, end: string | null): number {
   if (!end) return 0;
   const ms = new Date(end).getTime() - new Date(start).getTime();
   return ms > 0 ? ms / 3_600_000 : 0;
 }
 
-function siteLabel(site: TimeReportRow['site']): string {
-  if (!site) return '—';
-  const name = site.client_name ?? '';
-  if (site.code) return name ? `${site.code} – ${name}` : site.code;
-  return name || site.address || '—';
+// Apple-style select used across the filter bar.
+const selectCls =
+  'h-[40px] pl-9 pr-8 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white appearance-none focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer';
+
+// Dark-mode-aware tooltip (auto-adapts via Tailwind).
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}) {
+  const first = payload?.[0];
+  if (!active || !first) return null;
+  return (
+    <div className="rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#27272a] px-3 py-2 shadow-lg">
+      <p className="text-[12px] font-bold text-gray-900 dark:text-gray-100">{label}</p>
+      <p className="text-[12px] font-semibold" style={{ color: BRAND }}>
+        {first.value} h/kWp
+      </p>
+    </div>
+  );
 }
 
+// ── KPI widget ────────────────────────────────────────────────────────────────
+function Kpi({ icon: Icon, tint, label, value, sub }: {
+  icon: React.ElementType;
+  tint: string;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm dark:shadow-none flex flex-col justify-between">
+      <div className="flex items-start justify-between">
+        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">{label}</p>
+        <div className={`p-2 rounded-xl shrink-0 ${tint}`}><Icon size={18} /></div>
+      </div>
+      <div className="mt-4">
+        <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">{value}</h3>
+        {sub && <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-1">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function Reports() {
-  // Payroll is monthly → a single month picker. Defaults to the current month.
   const [month, setMonth] = useState<string>(currentMonth);
-  const [installerId, setInstallerId] = useState<string>('');
+  const [teamId, setTeamId] = useState<string>('');
+  const [roofType, setRoofType] = useState<string>('');
+  const [roofAngle, setRoofAngle] = useState<string>('');
 
-  // Derive the full-month [start, end] date window from the selected month.
-  const { startDate, endDate } = useMemo(() => {
-    const base = new Date(`${month}-01T00:00:00`);
-    return {
-      startDate: format(startOfMonth(base), 'yyyy-MM-dd'),
-      endDate: format(endOfMonth(base), 'yyyy-MM-dd'),
-    };
-  }, [month]);
+  const { data: teams } = useQuery({ queryKey: ['admin_teams'], queryFn: getTeams });
 
-  // Installer dropdown options
-  const { data: installers } = useQuery<InstallerOption[]>({
-    queryKey: ['admin_installers_min'],
+  // All completed sites + their time logs; month/team/roof filtering happens client-side.
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ['reports_completed_sites'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id, full_name')
-        .eq('role', 'installer')
-        .order('full_name', { ascending: true });
+        .from('sites')
+        .select(
+          'id, code, client_name, kwp, roof_type, roof_angle, status, actual_end, scheduled_start, team_id, team:teams(name), time_entries(start_time, end_time)',
+        )
+        .eq('status', 'completed')
+        .order('actual_end', { ascending: false });
       if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: 5 * 60_000,
-  });
-
-  // Time entries (only COMPLETED logs — end_time not null — contribute to payroll)
-  const { data: rows, isLoading } = useQuery<TimeReportRow[]>({
-    queryKey: ['admin_time_report', startDate, endDate, installerId],
-    queryFn: async () => {
-      let q = supabase
-        .from('time_entries')
-        .select('id, start_time, end_time, installer:user_profiles(full_name), site:sites(code, client_name, address)')
-        .gte('start_time', `${startDate}T00:00:00`)
-        .lte('start_time', `${endDate}T23:59:59`)
-        .not('end_time', 'is', null)
-        .order('start_time', { ascending: false });
-      if (installerId) q = q.eq('installer_id', installerId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
+      const raw: unknown = data ?? [];
+      return raw as ReportSite[];
     },
   });
 
-  const totalHours = useMemo(
-    () => (rows ?? []).reduce((sum, r) => sum + hoursBetween(r.start_time, r.end_time), 0),
-    [rows],
-  );
+  // Filtered set with computed actual hours per site.
+  const sites = useMemo(() => {
+    return (rows ?? [])
+      .map((s) => ({
+        ...s,
+        hours: (s.time_entries ?? []).reduce((a, t) => a + hoursBetween(t.start_time, t.end_time), 0),
+      }))
+      .filter((s) => {
+        const d = s.actual_end ?? s.scheduled_start;
+        const monthOk = d ? format(new Date(d), 'yyyy-MM') === month : false;
+        const teamOk = !teamId || s.team_id === teamId;
+        const rtOk = !roofType || s.roof_type === roofType;
+        const raOk = !roofAngle || s.roof_angle === roofAngle;
+        return monthOk && teamOk && rtOk && raOk;
+      });
+  }, [rows, month, teamId, roofType, roofAngle]);
 
-  const hasRows = (rows?.length ?? 0) > 0;
+  // KPIs
+  const totalHours = sites.reduce((a, s) => a + s.hours, 0);
+  const totalKwp = sites.reduce((a, s) => a + (s.kwp ?? 0), 0);
+  const avgHperKwp = totalKwp > 0 ? totalHours / totalKwp : 0;
 
-  const handleExport = () => {
-    if (!rows || rows.length === 0) return;
-    const sheetRows = rows.map((r) => ({
-      Data: format(new Date(r.start_time), 'yyyy-MM-dd'),
-      Montuotojas: r.installer?.full_name ?? '—',
-      Objektas: siteLabel(r.site),
-      'Trukmė (val.)': Number(hoursBetween(r.start_time, r.end_time).toFixed(2)),
-    }));
-    // Append a total row
-    sheetRows.push({
-      Data: '',
-      Montuotojas: '',
-      Objektas: 'IŠ VISO',
-      'Trukmė (val.)': Number(totalHours.toFixed(2)),
-    });
-
-    const ws = XLSX.utils.json_to_sheet(sheetRows);
-    ws['!cols'] = [{ wch: 12 }, { wch: 24 }, { wch: 34 }, { wch: 14 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Ataskaita');
-    XLSX.writeFile(wb, `ataskaita_${month}.xlsx`);
-  };
+  // Chart: average h/kWp per team
+  const chartData = useMemo(() => {
+    const byTeam = new Map<string, { hours: number; kwp: number }>();
+    for (const s of sites) {
+      const name = s.team?.name ?? 'Nepriskirta';
+      const cur = byTeam.get(name) ?? { hours: 0, kwp: 0 };
+      cur.hours += s.hours;
+      cur.kwp += s.kwp ?? 0;
+      byTeam.set(name, cur);
+    }
+    return Array.from(byTeam.entries())
+      .map(([team, v]) => ({ team, hperkwp: v.kwp > 0 ? Number((v.hours / v.kwp).toFixed(2)) : 0 }))
+      .sort((a, b) => a.hperkwp - b.hperkwp);
+  }, [sites]);
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[10px] bg-[#fbf0ff] flex items-center justify-center border border-primary/10">
-            <BarChart3 size={20} className="text-primary" />
-          </div>
-          <div>
-            <h3 className="font-bold text-[18px] text-[#1d033a]">Ataskaitos</h3>
-            <p className="text-[13px] text-[#7c7484]">Montuotojų darbo laiko ataskaita (atlyginimams)</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-[10px] bg-[#fbf0ff] dark:bg-purple-500/10 flex items-center justify-center border border-primary/10 dark:border-purple-500/20">
+          <BarChart3 size={20} className="text-primary dark:text-purple-300" />
         </div>
-        <button
-          onClick={handleExport}
-          disabled={!hasRows}
-          className="flex items-center gap-2 h-[40px] px-5 rounded-[10px] bg-primary text-white font-semibold text-[14px] hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
-        >
-          <Download size={16} />
-          Eksportuoti į Excel
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm p-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <CalendarRange size={13} /> Mėnuo
-            </label>
-            <input
-              type="month"
-              value={month}
-              max={currentMonth()}
-              onChange={(e) => setMonth(e.target.value || currentMonth())}
-              className="w-full h-[40px] px-3 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[#7c7484] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Users size={13} /> Montuotojas
-            </label>
-            <select
-              value={installerId}
-              onChange={(e) => setInstallerId(e.target.value)}
-              className="w-full h-[40px] px-3 bg-[#f6f5fa] border border-[#cdc3d4]/50 rounded-[8px] text-[14px] text-[#1d033a] focus:outline-none focus:border-primary cursor-pointer"
-            >
-              <option value="">Visi montuotojai</option>
-              {installers?.map((i) => (
-                <option key={i.id} value={i.id}>{i.full_name ?? 'Be vardo'}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <div className="w-full h-[40px] px-4 rounded-[8px] bg-[#fbf0ff] border border-primary/15 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider flex items-center gap-1.5">
-                <Clock size={13} /> Iš viso
-              </span>
-              <span className="text-[16px] font-bold text-primary">{totalHours.toFixed(2)} val.</span>
-            </div>
-          </div>
+        <div>
+          <h3 className="font-extrabold tracking-tight text-[18px] text-gray-900 dark:text-gray-100">Ataskaitos</h3>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400">Našumo analizė: valandos vienam kWp pagal komandą, stogą ir įrangą</p>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-[16px] border border-[#cdc3d4]/20 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-[120px_1fr_1fr_120px] gap-3 px-5 py-3 bg-[#f6f5fa]/70 border-b border-[#cdc3d4]/20">
-          <span className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Data</span>
-          <span className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Montuotojas</span>
-          <span className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider">Objektas</span>
-          <span className="text-[11px] font-bold text-[#7c7484] uppercase tracking-wider text-right">Trukmė</span>
+      {/* Filter bar */}
+      <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none p-3 flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <CalendarRange size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="month"
+            value={month}
+            max={currentMonth()}
+            onChange={(e) => setMonth(e.target.value || currentMonth())}
+            className="h-[40px] pl-9 pr-3 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
+          />
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={26} className="text-primary animate-spin" />
+        <div className="relative">
+          <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className={selectCls}>
+            <option value="">Visos komandos</option>
+            {teams?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+
+        <div className="relative">
+          <Home size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <select value={roofType} onChange={(e) => setRoofType(e.target.value)} className={selectCls}>
+            <option value="">Visi stogo tipai</option>
+            {ROOF_TYPES.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+
+        <div className="relative">
+          <Triangle size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <select value={roofAngle} onChange={(e) => setRoofAngle(e.target.value)} className={selectCls}>
+            <option value="">Visi nuolydžiai</option>
+            {ROOF_ANGLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <Kpi
+          icon={Gauge}
+          tint="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400"
+          label="Vidutinis h / kWp"
+          value={avgHperKwp.toFixed(2)}
+          sub={`${totalHours.toFixed(1)} val. / ${totalKwp.toFixed(1)} kWp`}
+        />
+        <Kpi
+          icon={Clock}
+          tint="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          label="Iš viso valandų"
+          value={totalHours.toFixed(1)}
+          sub="Faktinės darbo valandos"
+        />
+        <Kpi
+          icon={CheckCircle2}
+          tint="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          label="Užbaigti objektai"
+          value={String(sites.length)}
+          sub="Pagal pasirinktus filtrus"
+        />
+      </div>
+
+      {/* Visuals + table */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Chart */}
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none p-5">
+          <h4 className="text-[15px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100 mb-4">
+            Vidutinis h/kWp pagal komandą
+          </h4>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-[280px]"><Loader2 className="text-primary animate-spin" /></div>
+          ) : chartData.length === 0 ? (
+            <div className="flex items-center justify-center h-[280px] text-[13px] text-gray-400 dark:text-gray-500">Nėra duomenų</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(120,120,120,0.15)" vertical={false} />
+                <XAxis dataKey="team" tick={{ fill: '#9ca3af', fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{ fill: 'rgba(94,92,230,0.08)' }} content={<ChartTooltip />} />
+                <Bar dataKey="hperkwp" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                  {chartData.map((d) => <Cell key={d.team} fill={BRAND} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50 dark:bg-[#27272a] border-b border-gray-100 dark:border-white/5">
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Objektas</th>
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Komanda</th>
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider text-right">kWp</th>
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Stogas</th>
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider text-right">Val.</th>
+                  <th className="py-3 px-4 text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider text-right">h/kWp</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {isLoading ? (
+                  <tr><td colSpan={6} className="py-12 text-center text-gray-400 dark:text-gray-500"><Loader2 className="inline animate-spin text-primary" /></td></tr>
+                ) : sites.length === 0 ? (
+                  <tr><td colSpan={6} className="py-12 text-center text-[14px] text-gray-400 dark:text-gray-500">Pasirinktais filtrais objektų nerasta.</td></tr>
+                ) : (
+                  sites.map((s) => {
+                    const hpk = s.kwp && s.kwp > 0 ? s.hours / s.kwp : 0;
+                    return (
+                      <tr key={s.id} className="hover:bg-gray-50/50 dark:hover:bg-[#27272a] transition-colors">
+                        <td className="py-3 px-4">
+                          <p className="text-[13px] font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[160px]">{s.client_name || '—'}</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500">#{s.code ?? '—'}</p>
+                        </td>
+                        <td className="py-3 px-4 text-[13px] text-gray-600 dark:text-gray-300">{s.team?.name ?? '—'}</td>
+                        <td className="py-3 px-4 text-[13px] text-gray-700 dark:text-gray-200 text-right whitespace-nowrap">{s.kwp ?? '—'}</td>
+                        <td className="py-3 px-4 text-[12px] text-gray-500 dark:text-gray-400">{s.roof_type || '—'}</td>
+                        <td className="py-3 px-4 text-[13px] text-gray-700 dark:text-gray-200 text-right whitespace-nowrap">{s.hours.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-[13px] font-bold text-right whitespace-nowrap" style={{ color: BRAND }}>{hpk.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        ) : !hasRows ? (
-          <div className="text-center py-14 text-[#7c7484]">
-            <BarChart3 size={30} className="mx-auto mb-2 text-[#cdc3d4]" />
-            <p className="text-[14px]">Pasirinktu laikotarpiu įrašų nėra.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-[#cdc3d4]/15">
-            {rows!.map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-[120px_1fr_1fr_120px] gap-3 px-5 py-3 items-center hover:bg-[#fbf9ff] transition-colors"
-              >
-                <span className="text-[13px] text-[#7c7484] whitespace-nowrap">
-                  {format(new Date(r.start_time), 'yyyy-MM-dd')}
-                </span>
-                <span className="text-[14px] font-semibold text-[#1d033a] truncate">
-                  {r.installer?.full_name ?? '—'}
-                </span>
-                <span className="text-[13px] text-[#1d033a] truncate">{siteLabel(r.site)}</span>
-                <span className="text-[14px] font-bold text-[#1d033a] text-right whitespace-nowrap">
-                  {hoursBetween(r.start_time, r.end_time).toFixed(2)} val.
-                </span>
-              </div>
-            ))}
-            {/* Total footer */}
-            <div className="grid grid-cols-[120px_1fr_1fr_120px] gap-3 px-5 py-3 items-center bg-[#fbf0ff]/60">
-              <span />
-              <span />
-              <span className="text-[13px] font-bold text-[#1d033a] text-right uppercase tracking-wider">Iš viso valandų:</span>
-              <span className="text-[15px] font-bold text-primary text-right whitespace-nowrap">{totalHours.toFixed(2)} val.</span>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

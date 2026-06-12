@@ -1,19 +1,20 @@
-import { useState, lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import WorkingTodayPanel, { type WorkingEntry } from '../../components/admin/WorkingTodayPanel';
 import { formatDistanceToNow } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { supabase } from '../../lib/supabase';
-import LiveAdminTimer from '../../components/admin/LiveAdminTimer';
-import CreateSiteModal from '../../components/admin/CreateSiteModal';
 import * as Sentry from "@sentry/react";
-import { Plus, MapPin, Users, CheckCircle2, Timer, Clock, CheckCheck, LogIn, Pause } from 'lucide-react';
+import { Plus, MapPin, Users, CheckCircle2, Timer, CheckCheck, LogIn, Pause, Loader2 } from 'lucide-react';
+import { useCreateBlankSite } from '../../hooks/useCreateSite';
 import { getCompanySettings } from '../../api/settings';
 
 const SiteMap = lazy(() => import('../../components/admin/SiteMap'));
 
 export default function Dashboard() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { createBlankSite, isCreating } = useCreateBlankSite();
+  const navigate = useNavigate();
 
   // 1. KPI Stats Query
   const { data: stats } = useQuery({
@@ -41,7 +42,8 @@ export default function Dashboard() {
         .select(`
           *,
           team:teams(name),
-          time_entries(*)
+          time_entries(*, installer:user_profiles(full_name, avatar_url)),
+          site_checklists(site_checklist_items(status))
         `)
         .in('status', ['in_progress', 'paused'])
         .order('scheduled_start', { ascending: false });
@@ -141,155 +143,119 @@ export default function Dashboard() {
     return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`;
   };
 
+  // Map the live active sites → the WorkingTodayPanel shape (real data).
+  const workingEntries: WorkingEntry[] = (activeSites ?? []).map((site) => {
+    const tEntries = (site.time_entries ?? []) as unknown as Array<{
+      start_time: string;
+      end_time: string | null;
+      installer?: { full_name: string | null; avatar_url: string | null } | null;
+    }>;
+    const open = tEntries.find((e) => !e.end_time);
+    const latest = open ?? [...tEntries].sort((a, b) => +new Date(b.start_time) - +new Date(a.start_time))[0];
+
+    const checklists = (site.site_checklists ?? []) as unknown as Array<{
+      site_checklist_items?: Array<{ status: string | null }>;
+    }>;
+    const items = checklists.flatMap((c) => c.site_checklist_items ?? []);
+    const done = items.filter((i) => i.status === 'pass' || i.status === 'n_a').length;
+
+    return {
+      id: site.id,
+      installerName: latest?.installer?.full_name || site.team?.name || 'Monteris',
+      avatarUrl: latest?.installer?.avatar_url ?? null,
+      siteName: site.address || site.client_name || '—',
+      siteCode: site.code || 'B/N',
+      startTime: latest?.start_time ?? site.actual_start ?? new Date().toISOString(),
+      // "Online" = actively in progress with an open (unclosed) time entry; paused → offline dot.
+      isOnline: site.status === 'in_progress' && !!open,
+      lastPhotoAt: null,
+      checklistDone: done,
+      checklistTotal: items.length,
+    };
+  });
+
   return (
     <div className="space-y-6">
       {/* Header Row */}
       <div className="flex justify-between items-center mb-2">
-        <h2 className="text-[24px] font-bold text-[#1d033a]">Apžvalga</h2>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="h-[40px] px-4 font-semibold text-[14px] rounded-[8px] bg-primary text-white hover:bg-primary/80 transition-colors shadow-sm flex items-center gap-2"
+        <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Apžvalga</h2>
+        <button
+          onClick={() => { void createBlankSite(); }}
+          disabled={isCreating}
+          className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Plus size={18} />
-          Sukurti naują objektą
+          {isCreating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+          {isCreating ? 'Kuriama...' : 'Sukurti naują objektą'}
         </button>
       </div>
 
       {/* Row 1: KPI Cards */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 gap-5">
         {/* Card 1: Aktyvūs objektai */}
-        <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
-          <div className="absolute top-6 right-6 w-10 h-10 bg-[#ecdcff] rounded-full flex items-center justify-center text-primary">
-            <MapPin size={20} />
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Aktyvūs objektai</p>
+            <div className="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 p-2 rounded-xl shrink-0">
+              <MapPin size={18} />
+            </div>
           </div>
-          <p className="text-[14px] font-medium text-[#4b4452] mb-2">Aktyvūs objektai</p>
-          <div className="flex items-baseline gap-3">
-            <h3 className="text-[32px] font-bold text-[#1d033a] leading-none">{stats?.active_sites || 0}</h3>
-          </div>
+          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">{stats?.active_sites || 0}</h3>
         </div>
 
         {/* Card 2: Dirba dabar */}
-        <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
-          <div className="absolute top-6 right-6 w-10 h-10 bg-[#ECFDF5] rounded-full flex items-center justify-center text-[#10B981]">
-            <Users size={20} />
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Dirba dabar</p>
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 p-2 rounded-xl shrink-0">
+              <Users size={18} />
+            </div>
           </div>
-          <p className="text-[14px] font-medium text-[#4b4452] mb-2">Dirba dabar</p>
-          <h3 className="text-[32px] font-bold text-[#1d033a] leading-none mb-1">
-            {stats?.installers_online || 0} <span className="text-[14px] font-bold text-[#4b4452]">monteriai</span>
+          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">
+            {stats?.installers_online || 0}
+            <span className="text-sm font-semibold text-gray-400 ml-2">monteriai</span>
           </h3>
         </div>
 
         {/* Card 3: Šiandien užbaigta */}
-        <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
-          <div className="absolute top-6 right-6 w-10 h-10 bg-[#f6e9ff] rounded-full flex items-center justify-center text-[#4b4452]">
-            <CheckCircle2 size={20} className="text-primary" />
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Šiandien užbaigta</p>
+            <div className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 p-2 rounded-xl shrink-0">
+              <CheckCircle2 size={18} />
+            </div>
           </div>
-          <p className="text-[14px] font-medium text-[#4b4452] mb-2">Šiandien užbaigta</p>
-          <h3 className="text-[32px] font-bold text-[#1d033a] leading-none mb-1">{stats?.completed_today || 0}</h3>
+          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">{stats?.completed_today || 0}</h3>
         </div>
 
         {/* Card 4: Savaitės valandos */}
-        <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] p-6 border border-[#cdc3d4]/20 relative">
-          <div className="absolute top-6 right-6 w-10 h-10 bg-[#ecdcff] rounded-full flex items-center justify-center text-primary">
-            <Timer size={20} />
+        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Šios sav. valandos</p>
+            <div className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 p-2 rounded-xl shrink-0">
+              <Timer size={18} />
+            </div>
           </div>
-          <p className="text-[14px] font-medium text-[#4b4452] mb-2">Šios sav. valandos</p>
-          <div className="flex items-baseline gap-3">
-            <h3 className="text-[32px] font-bold text-[#1d033a] leading-none">
-              {formatHours(stats?.weekly_minutes || 0)}
-            </h3>
-          </div>
+          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">
+            {formatHours(stats?.weekly_minutes || 0)}
+          </h3>
         </div>
       </div>
 
       {/* Row 2: Split 60/40 */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left: Šiandien dirba */}
-        <div className="col-span-7 bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] border border-[#cdc3d4]/20 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[18px] font-bold text-[#1d033a]">Šiandien dirba</h3>
-              <div className="w-2 h-2 bg-[#fc391d] rounded-full animate-pulse"></div>
-            </div>
-            <Link to="/admin" className="text-[14px] font-semibold text-primary hover:underline">Visi objektai →</Link>
-          </div>
-          
-          <div className="space-y-4">
-            {activeSites?.map((site) => {
-              const timeEntries = site.time_entries as unknown as Array<{ start_time: string; end_time: string | null }> | undefined;
-              const openTimeEntry = timeEntries?.find((e) => !e.end_time);
-              const team = site.team;
-
-              let timeDisplayText = '';
-              if (openTimeEntry?.start_time) {
-                try {
-                  const startDate = new Date(openTimeEntry.start_time);
-                  const hh = String(startDate.getHours()).padStart(2, '0');
-                  const mm = String(startDate.getMinutes()).padStart(2, '0');
-                  timeDisplayText = `Dirba nuo ${hh}:${mm}`;
-                } catch {
-                  timeDisplayText = 'Dirba';
-                }
-              }
-
-              return (
-                <div key={site.id} className="flex items-center p-3 rounded-[12px] border border-[#cdc3d4]/40 hover:border-primary/30 transition-colors">
-                  <div className={`w-3 h-3 rounded-full mr-4 shadow-sm ${
-                    site.status === 'paused' 
-                      ? 'bg-[#F59E0B] shadow-[0_0_8px_rgba(245,158,11,0.5)]' 
-                      : 'bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                  }`}></div>
-                  <div className="flex-1">
-                    <h4 className="text-[15px] font-bold text-[#1d033a]">{site.client_name || 'Nežinomas klientas'}</h4>
-                    <div className="flex gap-2 items-center mt-1">
-                      <span className="bg-[#fbf0ff] border border-[#cdc3d4]/50 text-[11px] font-semibold px-2 py-0.5 rounded-full text-[#4b4452]">
-                        {site.code || 'B/N'}
-                      </span>
-                      <span className="text-[13px] text-[#4b4452] font-medium flex flex-wrap gap-2 items-center">
-                        {site.status === 'paused' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-bold bg-[#fff7ed] text-[#ea580c] border border-[#ffedd5]">
-                            Pristabdyta
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1.5">
-                          <Clock size={14} className="text-[#4b4452]" /> 
-                          <LiveAdminTimer entries={timeEntries} />
-                          {openTimeEntry?.start_time && timeDisplayText && (
-                            <>
-                              <span className="text-[#cdc3d4]">|</span>
-                              <span className="text-[12px] font-normal text-[#4b4452]/80">{timeDisplayText}</span>
-                            </>
-                          )}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {team ? (
-                      <span className="bg-[#fbf0ff] border border-[#cdc3d4]/50 text-[12px] font-bold px-2.5 py-1 rounded-md text-primary">
-                        {team.name}
-                      </span>
-                    ) : (
-                      <span className="text-[#cdc3d4] text-[13px] italic">Nepriskirta</span>
-                    )}
-                    <Link to={`/admin/sites/${site.id}`} className="text-primary font-semibold text-[14px] hover:underline">
-                      Žiūrėti
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {(!activeSites || activeSites.length === 0) && (
-              <div className="text-center py-6 text-[#4b4452]">Šiuo metu aktyvių objektų nėra.</div>
-            )}
-          </div>
+      <div className="grid grid-cols-12 gap-5">
+        {/* Left: Šiandien dirba — premium live ops panel */}
+        <div className="col-span-7">
+          <WorkingTodayPanel
+            entries={workingEntries}
+            onSelect={(e) => { void navigate(e.id ? `/admin/sites/${e.id}` : '/admin/sites'); }}
+            onOpenMap={() => { void navigate('/admin/schedule'); }}
+          />
         </div>
 
         {/* Right: Live Map */}
-        <div className="col-span-5 bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] border border-[#cdc3d4]/20 p-6 flex flex-col">
+        <div className="col-span-5 bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6 flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[18px] font-bold text-[#1d033a]">Objektai žemėlapyje</h3>
+            <h3 className="text-[17px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Objektai žemėlapyje</h3>
             <div className="flex items-center gap-3 text-[11px] font-semibold">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block"></span>Vyksta</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block"></span>Sustabdyta</span>
@@ -313,91 +279,81 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 3: Activity feed */}
-      <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(29,3,58,0.05)] border border-[#cdc3d4]/20 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <h3 className="text-[18px] font-bold text-[#1d033a]">Veiklos žurnalas</h3>
-          <span className="bg-[#FFF1F0] text-[#fc391d] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border border-[#fc391d]/20 flex items-center gap-1">
+      {/* Row 3: Activity feed — spacious Apple-style timeline */}
+      <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6">
+        <div className="flex items-center gap-3">
+          <h3 className="text-[17px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Veiklos žurnalas</h3>
+          <span className="bg-[#FFF1F0] text-[#fc391d] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
             <span className="w-1.5 h-1.5 bg-[#fc391d] rounded-full animate-pulse"></span>
             LIVE
           </span>
         </div>
-        
-        <div className="relative pl-[22px] space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#cdc3d4]/40">
-          
-          {activityFeed?.map((entry, index) => {
-            // activeSites contains only 'in_progress' and 'paused' sites.
-            // If a site is NOT in activeSites and its latest entry is finished → it was completed.
-            const activeSiteIds = new Set((activeSites ?? []).map(s => s.id));
-            const isFinished = !!entry.end_time;
-            const isLatestForSite = activityFeed.findIndex(e => e.site_id === entry.site_id) === index;
-            const siteIsStillActive = entry.site_id ? activeSiteIds.has(entry.site_id) : false;
 
-            // A closed entry is a completion if:
-            //   1. It's the latest entry for that site (not a historical pause)
-            //   2. The site is no longer in the active/paused list (i.e. it's completed)
-            //   OR site_status explicitly says 'completed' (when migration is applied)
-            const isCompleted = isFinished && isLatestForSite && (
-              !siteIsStillActive || entry.site_status === 'completed'
-            );
-            const isPaused = isFinished && !isCompleted;
-            
-            const timeStr = entry.latest_action_time || (isFinished ? entry.end_time : entry.start_time);
-            const timeAgo = formatDistanceToNow(new Date(timeStr!), { 
-              addSuffix: true, 
-              locale: lt 
-            });
-            const name = entry.installer_name || 'Nežinomas montuotojas';
-            const siteName = entry.client_name || entry.site_code || 'Nežinomas objektas';
-            
-            let iconBgClass = 'bg-[#ecdcff]';
-            let iconElement = <LogIn size={12} className="text-primary" />;
-            let actionText = 'pradėjo darbus objekte';
+        {(!activityFeed || activityFeed.length === 0) ? (
+          <p className="text-gray-400 dark:text-gray-500 text-[14px] py-8">Įvykių nerasta.</p>
+        ) : (
+          <div className="relative border-l-2 border-gray-100 dark:border-white/10 ml-4 my-6">
+            {activityFeed.map((entry, index) => {
+              // activeSites contains only 'in_progress' and 'paused' sites.
+              // If a site is NOT in activeSites and its latest entry is finished → it was completed.
+              const activeSiteIds = new Set((activeSites ?? []).map(s => s.id));
+              const isFinished = !!entry.end_time;
+              const isLatestForSite = activityFeed.findIndex(e => e.site_id === entry.site_id) === index;
+              const siteIsStillActive = entry.site_id ? activeSiteIds.has(entry.site_id) : false;
 
-            if (isCompleted) {
-              iconBgClass = 'bg-[#ECFDF5]';
-              iconElement = <CheckCheck size={12} className="text-[#10B981]" />;
-              actionText = 'užbaigė darbus objekte';
-            } else if (isPaused) {
-              iconBgClass = 'bg-[#FFFBEB]';
-              iconElement = <Pause size={12} className="text-[#D97706]" />;
-              actionText = 'pristabdė darbus objekte';
-            }
-            
-            return (
-              <div key={entry.id} className="relative">
-                <div className={`absolute -left-[22px] w-6 h-6 rounded-full border-[3px] border-white flex items-center justify-center ${iconBgClass}`}>
-                  {iconElement}
+              const isCompleted = isFinished && isLatestForSite && (
+                !siteIsStillActive || entry.site_status === 'completed'
+              );
+              const isPaused = isFinished && !isCompleted;
+
+              const timeStr = entry.latest_action_time || (isFinished ? entry.end_time : entry.start_time);
+              const timeAgo = formatDistanceToNow(new Date(timeStr!), { addSuffix: true, locale: lt });
+              const name = entry.installer_name || 'Nežinomas montuotojas';
+              const siteName = entry.client_name || entry.site_code || 'Nežinomas objektas';
+
+              // Per-type icon + soft circle border colour (one purple family, semantic accents)
+              let Icon = LogIn;
+              let iconColor = 'text-purple-600';
+              let borderColor = 'border-purple-100 dark:border-purple-900/50';
+              let actionText = 'pradėjo darbus objekte';
+
+              if (isCompleted) {
+                Icon = CheckCheck;
+                iconColor = 'text-emerald-600';
+                borderColor = 'border-emerald-100 dark:border-emerald-900/50';
+                actionText = 'užbaigė darbus objekte';
+              } else if (isPaused) {
+                Icon = Pause;
+                iconColor = 'text-amber-600';
+                borderColor = 'border-amber-100 dark:border-amber-900/50';
+                actionText = 'pristabdė darbus objekte';
+              }
+
+              return (
+                <div key={entry.id} className="relative pl-8 pb-8 last:pb-0">
+                  <div className={`absolute -left-3.5 top-0 w-7 h-7 rounded-full bg-white dark:bg-[#18181b] border-2 ${borderColor} flex items-center justify-center`}>
+                    <Icon size={12} className={iconColor} />
+                  </div>
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-xs ml-2 capitalize">{timeAgo}</span>
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">
+                    {actionText}{' '}
+                    {entry.site_id ? (
+                      <Link to={`/admin/sites/${entry.site_id}`} className="text-purple-600 hover:text-purple-700 transition-colors font-medium">
+                        {siteName}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{siteName}</span>
+                    )}
+                  </p>
                 </div>
-                <p className="text-[14px] text-[#1d033a]">
-                  <span className="font-bold">{name}</span> 
-                  <span className="text-[#4b4452] text-[12px] ml-2 capitalize">{timeAgo}</span>
-                </p>
-                <p className="text-[14px] text-[#4b4452] mt-1">
-                  {actionText}{' '}
-                  {entry.site_id ? (
-                    <Link to={`/admin/sites/${entry.site_id}`} className="text-primary hover:underline font-medium">
-                      {siteName}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{siteName}</span>
-                  )}
-                </p>
-              </div>
-            );
-          })}
-
-          {(!activityFeed || activityFeed.length === 0) && (
-            <p className="text-[#4b4452] text-[14px]">Įvykių nerasta.</p>
-          )}
-
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      <CreateSiteModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
     </div>
   );
 }

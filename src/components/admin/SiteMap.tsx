@@ -24,7 +24,7 @@ function createSvgIcon(color: MarkerColor, pulse = false): L.DivIcon {
     green:  { fill: '#10B981', glow: 'rgba(16,185,129,0.4)' },
     orange: { fill: '#F59E0B', glow: 'rgba(245,158,11,0.4)' },
     gray:   { fill: '#9CA3AF', glow: 'rgba(156,163,175,0.3)' },
-    purple: { fill: '#490891', glow: 'rgba(73,8,145,0.4)' },
+    purple: { fill: '#9333ea', glow: 'rgba(147,51,234,0.4)' },
   };
 
   const { fill, glow } = COLORS[color];
@@ -54,7 +54,7 @@ function createBaseIcon(): L.DivIcon {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42">
       <path d="M18 0C8.059 0 0 8.059 0 18c0 13.5 18 24 18 24S36 31.5 36 18C36 8.059 27.941 0 18 0z"
-            fill="#490891" stroke="white" stroke-width="2.5"/>
+            fill="#9333ea" stroke="white" stroke-width="2.5"/>
       <path d="M18 10 L26 17 L23.5 17 L23.5 26 L12.5 26 L12.5 17 L10 17 Z" fill="white"/>
     </svg>`;
   return L.divIcon({

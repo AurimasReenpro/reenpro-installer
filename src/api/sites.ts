@@ -515,9 +515,9 @@ export async function updateTechData(
       kwh:             data.kwh,
       system_type:     data.system_type,
       scheduled_start: data.scheduled_start,
-      roof_type:       data.roof_type     || null,
-      roof_material:   data.roof_material || null,
-      roof_angle:      data.roof_angle    || null,
+      roof_type:       data.roof_type      || null,
+      roof_material:   data.roof_material  || null,
+      roof_angle:      data.roof_angle     || null,
     })
     .eq('id', id);
 

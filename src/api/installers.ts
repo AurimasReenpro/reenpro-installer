@@ -1,17 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/database.types';
 import { supabase } from '../lib/supabase';
-
-const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '');
-const supabaseAnonKey = String(
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  ''
-);
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables for installers api');
-}
 
 export interface CreateInstallerData {
   firstName: string;
@@ -22,40 +9,46 @@ export interface CreateInstallerData {
 }
 
 export async function createInstaller(data: CreateInstallerData) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Trūksta Supabase aplinkos kintamųjų.');
-  }
-
-  // Create a separate, non-persisting client so it doesn't affect the admin's logged-in session.
-  const tempClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
+  // Account creation goes through the admin-only `create-installer` Edge Function,
+  // which verifies the caller is an admin (service role) before creating the user.
+  // supabase-js automatically attaches the logged-in admin's JWT as the
+  // Authorization header, which the function validates.
+  const { data: result, error } = (await supabase.functions.invoke('create-installer', {
+    body: {
+      email: data.email,
+      password: data.password || 'TemporaryPassword123!', // 21 chars ≥ 8
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
     },
-  });
+  })) as {
+    data: { user?: { id: string } | null; error?: string } | null;
+    error: { message?: string; context?: { json?: () => Promise<unknown> } } | null;
+  };
 
-  const { data: authData, error } = await tempClient.auth.signUp({
-    email: data.email,
-    password: data.password || 'TemporaryPassword123!',
-    options: {
-      data: {
-        full_name: `${data.firstName} ${data.lastName}`.trim(),
-        phone: data.phone || null,
-        role: 'installer',
-      },
-    },
-  });
-
+  // (1) invoke-level error (network, or a non-2xx that supabase-js flags). The real
+  // message from our function lives in the Response body (error.context), so dig it out.
   if (error) {
-    throw new Error(error.message);
+    let msg = error.message ?? 'Nepavyko sukurti montuotojo.';
+    try {
+      const body = (await error.context?.json?.()) as { error?: string } | undefined;
+      if (body?.error) msg = body.error;
+    } catch { /* keep the generic message */ }
+    throw new Error(msg);
   }
 
-  if (!authData?.user) {
+  // (2) Our function returned its specific error string in the JSON body (e.g.
+  // "Forbidden: admin role required." / "Invalid email format.").
+  if (result?.error) {
+    throw new Error(result.error);
+  }
+
+  // (3) Success must include the created user.
+  if (!result?.user) {
     throw new Error('Nepavyko sukurti vartotojo.');
   }
 
-  return authData;
+  return result;
 }
 
 export async function deleteInstaller(id: string): Promise<void> {

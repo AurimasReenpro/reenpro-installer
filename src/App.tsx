@@ -27,6 +27,7 @@ const Installers = lazy(() => import('./pages/admin/Installers'));
 const EquipmentCatalog = lazy(() => import('./pages/admin/EquipmentCatalog'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const Reports = lazy(() => import('./pages/admin/Reports'));
+const Schedule = lazy(() => import('./pages/admin/Schedule'));
 
 const MobileLayout = lazy(() => import('./components/mobile/MobileLayout'));
 const Today = lazy(() => import('./pages/mobile/Today'));
@@ -83,6 +84,7 @@ function AppContent() {
             <Route index element={<Dashboard />} />
             <Route path="sites" element={<Sites />} />
             <Route path="sites/:id" element={<SiteDetails />} />
+            <Route path="schedule" element={<Schedule />} />
             <Route path="checklists" element={<Checklists />} />
             <Route path="installers" element={<Installers />} />
             <Route path="catalog" element={<EquipmentCatalog />} />
