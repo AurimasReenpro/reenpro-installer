@@ -766,6 +766,365 @@ export type Database = {
           },
         ]
       }
+      site_compensation: {
+        Row: {
+          site_id: string
+          fixed_fee: number
+          currency: string
+          notes: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          site_id: string
+          fixed_fee: number
+          currency?: string
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          site_id?: string
+          fixed_fee?: number
+          currency?: string
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_compensation_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: true
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          id: string
+          year: number
+          month: number
+          status: string
+          rate_card_id: string | null
+          locked_by: string | null
+          locked_at: string | null
+          unlock_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          year: number
+          month: number
+          status?: string
+          rate_card_id?: string | null
+          locked_by?: string | null
+          locked_at?: string | null
+          unlock_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          year?: number
+          month?: number
+          status?: string
+          rate_card_id?: string | null
+          locked_by?: string | null
+          locked_at?: string | null
+          unlock_reason?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_rate_card_id_fkey"
+            columns: ["rate_card_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_rate_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_rate_cards: {
+        Row: {
+          id: string
+          name: string
+          valid_from: string | null
+          valid_to: string | null
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          valid_from?: string | null
+          valid_to?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      payroll_rate_rules: {
+        Row: {
+          id: string
+          rate_card_id: string
+          code: string
+          label: string
+          rule_type: string
+          amount: number
+          unit: string | null
+          params: Json
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          rate_card_id: string
+          code: string
+          label: string
+          rule_type: string
+          amount: number
+          unit?: string | null
+          params?: Json
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          rate_card_id?: string
+          code?: string
+          label?: string
+          rule_type?: string
+          amount?: number
+          unit?: string | null
+          params?: Json
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_rate_rules_rate_card_id_fkey"
+            columns: ["rate_card_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_rate_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_site_snapshots: {
+        Row: {
+          id: string
+          period_id: string
+          site_id: string | null
+          included: boolean
+          participant_ids: Json
+          is_manually_excluded: boolean
+          participant_source: string
+          participant_override_ids: Json | null
+          manual_note: string | null
+          warnings: Json
+          recalculated_at: string | null
+          base_amount: number
+          addon_amount: number
+          bonus_amount: number
+          deduction_amount: number
+          total_pool: number
+          calculation_breakdown: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          period_id: string
+          site_id?: string | null
+          included?: boolean
+          participant_ids?: Json
+          is_manually_excluded?: boolean
+          participant_source?: string
+          participant_override_ids?: Json | null
+          manual_note?: string | null
+          warnings?: Json
+          recalculated_at?: string | null
+          base_amount?: number
+          addon_amount?: number
+          bonus_amount?: number
+          deduction_amount?: number
+          total_pool?: number
+          calculation_breakdown?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          period_id?: string
+          site_id?: string | null
+          included?: boolean
+          participant_ids?: Json
+          is_manually_excluded?: boolean
+          participant_source?: string
+          participant_override_ids?: Json | null
+          manual_note?: string | null
+          warnings?: Json
+          recalculated_at?: string | null
+          base_amount?: number
+          addon_amount?: number
+          bonus_amount?: number
+          deduction_amount?: number
+          total_pool?: number
+          calculation_breakdown?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_site_snapshots_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_site_snapshots_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      earnings_entries: {
+        Row: {
+          id: string
+          period_id: string
+          installer_id: string
+          site_id: string | null
+          site_snapshot_id: string | null
+          entry_type: string
+          amount: number
+          description: string | null
+          source: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          period_id: string
+          installer_id: string
+          site_id?: string | null
+          site_snapshot_id?: string | null
+          entry_type: string
+          amount: number
+          description?: string | null
+          source: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          period_id?: string
+          installer_id?: string
+          site_id?: string | null
+          site_snapshot_id?: string | null
+          entry_type?: string
+          amount?: number
+          description?: string | null
+          source?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_entries_installer_id_fkey"
+            columns: ["installer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_entries_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_entries_site_snapshot_id_fkey"
+            columns: ["site_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_site_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_site_rule_overrides: {
+        Row: {
+          id: string
+          period_id: string
+          site_id: string
+          rate_rule_id: string
+          mode: string
+          quantity_override: number | null
+          amount_override: number | null
+          note: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          period_id: string
+          site_id: string
+          rate_rule_id: string
+          mode?: string
+          quantity_override?: number | null
+          amount_override?: number | null
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          period_id?: string
+          site_id?: string
+          rate_rule_id?: string
+          mode?: string
+          quantity_override?: number | null
+          amount_override?: number | null
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_site_rule_overrides_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_site_rule_overrides_rate_rule_id_fkey"
+            columns: ["rate_rule_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_rate_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_dashboard_stats: {
         Row: {
           active_sites: number | null
@@ -783,6 +1142,87 @@ export type Database = {
       is_assigned_to_site: { Args: { site_id_param: string }; Returns: boolean }
       pause_work: { Args: { p_site_id: string }; Returns: undefined }
       start_work: { Args: { p_site_id: string; p_start_lat?: number; p_start_lng?: number }; Returns: undefined }
+      recalculate_period: { Args: { p_period_id: string }; Returns: Json }
+      lock_period: {
+        Args: { p_period_id: string }
+        Returns: {
+          id: string
+          year: number
+          month: number
+          status: string
+          locked_by: string | null
+          locked_at: string | null
+          unlock_reason: string | null
+          created_at: string
+        }
+      }
+      recalculate_payroll_period: {
+        Args: { p_year: number; p_month: number; p_rate_card_id: string }
+        Returns: Json
+      }
+      lock_payroll_period: { Args: { p_period_id: string }; Returns: Json }
+      set_payroll_site_included: {
+        Args: { p_period_id: string; p_site_id: string; p_included: boolean; p_reason: string }
+        Returns: Json
+      }
+      set_payroll_site_participants: {
+        Args: { p_period_id: string; p_site_id: string; p_participant_ids: string[]; p_reason: string }
+        Returns: Json
+      }
+      add_manual_payroll_entry: {
+        Args: {
+          p_period_id: string
+          p_installer_id: string
+          p_site_snapshot_id: string | null
+          p_entry_type: string
+          p_amount: number
+          p_description: string
+        }
+        Returns: Json
+      }
+      reverse_manual_payroll_entry: {
+        Args: { p_entry_id: string; p_reason: string }
+        Returns: Json
+      }
+      set_payroll_period_status: {
+        Args: { p_period_id: string; p_status: string }
+        Returns: Json
+      }
+      get_payroll_site_rule_state: {
+        Args: { p_period_id: string; p_site_id: string }
+        Returns: {
+          rate_rule_id: string
+          code: string
+          label: string
+          rule_type: string
+          amount: number
+          unit: string | null
+          params: Json
+          default_applicable: boolean
+          detected_quantity: number | null
+          mode: string
+          quantity_override: number | null
+          amount_override: number | null
+          note: string | null
+          effective_quantity: number | null
+          effective_amount: number
+          effective_applied: boolean
+          reason: string
+          source: string
+        }[]
+      }
+      set_payroll_site_rule_override: {
+        Args: {
+          p_period_id: string
+          p_site_id: string
+          p_rate_rule_id: string
+          p_mode: string
+          p_quantity_override: number | null
+          p_amount_override: number | null
+          p_note: string | null
+        }
+        Returns: Json
+      }
     }
     Enums: {
       site_checklist_status: 'pending' | 'in_progress' | 'completed'

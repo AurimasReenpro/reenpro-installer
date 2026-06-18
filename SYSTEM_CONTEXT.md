@@ -32,7 +32,7 @@ Montuotojams skirta sąsaja buvo specialiai pritaikyta taip, kad išvengtų nere
   - **Laukia (Pending):** Kai paspaudžiamas "PRADĖTI DARBĄ", programėlė atnaujina objekto būseną į `in_progress` ir *tyliai* fone sukuria naują `time_entries` įrašą su dabartiniu `start_time`.
   - **Vykdomas (In Progress):** Mygtukai "PAUZĖ" ir "UŽBAIGTI DARBĄ" suranda atvirą fone veikiančią `time_entries` sesiją ir uždaro ją priskirdami `end_time = now()`. Admin skydelyje laikas skaičiuojamas teisingai, nors montuotojas jokio veikiančio laikmačio nemato.
 - **Objektų Sąrašai ir Filtravimas:**
-  - Supabase apribojimai prisijungiant lenteles su `.order()` buvo išspręsti filtruojant ir rikiuojant duomenis tiesiogiai JavaScript kode (naudojant `Array.sort()` pagal `scheduled_start`).
+  - Rikiavimas pagal `scheduled_start` atliekamas **serverio pusėje** (`getInstallerSites` naudoja `.order('scheduled_start', { nullsFirst: false })`). Tai veikia, nes rikiuojama pagrindinė (`sites`) lentelė, o ne prijungta lentelė — būtent prijungtų lentelių `.order()` anksčiau neveikė ir vertė rikiuoti per `Array.sort()`. Kryptis perduodama per `{ ascending }` parametrą (Today.tsx – didėjančiai, Sites.tsx – mažėjančiai). Klientinis `Array.sort()` pašalintas.
   - **Filtravimas:** Visų objektų lange (`src/pages/mobile/Sites.tsx`) naudojami du atskiri būsenų (Status) ir laiko (Time) filtrai. Laiko rėžių nustatymui naudojama `date-fns` biblioteka (`isSameWeek`, `isSameMonth`).
 - **Užduočių Sąrašas (Checklists):** 
   - Objekte (`SiteDetail.tsx`) užduotys sugrupuojamos į vieną "Darbai" skirtuką pagal fazes (`pre`, `during`, `post`).

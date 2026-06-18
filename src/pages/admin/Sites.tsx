@@ -55,8 +55,6 @@ export default function Sites() {
           address,
           status,
           scheduled_start,
-          system_type,
-          team_id,
           team:teams(name)
         `)
         .order('scheduled_start', { ascending: false });

@@ -1,6 +1,7 @@
 import { useRef, useState, useMemo } from 'react';
 import { Camera, Loader2, Trash2, ImageOff, X, Image, Plus, Folder, Pencil } from 'lucide-react';
 import SignedPhoto from '../../../components/ui/SignedPhoto';
+import SignedPhotoUrlProvider from '../../../providers/SignedPhotoUrlProvider';
 import PhotoAnnotator from '../../../components/shared/PhotoAnnotator';
 import type { SiteDetailData, SitePhoto } from '../../../types/site.types';
 import { usePhotoUpload } from '../../../hooks/usePhotoUpload';
@@ -72,6 +73,9 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
     return [...names];
   }, [localSections, photosBySection]);
 
+  // Every photo path in this tab → batch-signed once by the provider below.
+  const photoPaths = useMemo(() => photos.map((p) => p.storage_path), [photos]);
+
   // ── File input handlers ────────────────────────────────────────────────────
 
   const handleFileChange = (
@@ -131,6 +135,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <SignedPhotoUrlProvider paths={photoPaths}>
     <div className="px-4 pb-[140px] pt-4">
       {/* Hidden file inputs. Camera = single shot; gallery = multi-select.
           The gallery input deliberately has NO `accept` filter — `accept="image/*"`
@@ -388,5 +393,6 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
         />
       )}
     </div>
+    </SignedPhotoUrlProvider>
   );
 }

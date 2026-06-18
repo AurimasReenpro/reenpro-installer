@@ -177,7 +177,7 @@ export default function AdminLayout() {
     { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false },
     { name: 'Checklist\'ai', path: '/admin/checklists', icon: 'fact_check', end: false },
     { name: 'Įrangos katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
-    { name: 'Bonusai', path: '/admin/bonuses', icon: 'payments', end: false, comingSoon: true },
+    { name: 'Atlyginimai', path: '/admin/payroll', icon: 'payments', end: false },
     { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false },
     { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4', comingSoon: true },
   ];

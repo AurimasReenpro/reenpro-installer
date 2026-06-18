@@ -31,17 +31,8 @@ export default function Today() {
   const { data: sitesData, isLoading: isLoadingSites } = useQuery({
     queryKey: ['my-sites-today', profile?.id],
     queryFn: async () => {
-      const assignedSites = await getInstallerSites(profile?.id as string);
-      
-      // Sort by scheduled_start locally
-      const sorted = [...assignedSites];
-      sorted.sort((a, b) => {
-        if (!a.scheduled_start) return 1;
-        if (!b.scheduled_start) return -1;
-        return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
-      });
-      
-      return sorted;
+      // Ascending by scheduled_start (unscheduled last) — ordered server-side.
+      return getInstallerSites(profile?.id as string, { ascending: true });
     },
     enabled: !!profile?.id, // ONLY run if we have a profile ID
     staleTime: 60_000,

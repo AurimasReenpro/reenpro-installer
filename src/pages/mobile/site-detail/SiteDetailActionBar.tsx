@@ -38,7 +38,7 @@ export default function SiteDetailActionBar({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[70] backdrop-blur-md bg-white/90 border-t border-gray-100 dark:border-white/10 px-4 pt-3 pb-6">
+    <div className="fixed bottom-0 left-0 right-0 z-[70] backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border-t border-gray-100 dark:border-white/10 px-4 pt-3 pb-6">
       {status === 'pending' && (
         <button
           onClick={onCheckIn}
@@ -71,7 +71,7 @@ export default function SiteDetailActionBar({
       {status === 'paused' && (
         <div className="flex flex-col gap-3">
           <div className="flex justify-center">
-            <span className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 font-mono text-sm px-3 py-1 rounded-full">
+            <span className="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 font-mono text-sm px-3 py-1 rounded-full">
               <Pause className="w-3.5 h-3.5" /> Pertrauka
               <LiveTimer entries={entries} installerId={installerId} />
             </span>

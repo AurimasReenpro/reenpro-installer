@@ -3,12 +3,10 @@ import { MapPin, CalendarClock, Zap, Battery, PlayCircle } from 'lucide-react';
 import { format, isToday, isTomorrow } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { isSiteDraft } from '../../lib/siteDraft';
-import type { Database } from '../../types/database.types';
-
-export type Site = Database['public']['Tables']['sites']['Row'];
+import type { InstallerSite } from '../../api/sites';
 
 interface SiteCardProps {
-  site: Site;
+  site: InstallerSite;
   onStartWork?: () => void;
 }
 

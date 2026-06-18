@@ -204,25 +204,27 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5 lg:col-span-1">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Pastabos / komentarai</h3>
-          <button
-            onClick={() => saveNotesMutation.mutate()}
-            disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
-            className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
-          >
-            {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            Išsaugoti
-          </button>
+      <div className="lg:col-span-1 space-y-5">
+        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Pastabos / komentarai</h3>
+            <button
+              onClick={() => saveNotesMutation.mutate()}
+              disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
+              className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            >
+              {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Išsaugoti
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setLocalNotes(e.target.value)}
+            placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
+            rows={8}
+            className="w-full min-h-[180px] p-3.5 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+          />
         </div>
-        <textarea
-          value={notes}
-          onChange={(e) => setLocalNotes(e.target.value)}
-          placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
-          rows={8}
-          className="w-full min-h-[180px] p-3.5 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
-        />
       </div>
 
       {editingTech && (

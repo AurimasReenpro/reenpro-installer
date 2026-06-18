@@ -1,5 +1,5 @@
 import { Image, ImageOff } from 'lucide-react';
-import { useSignedPhotoUrl } from '../../hooks/useSignedPhotoUrl';
+import { useResolvedSignedUrl } from '../../hooks/useSignedPhotoUrls';
 
 interface SignedPhotoProps {
   storage_path: string;
@@ -9,7 +9,7 @@ interface SignedPhotoProps {
 }
 
 export default function SignedPhoto({ storage_path, className, alt, onClick }: SignedPhotoProps) {
-  const { url, isLoading, error } = useSignedPhotoUrl(storage_path);
+  const { url, isLoading, error } = useResolvedSignedUrl(storage_path);
 
   if (isLoading) {
     return (

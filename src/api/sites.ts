@@ -341,7 +341,24 @@ export async function deleteSiteFile(siteId: string, fileName: string): Promise<
 }
 
 // ── Fetch sites for a specific installer by their team_id ────────────────────
-export async function getInstallerSites(installerId: string): Promise<Database['public']['Tables']['sites']['Row'][]> {
+// Narrowed projection for the mobile LIST views (Today / Sites): only the
+// columns SiteCard renders and the status/time filters read. Keeps these hot,
+// frequently-refetched fetches lean — no equipment_details JSONB, notes,
+// stringing_details, etc. (Detail views still fetch the full row via getSiteById.)
+export type InstallerSite = Pick<
+  Database['public']['Tables']['sites']['Row'],
+  'id' | 'code' | 'status' | 'client_name' | 'address' | 'scheduled_start' | 'actual_start' | 'kwp' | 'kwh'
+>;
+
+const INSTALLER_SITE_COLUMNS =
+  'id, code, status, client_name, address, scheduled_start, actual_start, kwp, kwh';
+
+export async function getInstallerSites(
+  installerId: string,
+  opts: { ascending?: boolean } = {},
+): Promise<InstallerSite[]> {
+  const { ascending = true } = opts;
+
   const { data: profileData, error: profileError } = await supabase
     .from('user_profiles')
     .select('team_id')
@@ -355,14 +372,18 @@ export async function getInstallerSites(installerId: string): Promise<Database['
     return [];
   }
 
+  // Order on the ROOT table (sites.scheduled_start) server-side — this works;
+  // only ordering on JOINED tables was unsupported (hence the old JS sort).
+  // nullsFirst:false keeps unscheduled sites last in BOTH directions, exactly
+  // matching the previous Array.sort() behaviour in Today.tsx / Sites.tsx.
   const { data, error } = await supabase
     .from('sites')
-    .select('*')
-    .eq('team_id', userTeamId);
+    .select(INSTALLER_SITE_COLUMNS)
+    .eq('team_id', userTeamId)
+    .order('scheduled_start', { ascending, nullsFirst: false });
 
   if (error) throw new Error(error.message);
-  console.log('Gauti montuotojo objektai:', data);
-  return data || [];
+  return data ?? [];
 }
 
 // ── SolarGrade Checklist helpers ─────────────────────────────────────────────
