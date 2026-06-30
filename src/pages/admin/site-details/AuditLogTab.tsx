@@ -7,7 +7,7 @@ const AUDIT_ITEM_STATUS_LT: Record<string, string> = {
   pending: 'Laukia', pass: 'Atlikta', fail: 'Neatlikta', n_a: 'Netaikoma',
 };
 const AUDIT_SITE_STATUS_LT: Record<string, string> = {
-  pending: 'Laukia', in_progress: 'Vykdomas', paused: 'Sustabdytas', completed: 'Baigtas',
+  pending: 'Laukia', in_progress: 'Vykdomas', paused: 'Sustabdytas', completed: 'Baigtas', archived: 'Archyvuotas',
 };
 
 function readField(j: unknown, key: string): string | undefined {
@@ -78,36 +78,36 @@ export default function AuditLogTab({ siteId }: { siteId: string }) {
 
   if (!logs || logs.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm py-12 flex flex-col items-center gap-3">
-        <History className="w-9 h-9 text-gray-300" />
-        <p className="text-[14px] text-gray-400">Veiksmų istorijos dar nėra.</p>
+      <div className="bg-surface rounded-2xl border border-border shadow-sm py-12 flex flex-col items-center gap-3">
+        <History className="w-9 h-9 text-subtle" />
+        <p className="text-[14px] text-subtle">Veiksmų istorijos dar nėra.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-50 dark:border-white/5">
+    <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border dark:border-white/5">
         <History size={18} className="text-primary" />
-        <h3 className="font-semibold text-[15px] text-gray-900 dark:text-gray-100">Veiksmų istorija</h3>
-        <span className="ml-auto text-[12px] text-gray-400">{logs.length}</span>
+        <h3 className="font-semibold text-[15px] text-text">Veiksmų istorija</h3>
+        <span className="ml-auto text-[12px] text-subtle">{logs.length}</span>
       </div>
 
       <ol className="px-3 py-1">
         {logs.map((log, i) => {
           const { icon: Icon, title, detail, tint } = describeAudit(log);
           return (
-            <li key={log.id} className={`flex gap-3 px-2 py-3 ${i < logs.length - 1 ? 'border-b border-gray-50 dark:border-white/5' : ''}`}>
-              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#27272a] flex items-center justify-center shrink-0" style={{ color: tint }}>
+            <li key={log.id} className={`flex gap-3 px-2 py-3 ${i < logs.length - 1 ? 'border-b border-border dark:border-white/5' : ''}`}>
+              <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center shrink-0" style={{ color: tint }}>
                 <Icon size={15} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] text-gray-900 dark:text-gray-100 leading-snug">
+                <p className="text-[14px] text-text leading-snug">
                   <span className="font-semibold">{log.actor?.full_name ?? 'Nežinomas'}</span>{' '}
                   {title}
-                  {detail && <span className="text-gray-500 dark:text-gray-400"> — {detail}</span>}
+                  {detail && <span className="text-muted"> — {detail}</span>}
                 </p>
-                <p className="flex items-center gap-1.5 text-[12px] text-gray-400 mt-0.5">
+                <p className="flex items-center gap-1.5 text-[12px] text-subtle mt-0.5">
                   <Clock size={11} className="shrink-0" />
                   {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}
                 </p>

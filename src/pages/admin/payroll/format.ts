@@ -49,7 +49,7 @@ export const RULE_UNIT_LABELS: Record<string, string> = {
 export const PARTICIPANT_SOURCE: Record<ParticipantSource, { label: string; cls: string }> = {
   time_entries: { label: 'Laiko įrašai', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' },
   assignments:  { label: 'Priskyrimai', cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-200 dark:border-blue-500/20' },
-  manual:       { label: 'Rankinis',     cls: 'bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 border-purple-200 dark:border-purple-500/20' },
+  manual:       { label: 'Rankinis',     cls: 'bg-primary-fixed text-on-primary-fixed border-primary/30' },
   auto:         { label: 'Nenustatyta',  cls: 'bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10' },
 };
 
@@ -138,7 +138,7 @@ export function parseBreakdown(breakdown: Record<string, unknown>): { rules: Bre
       const detail = qty != null && qty > 0 ? `${qty} vnt. × ${fmtEur(rule.unit_amount)}` : null;
       return {
         ruleId: rule.rule_id,
-        label: RULE_LABELS[rule.rule_type] ?? rule.label,
+        label: rule.label || RULE_LABELS[rule.rule_type],
         ruleType: rule.rule_type,
         applied: rule.applied,
         chip: chipFor(rule),

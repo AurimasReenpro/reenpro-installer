@@ -47,8 +47,8 @@ export default function Stats() {
           .from('sites')
           .select('id, code, client_name, address, kwp, kwh, actual_end')
           .eq('team_id', teamId)
-          // DB stores the status lowercase as 'completed' (set by complete_site_work).
-          .eq('status', 'completed')
+          // Archived completed sites keep actual_end, so they remain part of history.
+          .in('status', ['completed', 'archived'])
           .gte('actual_end', `${month}-01T00:00:00`)
           .lte('actual_end', `${format(monthEnd, 'yyyy-MM-dd')}T23:59:59`)
           .order('actual_end', { ascending: false });
@@ -113,18 +113,18 @@ export default function Stats() {
     <div className="px-4 pb-[120px] pt-4 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-primary">Statistika</h2>
+        <h2 className="text-2xl font-bold text-text">Statistika</h2>
         <input
           type="month"
           value={month}
           max={currentMonth()}
           onChange={(e) => handleMonthChange(e.target.value)}
-          className="h-[40px] px-3 bg-white dark:bg-[#18181b] border border-[#cdc3d4]/60 dark:border-white/10 rounded-xl text-[14px] text-[#1d033a] dark:text-zinc-100 font-medium focus:outline-none focus:border-primary shadow-sm"
+          className="h-[40px] px-3 bg-surface border border-border rounded-xl text-[14px] text-text font-medium focus:outline-none focus:border-primary shadow-card"
         />
       </div>
 
       {/* Motivating summary card */}
-      <div className="rounded-2xl p-5 bg-gradient-to-br from-[#059669] to-[#10b981] text-white shadow-lg relative overflow-hidden">
+      <div className="rounded-[20px] p-5 bg-accent text-white shadow-card relative overflow-hidden">
         <div className="absolute -right-4 -top-4 opacity-15">
           <TrendingUp className="w-28 h-28" />
         </div>
@@ -156,20 +156,20 @@ export default function Stats() {
           <Loader2 className="w-7 h-7 text-primary animate-spin" />
         </div>
       ) : isError ? (
-        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-[#fca5a5]/50 shadow-sm p-6 flex flex-col items-center gap-2 text-center">
-          <AlertTriangle className="w-7 h-7 text-[#DC2626]" />
-          <p className="text-[14px] font-semibold text-[#1d033a] dark:text-zinc-100">Nepavyko įkelti statistikos</p>
-          <p className="text-[12px] text-[#7c7484] dark:text-zinc-400">
+        <div className="bg-surface rounded-[20px] border border-danger/40 shadow-card p-6 flex flex-col items-center gap-2 text-center">
+          <AlertTriangle className="w-7 h-7 text-danger" />
+          <p className="text-[14px] font-semibold text-text">Nepavyko įkelti statistikos</p>
+          <p className="text-[12px] text-muted">
             {error instanceof Error ? error.message : 'Patikrinkite interneto ryšį ir bandykite dar kartą.'}
           </p>
         </div>
       ) : (
         <>
           {/* Calendar */}
-          <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-[#e2d9f0]/60 dark:border-white/10 shadow-sm p-3">
+          <div className="bg-surface rounded-[20px] border border-border shadow-card p-3">
             <div className="grid grid-cols-7 mb-1">
               {WEEKDAYS.map((d) => (
-                <div key={d} className="text-center text-[11px] font-bold text-[#7c7484] dark:text-zinc-400 py-1">{d}</div>
+                <div key={d} className="text-center text-[11px] font-bold text-muted py-1">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -189,24 +189,24 @@ export default function Stats() {
                       isSel
                         ? 'bg-primary/10 border-primary ring-2 ring-primary/40'
                         : hasWork
-                          ? 'bg-[#ECFDF5] border-[#10B981]/40'
-                          : 'bg-[#f9f8fc] dark:bg-white/5 border-transparent'
+                          ? 'bg-success-bg border-success/40'
+                          : 'bg-surface-2 border-transparent'
                     } ${inMonth ? 'cursor-pointer active:scale-95' : 'opacity-35 cursor-default'}`}
                   >
                     <span
                       className={`text-[12px] leading-none ${
-                        isToday(day) ? 'font-extrabold text-primary' : 'font-semibold text-[#1d033a] dark:text-zinc-100'
+                        isToday(day) ? 'font-extrabold text-primary' : 'font-semibold text-text'
                       }`}
                     >
                       {format(day, 'd')}
                     </span>
                     {dk && dk.kw > 0 && (
-                      <span className="mt-0.5 text-[8px] font-bold text-[#059669] leading-tight whitespace-nowrap">
+                      <span className="mt-0.5 text-[8px] font-bold text-success leading-tight whitespace-nowrap">
                         +{num(dk.kw)}kW
                       </span>
                     )}
                     {dk && dk.kwh > 0 && (
-                      <span className="text-[8px] font-bold text-[#2563EB] leading-tight whitespace-nowrap">
+                      <span className="text-[8px] font-bold text-primary-ink leading-tight whitespace-nowrap">
                         +{num(dk.kwh)}kWh
                       </span>
                     )}
@@ -219,15 +219,15 @@ export default function Stats() {
           {/* Completed sites list */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] flex items-center gap-2">
-                <CalendarDays size={16} className="text-primary" />
+              <h3 className="text-text font-bold text-[15px] flex items-center gap-2">
+                <CalendarDays size={16} className="text-primary-ink" />
                 {selectedDate ? format(selectedDate, 'MM-dd') + ' d. objektai' : 'Užbaigti objektai'}
               </h3>
               {selectedDate && (
                 <button
                   type="button"
                   onClick={() => setSelectedDate(null)}
-                  className="flex items-center gap-1 h-[30px] px-2.5 rounded-lg bg-[#f6f5fa] dark:bg-white/5 text-[#574f61] dark:text-zinc-300 text-[12px] font-semibold active:scale-95 transition-all"
+                  className="flex items-center gap-1 h-[30px] px-2.5 rounded-lg bg-surface-2 text-muted text-[12px] font-semibold active:scale-95 transition-all"
                 >
                   <X size={13} /> Rodyti visą mėnesį
                 </button>
@@ -235,7 +235,7 @@ export default function Stats() {
             </div>
 
             {listSites.length === 0 ? (
-              <div className="text-center text-[#574f61] dark:text-zinc-300 py-8 bg-white dark:bg-[#18181b] rounded-2xl shadow-sm border border-[#e2d9f0]/50 dark:border-white/10 text-[14px]">
+              <div className="text-center text-muted py-8 bg-surface rounded-[20px] shadow-card border border-border text-[14px]">
                 {selectedDate ? 'Šią dieną užbaigtų objektų nėra.' : 'Šį mėnesį užbaigtų objektų nėra.'}
               </div>
             ) : (
@@ -243,32 +243,32 @@ export default function Stats() {
                 {listSites.map((s) => (
                   <div
                     key={s.id}
-                    className="bg-white dark:bg-[#18181b] rounded-xl border border-[#e2d9f0]/60 dark:border-white/10 shadow-sm px-4 py-3 flex items-center gap-3"
+                    className="bg-surface rounded-[20px] border border-border shadow-card px-4 py-3 flex items-center gap-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-semibold text-[#1d033a] dark:text-zinc-100 truncate">
+                      <p className="text-[14px] font-semibold text-text truncate">
                         {s.client_name || s.code || 'Objektas'}
                       </p>
                       {s.address && (
-                        <p className="text-[12px] text-[#7c7484] dark:text-zinc-400 truncate flex items-center gap-1">
+                        <p className="text-[12px] text-muted truncate flex items-center gap-1">
                           <MapPin size={11} className="shrink-0" /> {s.address}
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1.5">
                         {(s.kwp ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309] border border-[#F59E0B]/30 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-success-bg text-success border border-success/30 whitespace-nowrap">
                             <Sun className="w-3 h-3" /> {num(s.kwp ?? 0)} kW
                           </span>
                         )}
                         {(s.kwh ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed border border-primary/30 whitespace-nowrap">
                             <Battery className="w-3 h-3" /> {num(s.kwh ?? 0)} kWh
                           </span>
                         )}
                       </div>
                     </div>
                     {s.actual_end && (
-                      <span className="text-[12px] text-[#7c7484] dark:text-zinc-400 font-medium whitespace-nowrap shrink-0">
+                      <span className="text-[12px] text-muted font-medium whitespace-nowrap shrink-0">
                         {format(parseISO(s.actual_end), 'MM-dd')}
                       </span>
                     )}

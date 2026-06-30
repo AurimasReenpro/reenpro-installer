@@ -1,359 +1,406 @@
-import { lazy, Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import WorkingTodayPanel, { type WorkingEntry } from '../../components/admin/WorkingTodayPanel';
-import { formatDistanceToNow } from 'date-fns';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useIsMutating, useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { format, formatDistanceToNow } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
-import { supabase } from '../../lib/supabase';
-import * as Sentry from "@sentry/react";
-import { Plus, MapPin, Users, CheckCircle2, Timer, CheckCheck, LogIn, Pause, Loader2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  Clock3,
+  FileText,
+  FileWarning,
+  Loader2,
+  MapPin,
+  Pause,
+  Play,
+  Plus,
+  Users,
+  WalletCards,
+} from 'lucide-react';
 import { useCreateBlankSite } from '../../hooks/useCreateSite';
-import { getCompanySettings } from '../../api/settings';
+import {
+  getAdminOperationsDashboard,
+  type DashboardAttentionItem,
+  type DashboardAttentionTone,
+  type DashboardSite,
+} from '../../api/dashboard';
+import { useSyncStore } from '../../stores/useSyncStore';
+import { formatElapsedWorkTimer, formatStartedLabel, formatStartedTitle } from './dashboardTime';
 
 const SiteMap = lazy(() => import('../../components/admin/SiteMap'));
 
+type ActivityFilter = 'all' | 'started' | 'ended';
+
+const STATUS: Record<string, { label: string; cls: string }> = {
+  pending: {
+    label: 'Nepradėta',
+    cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300',
+  },
+  in_progress: {
+    label: 'Vyksta',
+    cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  },
+  paused: {
+    label: 'Pristabdyta',
+    cls: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  },
+  completed: {
+    label: 'Užbaigta',
+    cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  },
+};
+
+function useMinuteNow(enabled: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!enabled) return;
+    const intervalId = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [enabled]);
+
+  return now;
+}
+
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+  detail: string;
+  tone: string;
+}) {
+  return (
+    <div className="min-h-[116px] rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm dark:shadow-none">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-subtle">{label}</p>
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}><Icon size={16} /></span>
+      </div>
+      <p className="mt-3 text-3xl font-extrabold tabular-nums tracking-tight text-text">{value}</p>
+      <p className="mt-1 text-[12px] text-muted">{detail}</p>
+    </div>
+  );
+}
+
+function AttentionIcon({ tone }: { tone: DashboardAttentionTone }) {
+  if (tone === 'critical') return <CircleAlert size={16} className="text-red-600 dark:text-red-400" />;
+  if (tone === 'warning') return <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />;
+  return <CircleCheck size={16} className="text-blue-600 dark:text-blue-400" />;
+}
+
+function AttentionRow({ item }: { item: DashboardAttentionItem }) {
+  const content = (
+    <>
+      <AttentionIcon tone={item.tone} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold text-text">{item.title}</p>
+        <p className="truncate text-[12px] text-muted">{item.detail}</p>
+      </div>
+      {item.siteId && <ChevronRight size={15} className="shrink-0 text-subtle" />}
+    </>
+  );
+
+  if (item.siteId) {
+    return (
+      <Link
+        to={`/admin/sites/${item.siteId}`}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="flex items-center gap-3 px-4 py-3">{content}</div>;
+}
+
+function TodayWorkRow({ site, now }: { site: DashboardSite; now: number }) {
+  const status = STATUS[site.status] ?? {
+    label: 'Nepradėta',
+    cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300',
+  };
+  const StatusIcon = site.status === 'in_progress' ? Play : site.status === 'paused' ? Pause : CalendarDays;
+  const elapsed = site.status === 'in_progress' ? formatElapsedWorkTimer(site.openWorkStartedAt, now) : '—';
+  const startedLabel = formatStartedLabel(site.openWorkStartedAt);
+  const startedTitle = formatStartedTitle(site.openWorkStartedAt);
+  const teamLabel = site.teamName ?? 'Komanda nepriskirta';
+  const identity = `${site.clientName} · ${site.code}${site.address ? ` · ${site.address}` : ''}`;
+
+  return (
+    <Link
+      to={`/admin/sites/${site.id}`}
+      className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-2.5 transition-colors hover:bg-surface-2 sm:grid-cols-[minmax(0,1fr)_minmax(120px,170px)_auto_16px] sm:items-center"
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${status.cls}`} title={status.label}><StatusIcon size={13} /></span>
+        <p className="min-w-0 truncate text-[13px] whitespace-nowrap" title={identity}>
+          <span className="font-semibold text-text">{site.clientName}</span>
+          <span className="text-muted"> · {site.code}{site.address ? ` · ${site.address}` : ''}</span>
+        </p>
+      </div>
+      <p className="min-w-0 truncate pl-8 text-[12px] text-muted sm:pl-0" title={teamLabel}>{teamLabel}</p>
+      <div className="row-span-2 flex shrink-0 flex-col items-end justify-center whitespace-nowrap text-right sm:row-auto sm:flex-row sm:items-center sm:gap-1.5">
+        <span className="text-[13px] font-semibold tabular-nums text-text">{elapsed}</span>
+        <span className="hidden text-[12px] text-subtle sm:inline">·</span>
+        <span className="text-[12px] tabular-nums text-muted" title={startedTitle}>{startedLabel}</span>
+      </div>
+      <ChevronRight size={16} className="hidden shrink-0 text-subtle sm:block" />
+    </Link>
+  );
+}
+
+function SummaryRow({ icon: Icon, label, value, href, tone = 'text-text' }: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  href: string;
+  tone?: string;
+}) {
+  return (
+    <Link to={href} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2">
+      <Icon size={16} className="text-subtle" />
+      <span className="flex-1 text-[13px] text-muted">{label}</span>
+      <span className={`text-[13px] font-bold ${tone}`}>{value}</span>
+      <ArrowUpRight size={14} className="text-subtle" />
+    </Link>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-5 animate-pulse">
+      <div className="h-16 w-72 rounded-lg bg-surface-2" />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((key) => <div key={key} className="h-[116px] rounded-2xl bg-surface-2" />)}
+      </div>
+      <div className="grid gap-5 xl:grid-cols-12">
+        <div className="h-[420px] rounded-2xl bg-surface-2 xl:col-span-7" />
+        <div className="h-[420px] rounded-2xl bg-surface-2 xl:col-span-5" />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { createBlankSite, isCreating } = useCreateBlankSite();
-  const navigate = useNavigate();
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
+  const pendingPhotos = useSyncStore((state) => state.pendingPhotos);
+  const pausedMutations = useIsMutating({ predicate: (mutation) => mutation.state.isPaused });
 
-  // 1. KPI Stats Query
-  const { data: stats } = useQuery({
-    queryKey: ['admin_dashboard_stats'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_dashboard_stats')
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error fetching dashboard stats:', error); Sentry.captureException(error, { extra: { context: 'Error fetching dashboard stats:' } });
-        return null;
-      }
-      return data;
-    }
-  });
-
-  // 2. Active Sites Query ("Šiandien dirba")
-  const { data: activeSites } = useQuery({
-    queryKey: ['admin_active_sites_online'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sites')
-        .select(`
-          *,
-          team:teams(name),
-          time_entries(*, installer:user_profiles(full_name, avatar_url)),
-          site_checklists(site_checklist_items(status))
-        `)
-        .in('status', ['in_progress', 'paused'])
-        .order('scheduled_start', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching active sites:', error); Sentry.captureException(error, { extra: { context: 'Error fetching active sites:' } });
-        return [];
-      }
-      return data;
-    },
-    refetchInterval: 10000
-  });
-
-  // 2b. Pending Sites Query (for map – upcoming/planned)
-  const { data: pendingSites } = useQuery({
-    queryKey: ['admin_pending_sites_map'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sites')
-        .select('id, client_name, code, status, latitude, longitude, team:teams(name)')
-        .eq('status', 'pending')
-        .not('latitude', 'is', null)
-        .order('scheduled_start', { ascending: true })
-        .limit(30);
-
-      if (error) {
-        console.error('Error fetching pending sites for map:', error);
-        Sentry.captureException(error, { extra: { context: 'Error fetching pending sites for map' } });
-        return [];
-      }
-      return data;
-    },
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin-operations-dashboard', format(new Date(), 'yyyy-MM-dd')],
+    queryFn: () => getAdminOperationsDashboard(),
+    staleTime: 30_000,
     refetchInterval: 60_000,
   });
 
-  // 2c. Company settings (for map base coords)
-  const { data: companySettings } = useQuery({
-    queryKey: ['company_settings'],
-    queryFn: getCompanySettings,
-    staleTime: 5 * 60_000, // 5 min — rarely changes
-  });
+  const attention = useMemo(() => {
+    const items = [...(data?.attention ?? [])];
+    const pendingSync = pausedMutations + pendingPhotos;
+    if (pendingSync > 0) {
+      items.unshift({
+        id: 'offline-sync-pending',
+        tone: 'info',
+        title: 'Laukia sinchronizavimo',
+        detail: `${pendingSync} neperduoti veiksmai arba nuotraukos`,
+      });
+    }
+    return items;
+  }, [data?.attention, pausedMutations, pendingPhotos]);
 
-  // Derive base coords: DB → fallback to Lithuania center (handled inside SiteMap)
-  const mapBaseCoords =
-    companySettings?.warehouse_lat && companySettings?.warehouse_lng
-      ? {
-          lat: Number(companySettings.warehouse_lat),
-          lng: Number(companySettings.warehouse_lng),
-          label: companySettings.company_name ?? 'Įmonės sandėlis',
-        }
-      : null;
+  const filteredActivity = useMemo(() => (data?.activity ?? []).filter((entry) => {
+    if (activityFilter === 'started') return !entry.endTime;
+    if (activityFilter === 'ended') return !!entry.endTime;
+    return true;
+  }), [data?.activity, activityFilter]);
+  const hasLiveWork = !!data?.todaySites.some((site) => site.status === 'in_progress' && !!site.openWorkStartedAt);
+  const now = useMinuteNow(hasLiveWork);
 
-  // Combine active + pending for the map
-  const mapSites = [
-    ...(activeSites ?? []).map(s => ({
-      id: s.id,
-      client_name: s.client_name,
-      code: s.code,
-      status: s.status,
-      latitude: s.latitude ?? null,
-      longitude: s.longitude ?? null,
-      team: s.team,
-    })),
-    ...(pendingSites ?? []).map(s => ({
-      id: s.id,
-      client_name: s.client_name,
-      code: s.code,
-      status: s.status,
-      latitude: s.latitude ?? null,
-      longitude: s.longitude ?? null,
-      team: s.team,
-    })),
-  ];
+  if (isLoading) return <DashboardSkeleton />;
 
-  // 3. Activity Feed Query ("Veiklos žurnalas")
-  const { data: activityFeed } = useQuery({
-    queryKey: ['admin_activity_feed'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_activity_view')
-        .select('*')
-        .limit(15);
+  if (isError || !data) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-[14px] text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+        Nepavyko įkelti operacijų duomenų. Atnaujinkite puslapį arba patikrinkite ryšį su sistema.
+      </div>
+    );
+  }
 
-      if (error) {
-        console.error('Error fetching activity feed:', error); Sentry.captureException(error, { extra: { context: 'Error fetching activity feed:' } });
-        return [];
+  const mapBaseCoords = data.companySettings?.warehouse_lat && data.companySettings?.warehouse_lng
+    ? {
+        lat: Number(data.companySettings.warehouse_lat),
+        lng: Number(data.companySettings.warehouse_lng),
+        label: data.companySettings.company_name ?? 'Įmonės bazė',
       }
-      return data;
-    },
-    staleTime: 10_000,
-  });
+    : null;
 
-  // Formatting hours
-  const formatHours = (totalMinutes: number = 0) => {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`;
-  };
-
-  // Map the live active sites → the WorkingTodayPanel shape (real data).
-  const workingEntries: WorkingEntry[] = (activeSites ?? []).map((site) => {
-    const tEntries = (site.time_entries ?? []) as unknown as Array<{
-      start_time: string;
-      end_time: string | null;
-      installer?: { full_name: string | null; avatar_url: string | null } | null;
-    }>;
-    const open = tEntries.find((e) => !e.end_time);
-    const latest = open ?? [...tEntries].sort((a, b) => +new Date(b.start_time) - +new Date(a.start_time))[0];
-
-    const checklists = (site.site_checklists ?? []) as unknown as Array<{
-      site_checklist_items?: Array<{ status: string | null }>;
-    }>;
-    const items = checklists.flatMap((c) => c.site_checklist_items ?? []);
-    const done = items.filter((i) => i.status === 'pass' || i.status === 'n_a').length;
-
-    return {
-      id: site.id,
-      installerName: latest?.installer?.full_name || site.team?.name || 'Monteris',
-      avatarUrl: latest?.installer?.avatar_url ?? null,
-      siteName: site.address || site.client_name || '—',
-      siteCode: site.code || 'B/N',
-      startTime: latest?.start_time ?? site.actual_start ?? new Date().toISOString(),
-      // "Online" = actively in progress with an open (unclosed) time entry; paused → offline dot.
-      isOnline: site.status === 'in_progress' && !!open,
-      lastPhotoAt: null,
-      checklistDone: done,
-      checklistTotal: items.length,
-    };
-  });
+  const mapSites = data.mapSites.map((site) => ({
+    id: site.id,
+    client_name: site.clientName,
+    code: site.code,
+    status: site.status,
+    latitude: site.latitude,
+    longitude: site.longitude,
+    team: site.teamName ? { name: site.teamName } : null,
+  }));
 
   return (
-    <div className="space-y-6">
-      {/* Header Row */}
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Apžvalga</h2>
+    <div className="mx-auto max-w-7xl space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-primary dark:text-primary-ink">
+            <Clock3 size={14} /> Operacijų centras
+          </div>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-text">Šiandienos darbai</h1>
+          <p className="mt-1 text-[13px] capitalize text-muted">{format(new Date(), "EEEE, yyyy 'm.' MMMM d 'd.'", { locale: lt })}</p>
+        </div>
         <button
           onClick={() => { void createBlankSite(); }}
           disabled={isCreating}
-          className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-semibold text-white shadow-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isCreating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-          {isCreating ? 'Kuriama...' : 'Sukurti naują objektą'}
+          {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+          {isCreating ? 'Kuriama...' : 'Naujas objektas'}
         </button>
       </div>
 
-      {/* Row 1: KPI Cards */}
-      <div className="grid grid-cols-4 gap-5">
-        {/* Card 1: Aktyvūs objektai */}
-        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Aktyvūs objektai</p>
-            <div className="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 p-2 rounded-xl shrink-0">
-              <MapPin size={18} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">{stats?.active_sites || 0}</h3>
-        </div>
-
-        {/* Card 2: Dirba dabar */}
-        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Dirba dabar</p>
-            <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 p-2 rounded-xl shrink-0">
-              <Users size={18} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">
-            {stats?.installers_online || 0}
-            <span className="text-sm font-semibold text-gray-400 ml-2">monteriai</span>
-          </h3>
-        </div>
-
-        {/* Card 3: Šiandien užbaigta */}
-        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Šiandien užbaigta</p>
-            <div className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 p-2 rounded-xl shrink-0">
-              <CheckCircle2 size={18} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">{stats?.completed_today || 0}</h3>
-        </div>
-
-        {/* Card 4: Savaitės valandos */}
-        <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">Šios sav. valandos</p>
-            <div className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 p-2 rounded-xl shrink-0">
-              <Timer size={18} />
-            </div>
-          </div>
-          <h3 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 tracking-tight">
-            {formatHours(stats?.weekly_minutes || 0)}
-          </h3>
-        </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Kpi icon={CalendarDays} label="Šiandien suplanuota" value={data.scheduledTodayCount} detail="Objektai darbo plane" tone="bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300" />
+        <Kpi icon={Users} label="Dirba dabar" value={data.workingNowCount} detail="Su atvira darbo eiga" tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" />
+        <Kpi icon={AlertTriangle} label="Reikia dėmesio" value={attention.length} detail="Veiksmai, kuriuos verta patikrinti" tone="bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" />
+        <Kpi icon={CheckCircle2} label="Užbaigta šiandien" value={data.completedTodayCount} detail="Uždaryti darbai" tone="bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300" />
       </div>
 
-      {/* Row 2: Split 60/40 */}
-      <div className="grid grid-cols-12 gap-5">
-        {/* Left: Šiandien dirba — premium live ops panel */}
-        <div className="col-span-7">
-          <WorkingTodayPanel
-            entries={workingEntries}
-            onSelect={(e) => { void navigate(e.id ? `/admin/sites/${e.id}` : '/admin/sites'); }}
-            onOpenMap={() => { void navigate('/admin/schedule'); }}
-          />
-        </div>
+      <div className="grid gap-5 xl:grid-cols-12">
+        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+            <div>
+              <h2 className="text-[15px] font-extrabold tracking-tight text-text">Šiandienos darbai</h2>
+              <p className="mt-0.5 text-[12px] text-muted">Aktyvūs ir šiandien suplanuoti objektai</p>
+            </div>
+            <Link to="/admin/schedule" className="flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline dark:text-primary-ink">
+              Darbo planas <ArrowUpRight size={13} />
+            </Link>
+          </div>
+          {data.todaySites.length === 0 ? (
+            <div className="px-4 py-16 text-center text-[13px] text-muted">Šiandien suplanuotų ar aktyvių darbų nėra.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {data.todaySites.slice(0, 10).map((site) => <TodayWorkRow key={site.id} site={site} now={now} />)}
+            </div>
+          )}
+        </section>
 
-        {/* Right: Live Map */}
-        <div className="col-span-5 bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[17px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Objektai žemėlapyje</h3>
-            <div className="flex items-center gap-3 text-[11px] font-semibold">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block"></span>Vyksta</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block"></span>Sustabdyta</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#9CA3AF] inline-block"></span>Planuojama</span>
+        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+            <div>
+              <h2 className="text-[15px] font-extrabold tracking-tight text-text">Objektai žemėlapyje</h2>
+              <p className="mt-0.5 text-[12px] text-muted">Šiandienos maršrutas ir aktyvūs darbai</p>
+            </div>
+            <MapPin size={17} className="text-primary dark:text-primary-ink" />
+          </div>
+          <div className="min-h-[350px] flex-1 p-3">
+            <div className="h-full min-h-[350px] overflow-hidden rounded-xl">
+              <Suspense fallback={<div className="flex h-full min-h-[350px] items-center justify-center rounded-xl bg-surface-2 text-[13px] text-muted"><Loader2 size={18} className="mr-2 animate-spin" /> Kraunamas žemėlapis</div>}>
+                <SiteMap sites={mapSites} baseCoords={mapBaseCoords} />
+              </Suspense>
             </div>
           </div>
-          <div className="flex-1 rounded-[12px] overflow-hidden border border-[#cdc3d4]/40 min-h-[320px]">
-            <Suspense
-              fallback={
-                <div className="w-full h-full min-h-[320px] flex items-center justify-center bg-[#f6f5fa] rounded-[12px]">
-                  <div className="flex flex-col items-center gap-2 text-[#4b4452]">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[13px]">Kraunamas žemėlapis…</span>
-                  </div>
-                </div>
-              }
-            >
-              <SiteMap sites={mapSites} baseCoords={mapBaseCoords} />
-            </Suspense>
-          </div>
-        </div>
+        </section>
       </div>
 
-      {/* Row 3: Activity feed — spacious Apple-style timeline */}
-      <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6">
-        <div className="flex items-center gap-3">
-          <h3 className="text-[17px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Veiklos žurnalas</h3>
-          <span className="bg-[#FFF1F0] text-[#fc391d] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-[#fc391d] rounded-full animate-pulse"></span>
-            LIVE
-          </span>
-        </div>
+      <div className="grid gap-5 xl:grid-cols-12">
+        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+            <div>
+              <h2 className="text-[15px] font-extrabold tracking-tight text-text">Reikia dėmesio</h2>
+              <p className="mt-0.5 text-[12px] text-muted">Tik tie signalai, kurie keičia šiandienos planą</p>
+            </div>
+            <span className="text-[12px] font-bold tabular-nums text-muted">{attention.length}</span>
+          </div>
+          {attention.length === 0 ? (
+            <div className="flex items-center gap-2 px-4 py-12 text-[13px] text-emerald-700 dark:text-emerald-300"><CircleCheck size={17} /> Šiuo metu dėmesio reikalaujančių signalų nėra.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {attention.slice(0, 8).map((item) => <AttentionRow key={item.id} item={item} />)}
+            </div>
+          )}
+        </section>
 
-        {(!activityFeed || activityFeed.length === 0) ? (
-          <p className="text-gray-400 dark:text-gray-500 text-[14px] py-8">Įvykių nerasta.</p>
+        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
+          <div className="border-b border-border px-4 py-3.5">
+            <h2 className="text-[15px] font-extrabold tracking-tight text-text">Payroll ir dokumentacija</h2>
+            <p className="mt-0.5 text-[12px] text-muted">Kontroliniai dienos uždarymo signalai</p>
+          </div>
+          <div className="divide-y divide-border">
+            <SummaryRow
+              icon={WalletCards}
+              label="Payroll periodas"
+              value={data.payrollStatus === 'locked' ? 'Užrakintas' : data.payrollStatus === 'review' ? 'Peržiūroje' : data.payrollStatus === 'open' ? 'Atviras' : 'Nėra'}
+              href="/admin/payroll"
+            />
+            <SummaryRow icon={AlertTriangle} label="Payroll įspėjimai" value={String(data.payrollWarningCount)} href="/admin/payroll" tone={data.payrollWarningCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'} />
+            <SummaryRow icon={FileWarning} label="Trūksta PDF ataskaitos" value={String(data.completedMissingPdfCount)} href="/admin/sites" tone={data.completedMissingPdfCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'} />
+            <SummaryRow icon={FileText} label="Šiandien užbaigti objektai" value={String(data.completedTodayCount)} href="/admin/reports" />
+          </div>
+        </section>
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3.5">
+          <div>
+            <h2 className="text-[15px] font-extrabold tracking-tight text-text">Veiklos žurnalas</h2>
+            <p className="mt-0.5 text-[12px] text-muted">Paskutiniai darbo eigos įvykiai</p>
+          </div>
+          <div className="flex rounded-lg bg-surface-2 p-0.5">
+            {([
+              ['all', 'Visi'],
+              ['started', 'Pradėti'],
+              ['ended', 'Užbaigti'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setActivityFilter(id)}
+                className={`h-7 rounded-md px-2.5 text-[12px] font-semibold transition-colors ${activityFilter === id ? 'bg-surface text-text shadow-sm' : 'text-muted hover:text-text'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {filteredActivity.length === 0 ? (
+          <p className="px-4 py-10 text-center text-[13px] text-muted">Šiam filtrui įvykių nėra.</p>
         ) : (
-          <div className="relative border-l-2 border-gray-100 dark:border-white/10 ml-4 my-6">
-            {activityFeed.map((entry, index) => {
-              // activeSites contains only 'in_progress' and 'paused' sites.
-              // If a site is NOT in activeSites and its latest entry is finished → it was completed.
-              const activeSiteIds = new Set((activeSites ?? []).map(s => s.id));
-              const isFinished = !!entry.end_time;
-              const isLatestForSite = activityFeed.findIndex(e => e.site_id === entry.site_id) === index;
-              const siteIsStillActive = entry.site_id ? activeSiteIds.has(entry.site_id) : false;
-
-              const isCompleted = isFinished && isLatestForSite && (
-                !siteIsStillActive || entry.site_status === 'completed'
-              );
-              const isPaused = isFinished && !isCompleted;
-
-              const timeStr = entry.latest_action_time || (isFinished ? entry.end_time : entry.start_time);
-              const timeAgo = formatDistanceToNow(new Date(timeStr!), { addSuffix: true, locale: lt });
-              const name = entry.installer_name || 'Nežinomas montuotojas';
-              const siteName = entry.client_name || entry.site_code || 'Nežinomas objektas';
-
-              // Per-type icon + soft circle border colour (one purple family, semantic accents)
-              let Icon = LogIn;
-              let iconColor = 'text-purple-600';
-              let borderColor = 'border-purple-100 dark:border-purple-900/50';
-              let actionText = 'pradėjo darbus objekte';
-
-              if (isCompleted) {
-                Icon = CheckCheck;
-                iconColor = 'text-emerald-600';
-                borderColor = 'border-emerald-100 dark:border-emerald-900/50';
-                actionText = 'užbaigė darbus objekte';
-              } else if (isPaused) {
-                Icon = Pause;
-                iconColor = 'text-amber-600';
-                borderColor = 'border-amber-100 dark:border-amber-900/50';
-                actionText = 'pristabdė darbus objekte';
-              }
-
+          <div className="divide-y divide-border">
+            {filteredActivity.slice(0, 12).map((entry) => {
+              const ended = !!entry.endTime;
+              const Icon = ended ? CheckCircle2 : Play;
+              const action = ended ? 'užbaigė darbus' : 'pradėjo darbus';
+              const when = entry.latestActionTime ?? entry.endTime ?? entry.startTime;
               return (
-                <div key={entry.id} className="relative pl-8 pb-8 last:pb-0">
-                  <div className={`absolute -left-3.5 top-0 w-7 h-7 rounded-full bg-white dark:bg-[#18181b] border-2 ${borderColor} flex items-center justify-center`}>
-                    <Icon size={12} className={iconColor} />
-                  </div>
-                  <p className="text-sm leading-relaxed">
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
-                    <span className="text-gray-400 dark:text-gray-500 text-xs ml-2 capitalize">{timeAgo}</span>
+                <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${ended ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-primary-fixed text-primary-ink dark:bg-primary/20'}`}><Icon size={14} /></span>
+                  <p className="min-w-0 flex-1 truncate text-[13px] text-muted">
+                    <span className="font-semibold text-text">{entry.installerName ?? 'Montuotojas'}</span> {action}{' '}
+                    {entry.siteId ? <Link to={`/admin/sites/${entry.siteId}`} className="font-semibold text-primary hover:underline dark:text-primary-ink">{entry.clientName ?? entry.siteCode ?? 'objekte'}</Link> : <span>{entry.clientName ?? entry.siteCode ?? 'objekte'}</span>}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">
-                    {actionText}{' '}
-                    {entry.site_id ? (
-                      <Link to={`/admin/sites/${entry.site_id}`} className="text-purple-600 hover:text-purple-700 transition-colors font-medium">
-                        {siteName}
-                      </Link>
-                    ) : (
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{siteName}</span>
-                    )}
-                  </p>
+                  <span className="shrink-0 text-[12px] text-subtle">{when ? formatDistanceToNow(new Date(when), { addSuffix: true, locale: lt }) : ''}</span>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

@@ -8,13 +8,14 @@ interface SiteDetailHeaderProps {
 
 export default function SiteDetailHeader({ code, onBack, onOpenMaps }: SiteDetailHeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-[56px] bg-white dark:bg-[#18181b] flex items-center justify-between px-4 z-[70]">
+    // Sits on top of the green hero below — transparent so they read as one block.
+    <header className="fixed top-0 left-0 right-0 h-[56px] bg-accent flex items-center justify-between px-4 z-[70]">
       <button onClick={onBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2">
-        <ArrowLeft className="text-primary w-6 h-6" />
+        <ArrowLeft className="text-white w-6 h-6" />
       </button>
-      <span className="text-primary-light text-sm font-bold">{code}</span>
+      <span className="text-white/80 text-sm font-bold">{code}</span>
       <button onClick={onOpenMaps} className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
-        <Map className="text-primary w-6 h-6" />
+        <Map className="text-white w-6 h-6" />
       </button>
     </header>
   );

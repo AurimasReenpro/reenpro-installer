@@ -10,12 +10,12 @@ import type { SiteWithTeam } from './types';
 /** Clean iOS-style list row: muted label left, focal value right, hairline divider. */
 function FieldRow({ label, icon: Icon, last, children }: { label: string; icon?: React.ElementType; last?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`flex items-start justify-between gap-4 py-2.5 ${last ? '' : 'border-b border-gray-100 dark:border-white/10'}`}>
-      <span className="flex items-center gap-2 text-[12px] text-gray-400 font-medium tracking-wide shrink-0 pt-0.5">
-        {Icon && <Icon className="w-4 h-4 text-gray-400" />}
+    <div className={`flex items-start justify-between gap-4 py-2.5 ${last ? '' : 'border-b border-border'}`}>
+      <span className="flex items-center gap-2 text-[12px] text-subtle font-medium tracking-wide shrink-0 pt-0.5">
+        {Icon && <Icon className="w-4 h-4 text-subtle" />}
         {label}
       </span>
-      <span className="text-[14px] text-gray-900 dark:text-gray-100 font-semibold text-right min-w-0 break-words">{children}</span>
+      <span className="text-[14px] text-text font-semibold text-right min-w-0 break-words">{children}</span>
     </div>
   );
 }
@@ -75,9 +75,9 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
       <div className="lg:col-span-2 space-y-5">
-        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Kliento informacija</h3>
+            <h3 className="font-semibold text-text text-[15px]">Kliento informacija</h3>
             {!editingClient ? (
               <button
                 onClick={startEditingClient}
@@ -90,7 +90,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                 <button
                   onClick={() => setEditingClient(false)}
                   disabled={saveClientMutation.isPending}
-                  className="text-[13px] text-gray-400 font-medium hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-60"
+                  className="text-[13px] text-subtle font-medium hover:text-muted transition-colors cursor-pointer disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -109,61 +109,61 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
           {editingClient ? (
             <div className="space-y-3 pt-1">
               <div>
-                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Įmonė / Klientas</label>
+                <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">Įmonė / Klientas</label>
                 <input
                   type="text"
                   value={clientForm.client_name}
                   onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
                   disabled={saveClientMutation.isPending}
-                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
               </div>
               <div>
-                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Kontaktinis asmuo</label>
+                <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">Kontaktinis asmuo</label>
                 <input
                   type="text"
                   value={clientForm.contact_person}
                   onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Vardas Pavardė"
-                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Tel. numeris</label>
+                  <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">Tel. numeris</label>
                   <input
                     type="tel"
                     value={clientForm.client_phone}
                     onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="+370 600 00000"
-                    className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">El. paštas</label>
+                  <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">El. paštas</label>
                   <input
                     type="email"
                     value={clientForm.client_email}
                     onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="vardas@imone.lt"
-                    className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">Adresas</label>
+                <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">Adresas</label>
                 <input
                   type="text"
                   value={clientForm.address}
                   onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Pvz.: Vilniaus g. 1, Vilnius"
-                  className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
-                <p className="text-[12px] text-gray-400 italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
+                <p className="text-[12px] text-subtle italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
               </div>
             </div>
           ) : (
@@ -177,9 +177,9 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
           )}
         </div>
 
-        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Techniniai duomenys</h3>
+            <h3 className="font-semibold text-text text-[15px]">Techniniai duomenys</h3>
             <button
               onClick={() => setEditingTech(true)}
               className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
@@ -189,10 +189,10 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
           </div>
           <div>
             <FieldRow label="Saulės galia" icon={Sun}>
-              {site.kwp != null ? <>{site.kwp} <span className="text-gray-400 font-medium">kWp</span></> : '—'}
+              {site.kwp != null ? <>{site.kwp} <span className="text-subtle font-medium">kWp</span></> : '—'}
             </FieldRow>
             <FieldRow label="Baterijos talpa" icon={Battery}>
-              {site.kwh != null ? <>{site.kwh} <span className="text-gray-400 font-medium">kWh</span></> : '—'}
+              {site.kwh != null ? <>{site.kwh} <span className="text-subtle font-medium">kWh</span></> : '—'}
             </FieldRow>
             <FieldRow label="Planuojama pradžia">
               {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd HH:mm') : '—'}
@@ -205,9 +205,9 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
       </div>
 
       <div className="lg:col-span-1 space-y-5">
-        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px]">Pastabos / komentarai</h3>
+            <h3 className="font-semibold text-text text-[15px]">Pastabos / komentarai</h3>
             <button
               onClick={() => saveNotesMutation.mutate()}
               disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
@@ -222,7 +222,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
             onChange={(e) => setLocalNotes(e.target.value)}
             placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
             rows={8}
-            className="w-full min-h-[180px] p-3.5 bg-gray-50 dark:bg-[#27272a] border border-gray-200 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+            className="w-full min-h-[180px] p-3.5 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
           />
         </div>
       </div>

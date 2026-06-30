@@ -4,47 +4,123 @@
 /* Class-based dark mode (Tailwind v4): `dark:` activates when an ancestor has .dark */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * ============================================================================
+ *  COPPER MIST — design tokens (Phase 1)
+ * ============================================================================
+ *  Warm sand background, graphite ink, forest green + copper accent.
+ *  Canonical values live in :root (light) and html.dark (dark) below; the
+ *  @theme block only WIRES them into Tailwind so utilities such as `bg-bg`,
+ *  `bg-surface`, `text-muted`, `border-border`, `text-primary-ink`,
+ *  `rounded-card`, `shadow-card`, etc. become available.
+ *
+ *  Because the @theme entries reference var(--token), overriding a token in
+ *  html.dark cascades through automatically — components stay theme-agnostic.
+ * ----------------------------------------------------------------------------
+ */
 @theme {
   /* Inter universally — no OS system-font stack, for 100% cross-platform consistency. */
   --font-sans: "Inter", sans-serif;
 
-  /* Unified brand purple = Tailwind purple-600 family (one crisp shade everywhere) */
-  --color-primary: #9333ea;          /* purple-600 */
-  --color-primary-light: #a855f7;    /* purple-500 */
-  --color-primary-fixed: #f3e8ff;    /* purple-100 */
-  --color-on-primary-fixed: #581c87; /* purple-900 */
-  --color-surface-bright: #fff7ff;
-  --color-surface-container-low: #fbf0ff;
-  --color-app-bg: #f6f5fa;
-  --color-on-surface: #1d033a;
-  --color-on-surface-variant: #4b4452;
-  --color-outline-variant: #cdc3d4;
-  --color-success: #10B981;
-  --color-success-bg: #ECFDF5;
-  --color-warning: #F59E0B;
-  --color-error: #ba1a1a;
-}
+  /* ---- Copper Mist palette (preferred names for new/migrated components) ---- */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);     /* utility: text-muted */
+  --color-subtle: var(--text-subtle);   /* utility: text-subtle */
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
 
-:root {
-  background-color: var(--color-app-bg);
-  color: var(--color-on-surface);
+  /* ---- Legacy Material aliases ----
+     Existing components still reference these names; remapping them onto the
+     Copper Mist tokens re-themes the whole app without touching any component.
+     Retire these as each screen migrates to the tokens above. */
+  --color-app-bg: var(--bg);
+  --color-surface-bright: var(--surface);
+  --color-surface-container-low: var(--surface-2);
+  --color-on-surface: var(--text);
+  --color-on-surface-variant: var(--text-muted);
+  --color-outline-variant: var(--border);
+  --color-primary-light: var(--primary-ink);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-error: var(--danger);
+
+  /* ---- Radii ---- → rounded-card / rounded-btn / rounded-input (chip = rounded-full) */
+  --radius-card: 20px;
+  --radius-btn: 15px;
+  --radius-input: 13px;
+
+  /* ---- Shadows ---- → shadow-card / shadow-primary (theme-dependent, see below) */
+  --shadow-card: var(--sh-card);
+  --shadow-primary: var(--sh-primary);
 }
 
 /*
- * Dark theme for the installer (mobile) app. These Material-style surface tokens
- * are used ONLY by the mobile components, so overriding them under .dark themes
- * the entire mobile chrome (background, header, bottom nav, cards, text, borders)
- * in one place. Admin uses its own explicit zinc `dark:` utilities and is
- * unaffected. The brand `--color-primary` purple is intentionally kept.
+ * ---- Light theme (default) -------------------------------------------------
+ */
+:root {
+  --bg: #F8F3EC;
+  --surface: #FFFDF8;
+  --surface-2: #F2E9DD;
+  --border: #E3D8CA;
+  --text: #182321;
+  --text-muted: #5F6762;
+  --text-subtle: #8B918B;
+  --primary: #D95A1A;
+  --primary-ink: #D95A1A;
+  --primary-fixed: #FBE4D6;     /* pale copper chip / icon-tile background */
+  --on-primary-fixed: #B0481A;  /* readable copper text on --primary-fixed  */
+  --accent: #0F5A3D;
+  --success: #0F6B4A;
+  --success-bg: #DCEFE6;
+  --warning: #9A5B25;
+  --warning-bg: #FBE4D6;
+  --danger: #C62828;
+
+  --sh-card: 0 8px 24px rgba(24, 35, 33, .06);
+  --sh-primary: 0 6px 14px rgba(217, 90, 26, .18);
+
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/*
+ * ---- Dark theme ------------------------------------------------------------
+ *  next-themes toggles `.dark` on <html>. Overriding the canonical tokens here
+ *  re-themes both the mobile chrome and (via the legacy aliases) everything
+ *  that reads them. Admin's explicit zinc `dark:` utilities are unaffected
+ *  until those screens are migrated.
  */
 html.dark {
-  --color-app-bg: #09090b;                       /* near-black page background      */
-  --color-surface-bright: #18181b;               /* zinc-900 — header / nav / cards */
-  --color-surface-container-low: #27272a;        /* zinc-800 — insets               */
-  --color-on-surface: #f4f4f5;                    /* zinc-100 — primary text         */
-  --color-on-surface-variant: #a1a1aa;            /* zinc-400 — secondary text       */
-  --color-outline-variant: rgba(255, 255, 255, 0.10); /* subtle separators          */
-  --color-primary-fixed: rgba(147, 51, 234, 0.16);    /* translucent purple accent  */
+  --bg: #15211D;
+  --surface: #1E2C27;
+  --surface-2: #283833;
+  --border: #33443D;
+  --text: #F2ECE2;
+  --text-muted: #AAB2AC;
+  --text-subtle: #7E877F;
+  --primary: #D95A1A;
+  --primary-ink: #E5894F;                       /* lighter copper for text/icons in dark */
+  --primary-fixed: rgba(217, 90, 26, .16);      /* translucent copper tile               */
+  --on-primary-fixed: #E5894F;
+  --accent: #1F8A5B;
+  --success: #5FD39E;
+  --success-bg: #173026;
+  --warning: #C99A6A;
+  --warning-bg: #3A2418;
+  --danger: #EF4444;
+
+  --sh-card: 0 8px 28px rgba(0, 0, 0, .3);
+  --sh-primary: 0 6px 14px rgba(217, 90, 26, .28);
 }
 
 body {
@@ -53,4 +129,10 @@ body {
   /* Apple-like crisp text rendering across platforms. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Pulsing "online" dot — opacity 1 ↔ 0.4, ~1.6s (per handoff). */
+@keyframes cm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
 }

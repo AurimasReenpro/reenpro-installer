@@ -25,6 +25,7 @@ import InfoTab from './site-detail/InfoTab';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import JobCompletionBlockedModal from '../../components/mobile/JobCompletionBlockedModal';
 import { validateJobCompletion, type JobCompletionValidation } from '../../lib/checklistValidation';
+import { isArchivedSiteStatus, isCompletedOrArchivedSiteStatus } from '../../lib/siteStatus';
 
 export default function SiteDetail() {
   const { id } = useParams();
@@ -95,15 +96,17 @@ export default function SiteDetail() {
   const tabs = ['Objekto info', 'Įranga', 'Darbai', 'Brėžiniai', 'Foto'];
 
   const isActive = site?.time_entries?.some((e) => !e.end_time) ?? false;
-  const displayStatus = site.status === 'completed'
-    ? 'completed'
-    : (isActive
-      ? 'in_progress'
-      : (site.time_entries && site.time_entries.length > 0
-        ? 'paused'
-        : site.status));
+  const displayStatus = isArchivedSiteStatus(site.status)
+    ? 'archived'
+    : site.status === 'completed'
+      ? 'completed'
+      : (isActive
+        ? 'in_progress'
+        : (site.time_entries && site.time_entries.length > 0
+          ? 'paused'
+          : site.status));
 
-  const isCompleted = site.status === 'completed';
+  const isReadOnly = isCompletedOrArchivedSiteStatus(site.status);
 
   return (
     <div className="fixed inset-0 z-[60] bg-app-bg overflow-y-auto pb-[100px]">
@@ -127,10 +130,10 @@ export default function SiteDetail() {
       />
 
       {/* Completed → read-only notice */}
-      {isCompleted && (
-        <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
-          <Lock size={14} className="text-amber-600 shrink-0" />
-          <span className="text-[13px] font-medium text-amber-700">Projektas užbaigtas. Redagavimas negalimas.</span>
+      {isReadOnly && (
+        <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-warning-bg border border-warning/30 px-3 py-2.5">
+          <Lock size={14} className="text-warning shrink-0" />
+          <span className="text-[13px] font-medium text-warning">Projektas užbaigtas arba archyvuotas. Redagavimas negalimas.</span>
         </div>
       )}
 
@@ -144,7 +147,7 @@ export default function SiteDetail() {
 
       {activeTab === 'Darbai' && (
         <WorkTab
-          readOnly={isCompleted}
+          readOnly={isReadOnly}
           checklists={(site.site_checklists?.[0]?.site_checklist_items) ?? []}
           photos={site.photos || []}
           extraMaterials={site.site_extra_materials || []}
@@ -173,7 +176,7 @@ export default function SiteDetail() {
 
       {activeTab === 'Foto' && (
         <PhotosTab
-          readOnly={isCompleted}
+          readOnly={isReadOnly}
           photos={site.photos || []}
           siteId={id as string}
           profileId={profile?.id}

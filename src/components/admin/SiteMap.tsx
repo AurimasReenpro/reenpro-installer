@@ -24,7 +24,7 @@ function createSvgIcon(color: MarkerColor, pulse = false): L.DivIcon {
     green:  { fill: '#10B981', glow: 'rgba(16,185,129,0.4)' },
     orange: { fill: '#F59E0B', glow: 'rgba(245,158,11,0.4)' },
     gray:   { fill: '#9CA3AF', glow: 'rgba(156,163,175,0.3)' },
-    purple: { fill: '#9333ea', glow: 'rgba(147,51,234,0.4)' },
+    purple: { fill: '#D95A1A', glow: 'rgba(217,90,26,0.4)' },
   };
 
   const { fill, glow } = COLORS[color];
@@ -54,7 +54,7 @@ function createBaseIcon(): L.DivIcon {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42">
       <path d="M18 0C8.059 0 0 8.059 0 18c0 13.5 18 24 18 24S36 31.5 36 18C36 8.059 27.941 0 18 0z"
-            fill="#9333ea" stroke="white" stroke-width="2.5"/>
+            fill="#D95A1A" stroke="white" stroke-width="2.5"/>
       <path d="M18 10 L26 17 L23.5 17 L23.5 26 L12.5 26 L12.5 17 L10 17 Z" fill="white"/>
     </svg>`;
   return L.divIcon({
@@ -94,22 +94,23 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   in_progress: { label: 'Vyksta',      color: 'text-[#10B981] bg-[#ECFDF5]' },
   paused:      { label: 'Pristabdyta', color: 'text-[#F59E0B] bg-[#FFFBEB]' },
   pending:     { label: 'Planuojama',  color: 'text-[#6B7280] bg-[#F3F4F6]' },
+  archived:    { label: 'Archyvuota',  color: 'text-zinc-500 bg-zinc-100' },
 };
 
 function SitePopup({ site }: { site: MapSite }) {
   const navigate = useNavigate();
   const statusInfo = STATUS_LABELS[site.status ?? ''] ?? {
     label: site.status ?? '—',
-    color: 'text-gray-500 bg-gray-100',
+    color: 'text-muted bg-surface-2',
   };
 
   return (
     <div className="min-w-[190px] font-sans">
       <div className="mb-2">
-        <p className="font-bold text-[#1d033a] text-[14px] leading-tight">
+        <p className="font-bold text-text text-[14px] leading-tight">
           {site.client_name || 'Nežinomas klientas'}
         </p>
-        <p className="text-[11px] text-[#4b4452] mt-0.5">{site.code}</p>
+        <p className="text-[11px] text-muted mt-0.5">{site.code}</p>
       </div>
 
       <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold mb-2 ${statusInfo.color}`}>
@@ -117,7 +118,7 @@ function SitePopup({ site }: { site: MapSite }) {
       </span>
 
       {site.team && (
-        <div className="flex items-center gap-1.5 text-[12px] text-[#4b4452] mt-1">
+        <div className="flex items-center gap-1.5 text-[12px] text-muted mt-1">
           <Users size={12} className="text-primary" />
           <span>{site.team.name}</span>
         </div>
@@ -204,8 +205,8 @@ export default function SiteMap({ sites, baseCoords }: SiteMapProps) {
       >
         <Popup>
           <div className="font-sans text-[13px]">
-            <p className="font-bold text-[#1d033a]">{base.label ?? 'Įmonės sandėlis'}</p>
-            <p className="text-[11px] text-[#4b4452] mt-0.5">
+            <p className="font-bold text-text">{base.label ?? 'Įmonės sandėlis'}</p>
+            <p className="text-[11px] text-muted mt-0.5">
               {base.lat.toFixed(4)}, {base.lng.toFixed(4)}
             </p>
           </div>

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import type { EquipmentItem } from '../types/equipment.types';
 import { isBatteryCategory } from '../types/equipment.types';
+import { INSTALLER_VISIBLE_SITE_STATUS_FILTER } from '../lib/siteStatus';
 
 // ── Nominatim geocoding ───────────────────────────────────────────────────────
 interface NominatimResult { lat: string; lon: string; }
@@ -380,6 +381,7 @@ export async function getInstallerSites(
     .from('sites')
     .select(INSTALLER_SITE_COLUMNS)
     .eq('team_id', userTeamId)
+    .or(INSTALLER_VISIBLE_SITE_STATUS_FILTER)
     .order('scheduled_start', { ascending, nullsFirst: false });
 
   if (error) throw new Error(error.message);
@@ -542,5 +544,180 @@ export async function updateTechData(
     })
     .eq('id', id);
 
+  if (error) throw new Error(error.message);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Admin "Visi objektai" list — one consolidated query (no N+1), enriched client-side.
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Raw row from getSitesList — embeds team + the aggregate sources for the list. */
+export interface RawSiteListItem {
+  id: string;
+  code: string;
+  client_name: string;
+  address: string | null;
+  status: string | null;
+  scheduled_start: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  system_type: string | null;
+  kwp: number | null;
+  kwh: number | null;
+  equipment_details: unknown;
+  team_id: string | null;
+  created_at: string;
+  team: { name: string } | null;
+  site_checklists: { id: string; site_checklist_items: { status: string | null }[] }[];
+  time_entries: { duration_minutes: number | null; start_time: string; end_time: string | null; installer_id: string }[];
+  photos: { id: string }[];
+  site_assignments: { installer_id: string }[];
+}
+
+/**
+ * Single request that returns everything the admin object list needs: core site
+ * fields, team name, and the embedded rows used to derive progress/time/warnings.
+ * Capped to keep payload bounded as the list grows.
+ */
+export async function getSitesList(): Promise<RawSiteListItem[]> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select(
+      'id, code, client_name, address, status, scheduled_start, actual_start, actual_end, ' +
+        'system_type, kwp, kwh, equipment_details, team_id, created_at, ' +
+        'team:teams(name), ' +
+        'site_checklists(id, site_checklist_items(status)), ' +
+        'time_entries(duration_minutes, start_time, end_time, installer_id), ' +
+        'photos(id), site_assignments(installer_id)',
+    )
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as RawSiteListItem[];
+}
+
+/** Related-data counts that BLOCK a hard delete. Zero across the board → safe to delete. */
+export interface SiteDeletionBlockers {
+  timeEntries: number;
+  checklistItems: number;
+  photos: number;
+  files: number;
+  snapshots: number;
+  earnings: number;
+}
+
+async function countFor(table: string, column: string, siteId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from(table as never)
+    .select('*', { count: 'exact', head: true })
+    .eq(column, siteId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function getSiteDeletionBlockers(siteId: string): Promise<SiteDeletionBlockers> {
+  const [timeEntries, photos, snapshots, earnings] = await Promise.all([
+    countFor('time_entries', 'site_id', siteId),
+    countFor('photos', 'site_id', siteId),
+    countFor('payroll_site_snapshots', 'site_id', siteId),
+    // earnings_entries links to a site via its snapshot; count any rows joined to this site.
+    supabase
+      .from('earnings_entries')
+      .select('id, snapshot:payroll_site_snapshots!inner(site_id)', { count: 'exact', head: true })
+      .eq('snapshot.site_id', siteId)
+      .then(({ count, error }) => { if (error) throw new Error(error.message); return count ?? 0; }),
+  ]);
+  // Checklist items live under site_checklists(site_id) → count via the parent.
+  const { data: checklists, error: clErr } = await supabase
+    .from('site_checklists')
+    .select('id, site_checklist_items(id)')
+    .eq('site_id', siteId);
+  if (clErr) throw new Error(clErr.message);
+  const checklistItems = (checklists ?? []).reduce(
+    (n, c) => n + ((c.site_checklist_items as { id: string }[] | null)?.length ?? 0),
+    0,
+  );
+  // Storage files (site-files bucket, prefixed by site id).
+  let files = 0;
+  try {
+    const { data: list } = await supabase.storage.from('site-files').list(siteId, { limit: 1 });
+    files = list?.length ?? 0;
+  } catch { /* bucket optional */ }
+
+  return { timeEntries, checklistItems, photos, files, snapshots, earnings };
+}
+
+export const hasDeletionBlockers = (b: SiteDeletionBlockers): boolean =>
+  b.timeEntries > 0 || b.checklistItems > 0 || b.photos > 0 || b.files > 0 || b.snapshots > 0 || b.earnings > 0;
+
+/** Hard delete, but only after confirming the site has no related data. */
+export async function deleteSiteSafe(siteId: string): Promise<void> {
+  const blockers = await getSiteDeletionBlockers(siteId);
+  if (hasDeletionBlockers(blockers)) {
+    throw new Error('SITE_HAS_RELATED_DATA');
+  }
+  const { error } = await supabase.from('sites').delete().eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+/** Soft archive — reversible. Stored as a status so no schema change is needed. */
+export async function archiveSite(siteId: string): Promise<void> {
+  const { error } = await supabase.from('sites').update({ status: 'archived' }).eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+export async function setSiteStatus(siteId: string, status: string): Promise<void> {
+  const { error } = await supabase.from('sites').update({ status }).eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+export async function assignSiteTeam(siteId: string, teamId: string | null): Promise<void> {
+  const { error } = await supabase.from('sites').update({ team_id: teamId }).eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+export type ScheduleSite = Pick<
+  Database['public']['Tables']['sites']['Row'],
+  | 'id'
+  | 'code'
+  | 'client_name'
+  | 'address'
+  | 'status'
+  | 'scheduled_start'
+  | 'kwp'
+  | 'kwh'
+  | 'team_id'
+  | 'system_type'
+  | 'equipment_details'
+>;
+
+export async function getScheduleSites(): Promise<ScheduleSite[]> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select('id, code, client_name, address, status, scheduled_start, kwp, kwh, team_id, system_type, equipment_details')
+    .in('status', ['pending', 'in_progress', 'paused', 'completed'])
+    .order('scheduled_start', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function assignSiteToSchedule(
+  siteId: string,
+  teamId: string,
+  scheduledStart: string,
+  status = 'pending',
+): Promise<void> {
+  const { error } = await supabase
+    .from('sites')
+    .update({ team_id: teamId, scheduled_start: scheduledStart, status })
+    .eq('id', siteId);
+  if (error) throw new Error(error.message);
+}
+
+export async function unassignSiteFromSchedule(siteId: string): Promise<void> {
+  const { error } = await supabase
+    .from('sites')
+    .update({ team_id: null, scheduled_start: null, status: 'pending' })
+    .eq('id', siteId);
   if (error) throw new Error(error.message);
 }

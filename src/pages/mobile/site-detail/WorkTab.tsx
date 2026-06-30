@@ -37,18 +37,18 @@ function PendingPhotoThumbs({
   return (
     <div className="grid grid-cols-3 gap-2">
       {items.map((i) => (
-        <div key={i.id} className="relative rounded-md overflow-hidden border border-[#F59E0B]/50">
+        <div key={i.id} className="relative rounded-md overflow-hidden border border-warning/50">
           <img src={i.url} alt="Laikoma telefone" className="w-full aspect-square object-cover opacity-90" />
           <span
             title="Laikoma telefone – bus įkelta atsiradus ryšiui"
-            className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-1 text-[9px] font-bold px-1 py-0.5 rounded bg-[#FFFBEB]/95 text-[#B45309] border border-[#F59E0B]/40"
+            className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-1 text-[9px] font-bold px-1 py-0.5 rounded bg-warning-bg/95 text-warning border border-warning/40"
           >
             <Clock size={9} /> Telefone
           </span>
           {!readOnly && (
             <button
               onClick={() => onDelete(i.id)}
-              className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
+              className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
               title="Ištrinti (saugoma telefone)"
             >
               <Trash2 size={11} />
@@ -96,39 +96,39 @@ const STATUS_CFG: Record<ChecklistItemStatus, {
 }> = {
   pending: {
     label:        'Laukia',
-    badgeCls:     'bg-[#f6f5fa] dark:bg-white/5 text-[#574f61] dark:text-zinc-300',
-    borderCls:    'border-[#e2d9f0]/50 dark:border-white/10',
+    badgeCls:     'bg-surface-2 text-muted',
+    borderCls:    'border-border',
     Icon:         Circle,
-    iconCls:      'text-[#cdc3d4] dark:text-zinc-600',
-    btnActiveCls: 'bg-[#6B7280] text-white border-[#6B7280]',
-    btnInactiveCls:'bg-[#F3F4F6] text-[#6B7280] dark:text-zinc-400 border-[#6B7280]/20',
+    iconCls:      'text-subtle',
+    btnActiveCls: 'bg-text text-bg border-text',
+    btnInactiveCls:'bg-surface-2 text-muted border-border',
   },
   pass: {
     label:        'Atlikta',
-    badgeCls:     'bg-[#ECFDF5] text-[#059669]',
-    borderCls:    'border-[#10B981]/30',
+    badgeCls:     'bg-success-bg text-success',
+    borderCls:    'border-success/30',
     Icon:         CheckCircle2,
-    iconCls:      'text-[#10B981]',
-    btnActiveCls: 'bg-[#10B981] text-white border-[#10B981]',
-    btnInactiveCls:'bg-[#F0FDF4] text-[#10B981] border-[#10B981]/20',
+    iconCls:      'text-success',
+    btnActiveCls: 'bg-success text-white border-success',
+    btnInactiveCls:'bg-success-bg text-success border-success/20',
   },
   fail: {
     label:        'Neatlikta',
-    badgeCls:     'bg-[#FEF2F2] text-[#DC2626]',
-    borderCls:    'border-[#EF4444]/30',
+    badgeCls:     'bg-[var(--danger)]/12 text-danger',
+    borderCls:    'border-danger/30',
     Icon:         XCircle,
-    iconCls:      'text-[#EF4444]',
-    btnActiveCls: 'bg-[#EF4444] text-white border-[#EF4444]',
-    btnInactiveCls:'bg-[#FEF2F2] text-[#EF4444] border-[#EF4444]/20',
+    iconCls:      'text-danger',
+    btnActiveCls: 'bg-danger text-white border-danger',
+    btnInactiveCls:'bg-[var(--danger)]/10 text-danger border-danger/20',
   },
   n_a: {
     label:        'Netaikoma',
-    badgeCls:     'bg-[#FFFBEB] text-[#D97706]',
-    borderCls:    'border-[#F59E0B]/30',
+    badgeCls:     'bg-warning-bg text-warning',
+    borderCls:    'border-warning/30',
     Icon:         MinusCircle,
-    iconCls:      'text-[#F59E0B]',
-    btnActiveCls: 'bg-[#F59E0B] text-white border-[#F59E0B]',
-    btnInactiveCls:'bg-[#FFFBEB] text-[#D97706] border-[#D97706]/20',
+    iconCls:      'text-warning',
+    btnActiveCls: 'bg-warning text-white border-warning',
+    btnInactiveCls:'bg-warning-bg text-warning border-warning/20',
   },
 };
 
@@ -163,19 +163,19 @@ function PhotoPickerButton({
       <button
         type="button"
         onClick={() => setShowPicker(true)}
-        className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-[#f6e9ff] dark:bg-purple-500/10 active:bg-[#e4cbf8] transition-colors cursor-pointer border border-primary/10"
+        className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-primary-fixed active:opacity-90 transition-opacity cursor-pointer border border-primary/15"
       >
-        <Camera className="text-[#8052b2] dark:text-purple-300 w-5 h-5" />
-        <span className="text-[#8052b2] dark:text-purple-300 font-semibold text-[13px]">Įkelti nuotrauką</span>
+        <Camera className="text-primary-ink w-5 h-5" />
+        <span className="text-primary-ink font-semibold text-[13px]">Įkelti nuotrauką</span>
       </button>
 
       {showPicker && (
         <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={() => setShowPicker(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
+          <div className="relative bg-surface rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto mb-2" />
-            <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base mb-1">Pridėti nuotrauką</p>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mb-2" />
+            <p className="text-center text-text font-bold text-base mb-1">Pridėti nuotrauką</p>
             {/* Native label triggers — no programmatic click(), so the OS keeps full
                 picker privileges (multi-select). The sheet closes on the input's onChange. */}
             <label
@@ -186,13 +186,13 @@ function PhotoPickerButton({
             </label>
             <label
               htmlFor={galleryId}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 text-primary font-semibold text-base active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary-fixed text-primary-ink font-semibold text-base active:scale-95 transition-all cursor-pointer"
             >
               <Image className="w-5 h-5 shrink-0" /> Pasirinkti iš galerijos
             </label>
             <button
               onClick={() => setShowPicker(false)}
-              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 font-semibold text-sm active:scale-95 transition-all mt-1"
+              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all mt-1"
             >
               <X className="w-4 h-4 mr-2" /> Atšaukti
             </button>
@@ -233,21 +233,21 @@ function ItemPhotoGrid({
           <div key={photo.id} className="relative">
             <button
               onClick={() => setLightboxIndex(idx)}
-              className="block w-full aspect-square rounded-md overflow-hidden border border-[#cdc3d4]/60 dark:border-white/10 bg-[#f6f5fa] dark:bg-white/5 active:scale-95 transition-transform cursor-pointer"
+              className="block w-full aspect-square rounded-md overflow-hidden border border-border bg-surface-2 active:scale-95 transition-transform cursor-pointer"
               title="Peržiūrėti"
             >
               {url ? (
                 <img src={url} alt="Nuotrauka" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Loader2 size={16} className="text-[#cdc3d4] dark:text-zinc-600 animate-spin" />
+                  <Loader2 size={16} className="text-subtle animate-spin" />
                 </div>
               )}
             </button>
             {!readOnly && (
               <button
                 onClick={() => onDeletePhoto(photo, checkId)}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
                 title="Ištrinti nuotrauką"
               >
                 <Trash2 size={11} />
@@ -348,18 +348,18 @@ function ChecklistItemCard({
   };
 
   return (
-    <div className={`bg-white dark:bg-[#18181b] rounded-2xl mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
+    <div className={`bg-surface rounded-2xl mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
 
       {/* ── Collapsed header (always visible) ── */}
       <button
         onClick={onToggleExpand}
-        className="w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-[#f9f5ff] transition-colors cursor-pointer"
+        className="w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-surface-2 transition-colors cursor-pointer"
       >
         {/* Status dot icon */}
         <StatusIcon size={20} className={`flex-shrink-0 ${cfg.iconCls}`} />
 
         {/* Task label */}
-        <span className={`flex-1 text-[#1d033a] dark:text-zinc-100 font-semibold text-[14px] leading-snug ${currentStatus === 'pass' ? 'line-through opacity-60' : ''}`}>
+        <span className={`flex-1 text-text font-semibold text-[14px] leading-snug ${currentStatus === 'pass' ? 'line-through opacity-60' : ''}`}>
           {item.question_text}
         </span>
 
@@ -372,18 +372,18 @@ function ChecklistItemCard({
           </span>
           <ChevronDown
             size={16}
-            className={`text-[#cdc3d4] dark:text-zinc-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            className={`text-subtle transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
           />
         </div>
       </button>
 
       {/* ── Expanded action area ── */}
       {isExpanded && (
-        <div className="border-t border-[#f0ebf8] dark:border-white/10 px-4 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="border-t border-border px-4 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 fade-in duration-200">
 
           {/* 1 ▸ Status toggle buttons */}
           <div>
-            <p className="text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">Statusas</p>
+            <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">Statusas</p>
             <div className="grid grid-cols-3 gap-2">
               {(['pass', 'fail', 'n_a'] as const).map((s) => {
                 const sc = STATUS_CFG[s];
@@ -405,7 +405,7 @@ function ChecklistItemCard({
 
           {/* 2 ▸ Comment textarea */}
           <div>
-            <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
               Komentaras / Pastaba
             </label>
             <textarea
@@ -415,7 +415,7 @@ function ChecklistItemCard({
               readOnly={readOnly}
               placeholder="Pridėkite pastabą arba pastebėjimą..."
               rows={2}
-              className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
+              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
             />
             {commentChanged && !readOnly && (
               <button
@@ -431,8 +431,8 @@ function ChecklistItemCard({
 
           {/* 3 ▸ Photo area */}
           <div>
-            <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
-              Nuotrauka{item.is_required && <span className="text-[#EF4444] ml-0.5">*</span>}
+            <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
+              Nuotrauka{item.is_required && <span className="text-danger ml-0.5">*</span>}
             </label>
 
             <div className="space-y-3">
@@ -454,15 +454,15 @@ function ChecklistItemCard({
 
               {/* Upload controls / progress. Hidden when read-only or cap reached. */}
               {readOnly ? null : compressingCheckId === item.id ? (
-                <div className="flex items-center gap-2 text-[#8052b2] dark:text-purple-300 text-[12px] font-semibold h-[44px]">
+                <div className="flex items-center gap-2 text-primary-ink text-[12px] font-semibold h-[44px]">
                   <Loader2 size={14} className="animate-spin" /> Spaudžiama...
                 </div>
               ) : uploadingCheckId === item.id ? (
-                <div className="flex items-center gap-2 text-[#8052b2] dark:text-purple-300 text-[12px] font-semibold h-[44px]">
+                <div className="flex items-center gap-2 text-primary-ink text-[12px] font-semibold h-[44px]">
                   <Loader2 size={14} className="animate-spin" /> Keliama į serverį...
                 </div>
               ) : linkedPhotos.length >= MAX_PHOTOS ? (
-                <p className="text-[12px] text-[#574f61] dark:text-zinc-300 italic">
+                <p className="text-[12px] text-muted italic">
                   Pasiektas {MAX_PHOTOS} nuotraukų limitas.
                 </p>
               ) : (
@@ -478,7 +478,7 @@ function ChecklistItemCard({
               <button
                 onClick={onRequestDelete}
                 disabled={isDeleting}
-                className="flex items-center gap-1.5 h-[36px] px-3 rounded-lg bg-[#FEF2F2] text-[#DC2626] font-semibold text-[12px] border border-[#EF4444]/20 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+                className="flex items-center gap-1.5 h-[36px] px-3 rounded-lg bg-[var(--danger)]/10 text-danger font-semibold text-[12px] border border-danger/20 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
               >
                 {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 Ištrinti darbą
@@ -536,29 +536,29 @@ function AddExtraWorkSheet({
     <div className="fixed inset-0 z-[200] flex flex-col justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50" />
       <div
-        className="relative bg-white dark:bg-[#18181b] rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-4 shadow-2xl max-h-[88vh] overflow-y-auto"
+        className="relative bg-surface rounded-t-2xl px-4 pt-4 pb-8 flex flex-col gap-4 shadow-2xl max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 bg-[#cdc3d4] rounded-full mx-auto" />
-        <p className="text-center text-[#1d033a] dark:text-zinc-100 font-bold text-base">Pridėti papildomą darbą</p>
+        <div className="w-10 h-1 bg-border rounded-full mx-auto" />
+        <p className="text-center text-text font-bold text-base">Pridėti papildomą darbą</p>
 
         {/* Name (required) */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
-            Darbo pavadinimas <span className="text-[#EF4444]">*</span>
+          <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
+            Darbo pavadinimas <span className="text-danger">*</span>
           </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Pvz.: Papildoma kabelių trasa..."
             autoFocus
-            className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[14px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
+            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[14px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
           />
         </div>
 
         {/* Comment */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
+          <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
             Pastaba / Komentaras
           </label>
           <textarea
@@ -566,14 +566,14 @@ function AddExtraWorkSheet({
             onChange={(e) => setComment(e.target.value)}
             placeholder="Aprašykite atliktą darbą..."
             rows={3}
-            className="w-full px-3 py-2.5 bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
+            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
           />
         </div>
 
         {/* Photos */}
         <div>
-          <label className="block text-[11px] font-bold text-[#574f61] dark:text-zinc-300 uppercase tracking-wider mb-2">
-            Nuotraukos <span className="text-[#574f61]/70 normal-case font-medium">(rekomenduojama bent 1)</span>
+          <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
+            Nuotraukos <span className="text-muted/70 normal-case font-medium">(rekomenduojama bent 1)</span>
           </label>
 
           <input id={cameraId} type="file" accept="image/*" capture="environment" className="hidden" onChange={addFiles} />
@@ -586,11 +586,11 @@ function AddExtraWorkSheet({
                   <img
                     src={URL.createObjectURL(f)}
                     alt="Peržiūra"
-                    className="w-full aspect-square rounded-md object-cover border border-[#cdc3d4]/60 dark:border-white/10"
+                    className="w-full aspect-square rounded-md object-cover border border-border"
                   />
                   <button
                     onClick={() => removeFile(idx)}
-                    className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
+                    className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center shadow-md border-2 border-white active:scale-90 transition-transform cursor-pointer"
                   >
                     <Trash2 size={11} />
                   </button>
@@ -609,7 +609,7 @@ function AddExtraWorkSheet({
               </label>
               <label
                 htmlFor={galleryId}
-                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-[#f3ebff] dark:bg-purple-500/10 text-primary font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-primary-fixed text-primary-ink font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
               >
                 <Image className="w-4 h-4" /> Galerija
               </label>
@@ -622,7 +622,7 @@ function AddExtraWorkSheet({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="flex-1 h-[50px] rounded-xl bg-[#f5f0fa] dark:bg-white/5 text-[#39323f] dark:text-zinc-200 font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+            className="flex-1 h-[50px] rounded-xl bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
           >
             Atšaukti
           </button>
@@ -663,24 +663,24 @@ function ExtraMaterialsSection({
 
   return (
     <div className="mb-6">
-      <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3 flex items-center gap-2">
+      <h3 className="text-text font-bold text-[15px] mb-3 flex items-center gap-2">
         <Package size={16} className="text-primary" /> Papildomos medžiagos
       </h3>
 
-      <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-sm border border-[#e2d9f0]/50 dark:border-white/10 p-4 space-y-3">
+      <div className="bg-surface rounded-[20px] shadow-card border border-border p-4 space-y-3">
         {/* Existing rows */}
         {materials.length > 0 && (
           <div className="space-y-2">
             {materials.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 bg-[#f6f5fa] dark:bg-white/5 rounded-xl px-3 py-2.5 border border-[#cdc3d4]/30 dark:border-white/5">
-                <span className="flex-1 text-[13px] font-semibold text-[#1d033a] dark:text-zinc-100 truncate">{m.name}</span>
-                <span className="text-[13px] text-[#574f61] dark:text-zinc-300 font-medium whitespace-nowrap">
+              <div key={m.id} className="flex items-center gap-2 bg-surface-2 rounded-xl px-3 py-2.5 border border-border">
+                <span className="flex-1 text-[13px] font-semibold text-text truncate">{m.name}</span>
+                <span className="text-[13px] text-muted font-medium whitespace-nowrap">
                   {m.quantity} {m.unit}
                 </span>
                 {!readOnly && (
                   <button
                     onClick={() => onDelete(m.id)}
-                    className="w-7 h-7 rounded-full bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
+                    className="w-7 h-7 rounded-full bg-[var(--danger)]/10 text-danger flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
                     title="Ištrinti"
                   >
                     <X size={14} />
@@ -692,7 +692,7 @@ function ExtraMaterialsSection({
         )}
 
         {readOnly && materials.length === 0 && (
-          <p className="text-[13px] text-gray-400 dark:text-zinc-500 text-center py-1">Papildomų medžiagų nėra.</p>
+          <p className="text-[13px] text-subtle text-center py-1">Papildomų medžiagų nėra.</p>
         )}
 
         {/* Inline add row: [name][qty][unit][+] */}
@@ -702,20 +702,20 @@ function ExtraMaterialsSection({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Medžiaga"
-            className="flex-1 min-w-0 px-3 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="flex-1 min-w-0 px-3 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={qty}
             onChange={(e) => setQty(e.target.value.replace(/[^0-9.]/g, ''))}
             inputMode="decimal"
             placeholder="Kiekis"
-            className="w-[64px] px-2 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[64px] px-2 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
             placeholder="vnt."
-            className="w-[60px] px-2 h-[44px] bg-[#f6f5fa] dark:bg-white/5 border border-[#cdc3d4]/50 dark:border-white/10 rounded-xl text-[13px] text-[#1d033a] dark:text-zinc-100 text-center placeholder:text-[#cdc3d4] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[60px] px-2 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <button
             onClick={handleAdd}
@@ -827,7 +827,7 @@ export default function WorkTab({
 
         return (
           <div key={phaseCode} className="mb-6">
-            <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3">
+            <h3 className="text-text font-bold text-[15px] mb-3">
               {PHASE_TITLES[phaseCode] ?? phaseCode}
             </h3>
             {phaseItems.map((item) => (
@@ -846,7 +846,7 @@ export default function WorkTab({
 
       {/* ── Custom / additional tasks (admin-added + installer extras, phase = null) ── */}
       <div className="mb-6">
-        <h3 className="text-[#1d033a] dark:text-zinc-100 font-bold text-[15px] mb-3">Papildomi darbai</h3>
+        <h3 className="text-text font-bold text-[15px] mb-3">Papildomi darbai</h3>
         {customItems.map((item) => (
           <ChecklistItemCard
             key={item.id}
@@ -871,12 +871,12 @@ export default function WorkTab({
             <button
               onClick={() => setShowAddWork(true)}
               disabled={!siteChecklistId}
-              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-white dark:bg-[#18181b] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-surface active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
               <Plus size={18} /> Pridėti papildomą darbą
             </button>
             {!siteChecklistId && (
-              <p className="text-[11px] text-[#574f61] dark:text-zinc-300 italic mt-2 text-center">
+              <p className="text-[11px] text-muted italic mt-2 text-center">
                 Papildomus darbus galima pridėti tik priskirus checklist sesiją.
               </p>
             )}
@@ -897,9 +897,9 @@ export default function WorkTab({
 
       {/* ── Empty state (no checklist items at all) ── */}
       {(!checklists || checklists.length === 0) && customItems.length === 0 && (
-        <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm py-10 flex flex-col items-center gap-2">
-          <ClipboardList className="w-9 h-9 text-gray-300 dark:text-zinc-600" />
-          <p className="text-[14px] text-gray-400 dark:text-zinc-500">Standartinių užduočių nėra.</p>
+        <div className="bg-surface rounded-[20px] border border-border shadow-card py-10 flex flex-col items-center gap-2">
+          <ClipboardList className="w-9 h-9 text-subtle" />
+          <p className="text-[14px] text-subtle">Standartinių užduočių nėra.</p>
         </div>
       )}
 

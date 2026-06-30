@@ -142,7 +142,7 @@ export default function Payroll() {
     if (ok) lock.mutate();
   };
 
-  const selectCls = 'h-[40px] px-3 rounded-xl bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-white/10 text-[14px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer';
+  const selectCls = 'h-[40px] px-3 rounded-xl bg-surface border border-zinc-200 dark:border-white/10 text-[14px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
@@ -150,7 +150,7 @@ export default function Payroll() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <Coins className="w-6 h-6 text-purple-600 dark:text-purple-400" /> Atlyginimai
+            <Coins className="w-6 h-6 text-primary dark:text-primary-ink" /> Atlyginimai
           </h1>
           <p className="text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">Atlygis pagal tarifų korteles, padalintas montuotojams.</p>
         </div>
@@ -158,12 +158,12 @@ export default function Payroll() {
           <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${STATUS_CHIP[status].cls}`}>
             {isLocked && <Lock size={11} />} {STATUS_CHIP[status].label}
           </span>
-          <div className="flex items-center gap-1 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-white/10 rounded-xl p-1">
-            <button onClick={() => shiftMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-[#27272a] transition-colors cursor-pointer" title="Ankstesnis mėnuo">
+          <div className="flex items-center gap-1 bg-surface border border-zinc-200 dark:border-white/10 rounded-xl p-1">
+            <button onClick={() => shiftMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer" title="Ankstesnis mėnuo">
               <ChevronLeft size={16} />
             </button>
             <span className="min-w-[150px] text-center text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 capitalize tabular-nums">{monthName(year, month)}</span>
-            <button onClick={() => shiftMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-[#27272a] transition-colors cursor-pointer" title="Kitas mėnuo">
+            <button onClick={() => shiftMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer" title="Kitas mėnuo">
               <ChevronRight size={16} />
             </button>
           </div>
@@ -190,7 +190,7 @@ export default function Payroll() {
           <button
             onClick={() => recalc.mutate()} disabled={recalc.isPending || isLocked || rateCards.length === 0}
             title={isLocked ? 'Periodas užrakintas' : rateCards.length === 0 ? 'Pirma sukurkite tarifų kortelę' : undefined}
-            className="flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 font-medium text-[14px] bg-white dark:bg-[#18181b] hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+            className="flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 font-medium text-[14px] bg-surface hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
           >
             {recalc.isPending ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Perskaičiuoti
           </button>
@@ -198,13 +198,13 @@ export default function Payroll() {
             <button
               onClick={() => void handleLock()} disabled={lock.isPending || !periodId || snapshots.length === 0}
               title={!periodId || snapshots.length === 0 ? 'Pirma perskaičiuokite periodą' : undefined}
-              className="flex items-center gap-2 h-[40px] px-4 rounded-xl bg-purple-600 text-white font-medium text-[14px] hover:bg-purple-700 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              className="flex items-center gap-2 h-[40px] px-4 rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all cursor-pointer disabled:opacity-50 disabled:cursor-default"
             >
               {lock.isPending ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />} Užrakinti periodą
             </button>
           )}
           <button disabled title="Bus įgyvendinta vėliau"
-            className="hidden sm:flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-400 font-medium text-[14px] bg-white dark:bg-[#18181b] cursor-not-allowed opacity-50">
+            className="hidden sm:flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-400 font-medium text-[14px] bg-surface cursor-not-allowed opacity-50">
             <Download size={15} /> Eksportuoti XLSX
           </button>
         </div>
@@ -228,9 +228,9 @@ export default function Payroll() {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`relative flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium transition-colors cursor-pointer ${active ? 'text-purple-600 dark:text-purple-300' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'}`}>
+              className={`relative flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium transition-colors cursor-pointer ${active ? 'text-primary dark:text-primary-ink' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'}`}>
               <Icon size={16} /> {t.label}
-              {active && <motion.div layoutId="payroll-tab" className="absolute left-0 right-0 -bottom-px h-0.5 bg-purple-600 dark:bg-purple-400" />}
+              {active && <motion.div layoutId="payroll-tab" className="absolute left-0 right-0 -bottom-px h-0.5 bg-primary dark:bg-primary" />}
             </button>
           );
         })}
@@ -242,13 +242,13 @@ export default function Payroll() {
           {isTabLoading ? (
             <div className="py-16 text-center"><Loader2 className="w-7 h-7 text-primary animate-spin inline-block" /></div>
           ) : !periodId && tab !== 'ikainiai' && tab !== 'montuotojai' ? (
-            <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl py-16 text-center">
+            <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl py-16 text-center">
               <Coins size={36} className="text-zinc-300 dark:text-zinc-600 mb-2 inline-block" />
               <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium">Šis mėnuo dar neperskaičiuotas.</p>
               <p className="text-[13px] text-zinc-400 mt-1">Pasirinkite tarifų kortelę ir paspauskite „Perskaičiuoti“.</p>
             </div>
           ) : tab === 'objektai' ? (
-            <ObjektaiTab periodId={periodId!} year={year} month={month} rateCardId={rateCardId} snapshots={snapshots} installers={installers} isLocked={isLocked} teamFilter={teamFilter} installerFilter={installerFilter} onChanged={invalidatePayroll} />
+            <ObjektaiTab periodId={periodId!} year={year} month={month} rateCardId={rateCardId} rateCards={rateCards} snapshots={snapshots} installers={installers} isLocked={isLocked} teamFilter={teamFilter} installerFilter={installerFilter} onChanged={invalidatePayroll} />
           ) : tab === 'montuotojai' ? (
             <MontuotojaiTab earnings={earnings} snapshots={snapshots} teams={teams} status={status} hasPeriod={!!periodId} teamFilter={teamFilter} installerFilter={installerFilter} onChanged={invalidatePayroll} />
           ) : tab === 'ikainiai' ? (

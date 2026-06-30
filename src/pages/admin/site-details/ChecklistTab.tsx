@@ -115,19 +115,19 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
   // ── No session: show assignment UI ───────────────────────────────────────
   if (!session) {
     return (
-      <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm p-8 flex flex-col items-center gap-5">
-        <div className="w-16 h-16 rounded-[16px] bg-[#f6f5fa] dark:bg-[#27272a] flex items-center justify-center border border-[#cdc3d4]/30 dark:border-white/10">
-          <ClipboardList size={32} className="text-[#cdc3d4]" />
+      <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-8 flex flex-col items-center gap-5">
+        <div className="w-16 h-16 rounded-[16px] bg-surface-2 dark:bg-surface-2 flex items-center justify-center border border-border/30 dark:border-white/10">
+          <ClipboardList size={32} className="text-subtle" />
         </div>
         <div className="text-center">
-          <p className="font-bold text-[16px] text-[#1d033a] dark:text-gray-100 mb-1">Checklist nepriskirtas</p>
-          <p className="text-[13px] text-[#7c7484] dark:text-gray-400">Priskirk šablono kategoriją, kad sukurtum šio objekto QC sesiją.</p>
+          <p className="font-bold text-[16px] text-text dark:text-gray-100 mb-1">Checklist nepriskirtas</p>
+          <p className="text-[13px] text-subtle dark:text-subtle">Priskirk šablono kategoriją, kad sukurtum šio objekto QC sesiją.</p>
         </div>
         <div className="w-full max-w-sm flex gap-2">
           <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
-            className="flex-1 h-[44px] px-3 bg-[#f6f5fa] dark:bg-[#27272a] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[14px] text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary"
+            className="flex-1 h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary"
           >
             <option value="">-- Pasirinkti kategoriją --</option>
             {categories?.map(cat => (
@@ -165,7 +165,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
   }, {});
 
   const SESSION_STATUS: Record<'pending' | 'in_progress' | 'completed', { label: string; className: string }> = {
-    pending:     { label: 'Laukia',      className: 'bg-[#f6f5fa] dark:bg-[#27272a] text-[#7c7484] dark:text-gray-400 border-[#cdc3d4]/50 dark:border-white/10' },
+    pending:     { label: 'Laukia',      className: 'bg-surface-2 dark:bg-surface-2 text-subtle dark:text-subtle border-border/50 dark:border-white/10' },
     in_progress: { label: 'Vykdoma',     className: 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]/20' },
     completed:   { label: 'Baigta',      className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20' },
   };
@@ -175,15 +175,15 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
     <>
     <div className="space-y-5">
       {/* Progress header */}
-      <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm p-5">
+      <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-[#fbf0ff] dark:bg-purple-500/10 flex items-center justify-center border border-primary/10">
+            <div className="w-10 h-10 rounded-[10px] bg-surface-2 dark:bg-primary/10 flex items-center justify-center border border-primary/10">
               <ListChecks size={20} className="text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-[15px] text-[#1d033a] dark:text-gray-100">QC Sesija</h3>
-              <p className="text-[12px] text-[#7c7484] dark:text-gray-400">{total} klausimai · {format(new Date(session.created_at!), 'yyyy-MM-dd')}</p>
+              <h3 className="font-bold text-[15px] text-text dark:text-gray-100">QC Sesija</h3>
+              <p className="text-[12px] text-subtle dark:text-subtle">{total} klausimai · {format(new Date(session.created_at!), 'yyyy-MM-dd')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -199,21 +199,21 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
-            { label: 'Iš viso',    value: total,    cls: 'text-[#1d033a] dark:text-gray-100' },
+            { label: 'Iš viso',    value: total,    cls: 'text-text dark:text-gray-100' },
             { label: 'Atlikta',    value: passed,   cls: 'text-[#059669]' },
             { label: 'Neatlikta', value: failed,   cls: 'text-[#DC2626]' },
             { label: 'Netaikoma', value: naCount,   cls: 'text-[#D97706]' },
           ].map(s => (
-            <div key={s.label} className="bg-[#f6f5fa] dark:bg-[#27272a] rounded-[10px] p-3 border border-[#cdc3d4]/30 dark:border-white/10 text-center">
+            <div key={s.label} className="bg-surface-2 dark:bg-surface-2 rounded-[10px] p-3 border border-border/30 dark:border-white/10 text-center">
               <span className={`text-[20px] font-bold block ${s.cls}`}>{s.value}</span>
-              <span className="text-[10px] font-semibold text-[#7c7484] dark:text-gray-400 uppercase tracking-wider">{s.label}</span>
+              <span className="text-[10px] font-semibold text-subtle dark:text-subtle uppercase tracking-wider">{s.label}</span>
             </div>
           ))}
         </div>
 
         {/* Progress bar */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-2.5 bg-[#cdc3d4]/20 rounded-full overflow-hidden">
+          <div className="flex-1 h-2.5 bg-border/20 rounded-full overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-[#7c3aed]"
               initial={{ width: 0 }}
@@ -225,10 +225,10 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
         </div>
 
         {/* Add custom item button */}
-        <div className="flex justify-end mt-4 pt-3 border-t border-[#cdc3d4]/20 dark:border-white/10">
+        <div className="flex justify-end mt-4 pt-3 border-t border-border/20 dark:border-white/10">
           <button
             onClick={() => setShowAddItem(true)}
-            className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-[#f6f5fa] dark:bg-[#27272a] text-primary font-semibold text-[13px] hover:bg-[#ede8f5] border border-[#cdc3d4]/30 dark:border-white/10 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-surface-2 dark:bg-surface-2 text-primary font-semibold text-[13px] hover:bg-surface-2 border border-border/30 dark:border-white/10 transition-colors cursor-pointer"
           >
             <Plus size={14} />
             Pridėti papildomą darbą
@@ -241,11 +241,11 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
         const groupPassed = groupItems.filter(i => i.status === 'pass').length;
         const groupTotal = groupItems.length;
         return (
-          <div key={category} className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm overflow-hidden">
+          <div key={category} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
             {/* Group header */}
-            <div className="px-5 py-3.5 bg-[#f6f5fa]/70 border-b border-[#cdc3d4]/20 dark:border-white/10 flex items-center justify-between">
-              <h4 className="text-[12px] font-bold text-[#7c7484] dark:text-gray-400 uppercase tracking-wider">{category}</h4>
-              <span className="text-[12px] font-semibold text-[#7c7484] dark:text-gray-400">{groupPassed}/{groupTotal}</span>
+            <div className="px-5 py-3.5 bg-surface-2/70 border-b border-border/20 dark:border-white/10 flex items-center justify-between">
+              <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider">{category}</h4>
+              <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{groupPassed}/{groupTotal}</span>
             </div>
             <div className="p-4 space-y-2">
               {groupItems.map(item => (
@@ -258,9 +258,9 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
 
       {/* Installer-logged extra materials */}
       {extraMaterials && extraMaterials.length > 0 && (
-        <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 bg-[#f6f5fa]/70 border-b border-[#cdc3d4]/20 dark:border-white/10 flex items-center justify-between">
-            <h4 className="text-[12px] font-bold text-[#7c7484] dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+        <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 bg-surface-2/70 border-b border-border/20 dark:border-white/10 flex items-center justify-between">
+            <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider flex items-center gap-2">
               <Package size={14} className="text-primary" /> Papildomos medžiagos
             </h4>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20">
@@ -269,9 +269,9 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
           </div>
           <div className="p-4 space-y-2">
             {extraMaterials.map(m => (
-              <div key={m.id} className="flex items-center gap-3 bg-[#f6f5fa] dark:bg-[#27272a] rounded-[10px] px-3.5 py-2.5 border border-[#cdc3d4]/30 dark:border-white/10">
-                <Package size={15} className="text-[#7c7484] dark:text-gray-400 shrink-0" />
-                <span className="flex-1 text-[13px] font-semibold text-[#1d033a] dark:text-gray-100 truncate">{m.name}</span>
+              <div key={m.id} className="flex items-center gap-3 bg-surface-2 dark:bg-surface-2 rounded-[10px] px-3.5 py-2.5 border border-border/30 dark:border-white/10">
+                <Package size={15} className="text-subtle dark:text-subtle shrink-0" />
+                <span className="flex-1 text-[13px] font-semibold text-text dark:text-gray-100 truncate">{m.name}</span>
                 <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">{m.quantity} {m.unit}</span>
               </div>
             ))}
@@ -283,13 +283,13 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
     {/* ── Add custom checklist item modal ── */}
     {showAddItem && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <div className="bg-white dark:bg-[#18181b] rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-surface rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/30 dark:border-white/10">
-            <h3 className="text-[16px] font-bold text-[#1d033a] dark:text-gray-100">Papildomas darbas</h3>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 dark:border-white/10">
+            <h3 className="text-[16px] font-bold text-text dark:text-gray-100">Papildomas darbas</h3>
             <button
               onClick={() => setShowAddItem(false)}
-              className="cursor-pointer text-[#7c7484] dark:text-gray-400 hover:text-[#1d033a] transition-colors"
+              className="cursor-pointer text-subtle dark:text-subtle hover:text-text transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -298,7 +298,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
           {/* Body */}
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-[13px] font-semibold text-[#4b4452] dark:text-gray-300 uppercase tracking-wider mb-2">
+              <label className="block text-[13px] font-semibold text-muted dark:text-subtle uppercase tracking-wider mb-2">
                 Darbo aprašymas <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -307,7 +307,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
                 placeholder="Pvz.: Patikrinti DC jungčių sandarumą..."
                 rows={3}
                 autoFocus
-                className="w-full px-3 py-2 bg-[#f6f5fa] dark:bg-[#27272a] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[14px] text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
               />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -317,7 +317,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
                 onChange={(e) => setNewItemRequired(e.target.checked)}
                 className="w-4 h-4 accent-primary cursor-pointer"
               />
-              <span className="text-[14px] text-[#1d033a] dark:text-gray-100 font-medium">Reikalinga nuotrauka kaip įrodymas</span>
+              <span className="text-[14px] text-text dark:text-gray-100 font-medium">Reikalinga nuotrauka kaip įrodymas</span>
             </label>
           </div>
 
@@ -326,7 +326,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
             <button
               onClick={() => { setShowAddItem(false); setNewItemText(''); }}
               disabled={addItemMutation.isPending}
-              className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] dark:border-white/10 text-[#4b4452] dark:text-gray-300 hover:bg-[#f6f5fa] transition-colors disabled:opacity-60 cursor-pointer"
+              className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-border dark:border-white/10 text-muted dark:text-subtle hover:bg-surface-2 transition-colors disabled:opacity-60 cursor-pointer"
             >
               Atšaukti
             </button>

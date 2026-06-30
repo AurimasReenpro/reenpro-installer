@@ -4,6 +4,7 @@ import { isSameWeek, isSameMonth } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { startWork } from '../../api/timeTracking';
 import { getInstallerSites } from '../../api/sites';
+import { isInstallerVisibleSiteStatus } from '../../lib/siteStatus';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
 import * as Sentry from "@sentry/react";
@@ -54,6 +55,10 @@ export default function Sites() {
     if (!sitesData) return [];
     
     return sitesData.filter(site => {
+      if (!isInstallerVisibleSiteStatus(site.status)) {
+        return false;
+      }
+
       // Status Filter
       if (statusFilter !== 'all' && site.status !== statusFilter) {
         return false;
@@ -80,7 +85,7 @@ export default function Sites() {
 
   return (
     <div className="pb-20">
-      <div className="bg-white dark:bg-[#18181b] px-4 pt-8 pb-4 shadow-sm sticky top-0 z-20">
+      <div className="bg-surface px-4 pt-8 pb-4 border-b border-border sticky top-0 z-20">
         <h2 className="text-on-surface font-bold text-2xl mb-4">Visi objektai</h2>
         
         {/* Status Filters */}
@@ -89,8 +94,8 @@ export default function Sites() {
             onClick={() => setStatusFilter('all')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               statusFilter === 'all' 
-                ? 'bg-primary text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Visi
@@ -99,8 +104,8 @@ export default function Sites() {
             onClick={() => setStatusFilter('pending')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               statusFilter === 'pending' 
-                ? 'bg-primary text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Ateinantys
@@ -109,8 +114,8 @@ export default function Sites() {
             onClick={() => setStatusFilter('in_progress')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               statusFilter === 'in_progress' 
-                ? 'bg-primary text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Aktyvūs
@@ -119,8 +124,8 @@ export default function Sites() {
             onClick={() => setStatusFilter('completed')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               statusFilter === 'completed' 
-                ? 'bg-primary text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Užbaigti
@@ -133,8 +138,8 @@ export default function Sites() {
             onClick={() => setTimeFilter('all')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               timeFilter === 'all' 
-                ? 'bg-[#4b4452] text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Visi laikai
@@ -143,8 +148,8 @@ export default function Sites() {
             onClick={() => setTimeFilter('this_week')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               timeFilter === 'this_week' 
-                ? 'bg-[#4b4452] text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Ši savaitė
@@ -153,8 +158,8 @@ export default function Sites() {
             onClick={() => setTimeFilter('this_month')}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
               timeFilter === 'this_month' 
-                ? 'bg-[#4b4452] text-white' 
-                : 'bg-app-bg text-on-surface-variant hover:bg-outline-variant/30'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-muted border border-border hover:bg-surface'
             }`}
           >
             Šis mėnuo
@@ -165,8 +170,8 @@ export default function Sites() {
       <div className="mt-4">
         {isLoading ? (
           <>
-            <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
-            <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
+            <div className="rounded-[20px] bg-surface animate-pulse h-48 mx-4 mb-3"></div>
+            <div className="rounded-[20px] bg-surface animate-pulse h-48 mx-4 mb-3"></div>
           </>
         ) : filteredSites.length > 0 ? (
           filteredSites.map((site) => (
@@ -178,7 +183,7 @@ export default function Sites() {
           ))
         ) : (
           <div className="mx-4 text-center py-12">
-            <FolderOpen className="w-12 h-12 text-[#b69cd3] mx-auto opacity-80" />
+            <FolderOpen className="w-12 h-12 text-subtle mx-auto opacity-80" />
             <p className="text-on-surface-variant mt-2 font-medium">
               Nerasta jokių objektų
             </p>

@@ -683,53 +683,80 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           email: string
+          employment_status: 'active' | 'inactive' | 'invited' | 'suspended' | 'archived'
           full_name: string | null
           hourly_rate: number | null
           id: string
           phone: string | null
           role: string | null
           team_id: string | null
+          work_role: 'installer' | 'electrician' | 'site_manager' | 'project_manager'
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           email: string
+          employment_status?: 'active' | 'inactive' | 'invited' | 'suspended' | 'archived'
           full_name?: string | null
           hourly_rate?: number | null
           id: string
           phone?: string | null
           role?: string | null
           team_id?: string | null
+          work_role?: 'installer' | 'electrician' | 'site_manager' | 'project_manager'
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           email?: string
+          employment_status?: 'active' | 'inactive' | 'invited' | 'suspended' | 'archived'
           full_name?: string | null
           hourly_rate?: number | null
           id?: string
           phone?: string | null
           role?: string | null
           team_id?: string | null
+          work_role?: 'installer' | 'electrician' | 'site_manager' | 'project_manager'
         }
         Relationships: []
       }
       teams: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           created_at: string | null
           id: string
           name: string
+          status: 'active' | 'inactive' | 'archived'
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string | null
           id?: string
           name: string
+          status?: 'active' | 'inactive' | 'archived'
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string | null
           id?: string
           name?: string
+          status?: 'active' | 'inactive' | 'archived'
         }
         Relationships: []
       }
@@ -765,6 +792,37 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_labor_analytics_v: {
+        Row: {
+          anomaly_reasons: Json
+          calendar_hours: number | null
+          client_name: string
+          completed_at: string | null
+          h_per_kwp: number | null
+          h_per_module: number | null
+          h_per_optimizer: number | null
+          has_bess: boolean
+          installer_count: number
+          inverter_count: number
+          is_anomaly: boolean
+          kwp: number | null
+          module_count: number
+          module_manufacturer: string | null
+          module_model: string | null
+          module_type: string | null
+          module_wattage_w: number | null
+          optimizer_count: number
+          roof_slope: string | null
+          roof_type: string | null
+          site_code: string
+          site_id: string
+          system_type: string
+          team_id: string | null
+          team_name: string | null
+          total_installer_hours: number
+        }
+        Relationships: []
       }
       site_compensation: {
         Row: {
@@ -1125,6 +1183,58 @@ export type Database = {
           },
         ]
       }
+      payroll_site_rate_card_overrides: {
+        Row: {
+          id: string
+          period_id: string
+          site_id: string
+          rate_card_id: string
+          note: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          period_id: string
+          site_id: string
+          rate_card_id: string
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          period_id?: string
+          site_id?: string
+          rate_card_id?: string
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_site_rate_card_overrides_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_site_rate_card_overrides_rate_card_id_fkey"
+            columns: ["rate_card_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_rate_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_site_rate_card_overrides_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_dashboard_stats: {
         Row: {
           active_sites: number | null
@@ -1189,7 +1299,7 @@ export type Database = {
         Returns: Json
       }
       get_payroll_site_rule_state: {
-        Args: { p_period_id: string; p_site_id: string }
+        Args: { p_period_id: string; p_site_id: string; p_rate_card_id?: string }
         Returns: {
           rate_rule_id: string
           code: string
@@ -1221,6 +1331,27 @@ export type Database = {
           p_amount_override: number | null
           p_note: string | null
         }
+        Returns: Json
+      }
+      get_payroll_site_effective_rate_card: {
+        Args: { p_period_id: string; p_site_id: string }
+        Returns: {
+          effective_rate_card_id: string
+          effective_rate_card_name: string
+          source: string
+        }[]
+      }
+      set_payroll_site_rate_card_override: {
+        Args: {
+          p_period_id: string
+          p_site_id: string
+          p_rate_card_id: string | null
+          p_note: string | null
+        }
+        Returns: Json
+      }
+      get_labor_analytics_report: {
+        Args: { p_filters?: Json }
         Returns: Json
       }
     }

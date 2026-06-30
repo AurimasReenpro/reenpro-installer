@@ -43,7 +43,7 @@ export default function ConfirmModal({
     };
   }, [isOpen, onCancel, onConfirm]);
 
-  let confirmButtonClass = 'bg-error active:bg-error/90';
+  let confirmButtonClass = 'bg-danger active:bg-danger/90';
   if (variant === 'success') {
     confirmButtonClass = 'bg-success active:bg-success/90';
   } else if (variant === 'primary') {
@@ -64,13 +64,13 @@ export default function ConfirmModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
-            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl flex flex-col gap-4"
+            className="bg-surface rounded-[20px] max-w-sm w-full p-6 shadow-card flex flex-col gap-4"
           >
             <div>
-              <h3 className="text-lg font-bold text-[#1d033a] leading-tight">
+              <h3 className="text-lg font-bold text-text leading-tight">
                 {title}
               </h3>
-              <p className="text-[14px] text-[#4b4452] mt-2 leading-relaxed">
+              <p className="text-[14px] text-muted mt-2 leading-relaxed">
                 {message}
               </p>
             </div>
@@ -79,14 +79,14 @@ export default function ConfirmModal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="h-10 px-4 rounded-xl border border-outline-variant text-[14px] font-semibold text-[#1d033a] hover:bg-black/5 active:scale-[0.98] transition-all cursor-pointer"
+                className="h-10 px-4 rounded-btn border border-border text-[14px] font-semibold text-text hover:bg-surface-2 active:scale-[0.98] transition-all cursor-pointer"
               >
                 {cancelText}
               </button>
               <button
                 type="button"
                 onClick={onConfirm}
-                className={`h-10 px-4 rounded-xl text-white text-[14px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer ${confirmButtonClass}`}
+                className={`h-10 px-4 rounded-btn text-white text-[14px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer ${confirmButtonClass}`}
               >
                 {confirmText}
               </button>

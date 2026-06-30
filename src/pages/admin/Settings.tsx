@@ -21,7 +21,7 @@ import { getCompanySettings, updateCompanySettings } from '../../api/settings';
 import type { CompanySettings } from '../../api/settings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type FormState = Omit<CompanySettings, 'id' | 'created_at' | 'updated_at'>;
+type FormState = Omit<CompanySettings, 'id' | 'created_at' | 'updated_at' | 'primary_color'>;
 
 // ─── Section Card wrapper ─────────────────────────────────────────────────────
 function SectionCard({
@@ -36,15 +36,15 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none backdrop-blur-md overflow-hidden">
+    <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none backdrop-blur-md overflow-hidden">
       {/* Card header */}
-      <div className="px-7 py-5 border-b border-gray-100 dark:border-white/10 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-primary dark:text-purple-300 flex-shrink-0 mt-0.5">
+      <div className="px-7 py-5 border-b border-border flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-primary-fixed dark:bg-primary/30 flex items-center justify-center text-primary dark:text-primary-ink flex-shrink-0 mt-0.5">
           {icon}
         </div>
         <div>
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
+          <h3 className="text-[15px] font-semibold text-text">{title}</h3>
+          <p className="text-[13px] text-muted mt-0.5">{description}</p>
         </div>
       </div>
       <div className="p-7">{children}</div>
@@ -66,24 +66,24 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[13px] font-semibold text-gray-400 dark:text-gray-500 mb-1.5">
+      <label className="block text-[13px] font-semibold text-subtle mb-1.5">
         {label}
       </label>
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle pointer-events-none">
             {icon}
           </div>
         )}
         {children}
       </div>
-      {hint && <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="text-[12px] text-subtle mt-1">{hint}</p>}
     </div>
   );
 }
 
 function inputClass(hasIcon = false) {
-  return `w-full h-[40px] bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
+  return `w-full h-[40px] bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
 }
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
@@ -103,7 +103,6 @@ export default function Settings() {
     phone: '',
     email: '',
     logo_url: null,
-    primary_color: '#490891',
     warehouse_lat: null,
     warehouse_lng: null,
   });
@@ -128,7 +127,6 @@ export default function Settings() {
         phone:         settings.phone         ?? '',
         email:         settings.email         ?? '',
         logo_url:      settings.logo_url,
-        primary_color: settings.primary_color ?? '#490891',
         warehouse_lat: settings.warehouse_lat,
         warehouse_lng: settings.warehouse_lng,
       });
@@ -265,10 +263,10 @@ export default function Settings() {
   return (
     <div className="max-w-5xl">
       {/* ── Sticky header bar ───────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#18181b] backdrop-blur-md -mx-6 px-6 pt-2 pb-4 mb-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#18181b] backdrop-blur-md -mx-6 px-6 pt-2 pb-4 mb-6 border-b border-border flex justify-between items-center">
         <div>
-          <h2 className="text-[22px] font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight">Bendrieji nustatymai</h2>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
+          <h2 className="text-[22px] font-extrabold tracking-tight text-text dark:text-white leading-tight">Bendrieji nustatymai</h2>
+          <p className="text-[13px] text-muted mt-0.5">
             Įmonės profilis, kontaktai, logistika ir prekės ženklas
           </p>
         </div>
@@ -276,7 +274,7 @@ export default function Settings() {
           form="settings-form"
           type="submit"
           disabled={saveMutation.isPending}
-          className="h-[40px] px-6 font-medium text-[14px] rounded-xl bg-purple-600 text-white hover:bg-purple-700 active:scale-[0.98] transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="h-[40px] px-6 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary active:scale-[0.98] transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {saveMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -406,9 +404,9 @@ export default function Settings() {
             </div>
 
             {/* Helper tip */}
-            <div className="col-span-2 bg-gray-50 dark:bg-[#27272a] rounded-xl border border-gray-100 dark:border-white/10 p-3.5 flex gap-2.5">
-              <Info size={15} className="text-primary dark:text-purple-300 mt-0.5 flex-shrink-0" />
-              <p className="text-[12px] text-gray-500 dark:text-gray-400">
+            <div className="col-span-2 bg-surface-2 rounded-xl border border-border p-3.5 flex gap-2.5">
+              <Info size={15} className="text-primary dark:text-primary-ink mt-0.5 flex-shrink-0" />
+              <p className="text-[12px] text-muted">
                 Koordinates galite rasti{' '}
                 <a
                   href="https://www.google.com/maps"
@@ -430,16 +428,16 @@ export default function Settings() {
         <SectionCard
           icon={<Palette size={18} />}
           title="Prekės ženklas"
-          description="Logotipas ir pagrindinė spalva visoje sistemoje"
+          description="Logotipas visoje sistemoje"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="max-w-md">
             {/* Logo upload */}
             <div>
-              <label className="block text-[13px] font-semibold text-gray-400 dark:text-gray-500 mb-2">
+              <label className="block text-[13px] font-semibold text-subtle mb-2">
                 Įmonės logotipas
               </label>
               <div
-                className="border-2 border-dashed border-[#cdc3d4]/50 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-[#f9f6ff] dark:hover:bg-[#27272a] transition-all min-h-[160px] group"
+                className="border-2 border-dashed border-border/50 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-[#f9f6ff] dark:hover:bg-surface-2 transition-all min-h-[160px] group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {logoUploading ? (
@@ -452,12 +450,12 @@ export default function Settings() {
                   />
                 ) : (
                   <>
-                    <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center group-hover:bg-[#dfc7ff] dark:group-hover:bg-purple-900/50 transition-colors">
-                      <Image size={24} className="text-primary dark:text-purple-300" />
+                    <div className="w-14 h-14 rounded-2xl bg-primary-fixed dark:bg-primary/30 flex items-center justify-center group-hover:bg-[#dfc7ff] dark:group-hover:bg-primary/50 transition-colors">
+                      <Image size={24} className="text-primary dark:text-primary-ink" />
                     </div>
                     <div className="text-center">
-                      <p className="text-[13px] font-semibold text-primary dark:text-purple-300">Pasirinkite failą</p>
-                      <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-0.5">PNG, JPG, SVG, WebP · maks. 2 MB</p>
+                      <p className="text-[13px] font-semibold text-primary dark:text-primary-ink">Pasirinkite failą</p>
+                      <p className="text-[12px] text-subtle mt-0.5">PNG, JPG, SVG, WebP · maks. 2 MB</p>
                     </div>
                   </>
                 )}
@@ -482,62 +480,6 @@ export default function Settings() {
                   Pašalinti logotipą
                 </button>
               )}
-            </div>
-
-            {/* Primary color */}
-            <div className="flex flex-col gap-5">
-              <Field
-                label="Pagrindinė spalva"
-                hint="Naudojama mygtukams ir akcentams visoje sistemoje"
-              >
-                <div className="flex items-center gap-3 h-[40px]">
-                  <input
-                    type="color"
-                    id="primary_color"
-                    value={form.primary_color ?? '#490891'}
-                    onChange={(e) => set('primary_color', e.target.value)}
-                    className="w-[40px] h-[40px] rounded-[8px] border border-[#cdc3d4]/60 dark:border-white/10 cursor-pointer p-0.5 bg-white dark:bg-[#18181b] flex-shrink-0"
-                  />
-                  <input
-                    type="text"
-                    value={form.primary_color ?? '#490891'}
-                    onChange={(e) => {
-                      if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value))
-                        set('primary_color', e.target.value);
-                    }}
-                    maxLength={7}
-                    placeholder="#490891"
-                    className="flex-1 h-[40px] bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl px-3 text-[14px] font-mono text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
-                  />
-                </div>
-              </Field>
-
-              {/* Color preview */}
-              <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm">
-                <div
-                  className="h-[56px] flex items-center justify-center"
-                  style={{ backgroundColor: form.primary_color ?? '#490891' }}
-                >
-                  <span className="text-white font-semibold text-[13px] tracking-wide">Peržiūra</span>
-                </div>
-                <div className="p-4 bg-white dark:bg-[#18181b] flex gap-2.5">
-                  <span
-                    className="px-3.5 py-1.5 rounded-full text-[12px] font-bold text-white"
-                    style={{ backgroundColor: form.primary_color ?? '#490891' }}
-                  >
-                    Mygtukas
-                  </span>
-                  <span
-                    className="px-3.5 py-1.5 rounded-full text-[12px] font-bold"
-                    style={{
-                      backgroundColor: `${form.primary_color ?? '#490891'}20`,
-                      color: form.primary_color ?? '#490891',
-                    }}
-                  >
-                    Žymė
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </SectionCard>

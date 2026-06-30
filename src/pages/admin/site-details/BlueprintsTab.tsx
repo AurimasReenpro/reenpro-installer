@@ -170,7 +170,7 @@ export default function BlueprintsTab({
 
       {/* Header + new category button */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[16px] font-bold text-[#1d033a] dark:text-gray-100 flex items-center gap-2">
+        <h2 className="text-[16px] font-bold text-text dark:text-gray-100 flex items-center gap-2">
           <DraftingCompass size={18} className="text-primary" />
           Brėžiniai
         </h2>
@@ -185,12 +185,12 @@ export default function BlueprintsTab({
 
       {/* Blueprint category grid */}
       {displayCategories.length === 0 ? (
-        <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-dashed border-[#cdc3d4]/50 dark:border-white/10 shadow-sm p-10 flex flex-col items-center gap-3 text-center">
-          <div className="w-14 h-14 rounded-[16px] bg-[#f6f5fa] dark:bg-[#27272a] flex items-center justify-center border border-[#cdc3d4]/30 dark:border-white/10">
-            <DraftingCompass size={28} className="text-[#cdc3d4]" />
+        <div className="bg-surface rounded-[16px] border border-dashed border-border/50 dark:border-white/10 shadow-sm p-10 flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-[16px] bg-surface-2 dark:bg-surface-2 flex items-center justify-center border border-border/30 dark:border-white/10">
+            <DraftingCompass size={28} className="text-subtle" />
           </div>
-          <p className="font-bold text-[15px] text-[#1d033a] dark:text-gray-100">Brėžinių dar nėra</p>
-          <p className="text-[13px] text-[#7c7484] dark:text-gray-400 max-w-sm">
+          <p className="font-bold text-[15px] text-text dark:text-gray-100">Brėžinių dar nėra</p>
+          <p className="text-[13px] text-subtle dark:text-subtle max-w-sm">
             Sukurk kategoriją (pvz. „Vizualizacija", „El. schema", „Stringavimas") ir įkelk po vieną brėžinį.
           </p>
         </div>
@@ -200,14 +200,14 @@ export default function BlueprintsTab({
             const file = blueprintByCategory(category);
             const busy = uploadingCategory === category;
             return (
-              <div key={category} className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
-                <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 dark:border-white/10 bg-[#f6f5fa]/50 flex items-center gap-2">
+              <div key={category} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+                <div className="px-5 py-3.5 border-b border-border/20 dark:border-white/10 bg-surface-2/50 flex items-center gap-2">
                   <DraftingCompass size={18} className="text-primary shrink-0" />
-                  <h3 className="font-semibold text-[#1d033a] dark:text-gray-100 text-[14px] truncate flex-1">{category}</h3>
+                  <h3 className="font-semibold text-text dark:text-gray-100 text-[14px] truncate flex-1">{category}</h3>
                   <button
                     onClick={() => void handleDeleteCategory(category, file?.name)}
                     disabled={deletingCategory === category}
-                    className="w-7 h-7 flex items-center justify-center text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-subtle hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                     title="Pašalinti kategoriją"
                   >
                     {deletingCategory === category ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
@@ -215,24 +215,24 @@ export default function BlueprintsTab({
                 </div>
                 <div className="p-5 flex-1 flex items-center justify-center">
                   {file ? (
-                    <div className="group relative rounded-[12px] overflow-hidden border border-[#cdc3d4]/30 dark:border-white/10 w-full">
+                    <div className="group relative rounded-[12px] overflow-hidden border border-border/30 dark:border-white/10 w-full">
                       {isPdf(file.name) ? (
                         <PdfPagePreview
                           url={file.url}
                           page={pageByCategory[category] ?? 1}
                           onPageChange={(p) => setPageByCategory((prev) => ({ ...prev, [category]: p }))}
-                          className="w-full aspect-[4/3] object-contain bg-[#f6f5fa] dark:bg-[#27272a]"
+                          className="w-full aspect-[4/3] object-contain bg-surface-2 dark:bg-surface-2"
                         />
                       ) : isImage(file.name) ? (
                         <img
                           src={file.url}
                           alt={category}
-                          className="w-full aspect-[4/3] object-contain bg-[#f6f5fa] dark:bg-[#27272a]"
+                          className="w-full aspect-[4/3] object-contain bg-surface-2 dark:bg-surface-2"
                         />
                       ) : (
-                        <div className="aspect-[4/3] flex flex-col items-center justify-center bg-[#f6f5fa] dark:bg-[#27272a] gap-2">
-                          <FileText size={40} className="text-[#cdc3d4]" />
-                          <p className="text-[12px] text-[#7c7484] dark:text-gray-400 font-semibold truncate px-4">{category}</p>
+                        <div className="aspect-[4/3] flex flex-col items-center justify-center bg-surface-2 dark:bg-surface-2 gap-2">
+                          <FileText size={40} className="text-subtle" />
+                          <p className="text-[12px] text-subtle dark:text-subtle font-semibold truncate px-4">{category}</p>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
@@ -241,7 +241,7 @@ export default function BlueprintsTab({
                             onClick={() => isPdf(file.name)
                               ? onPdfLightbox({ url: file.url, page: pageByCategory[category] ?? 1 })
                               : onLightbox(file.url)}
-                            className="pointer-events-auto w-9 h-9 rounded-[8px] bg-white dark:bg-[#18181b] text-primary flex items-center justify-center hover:bg-[#f6f5fa] transition-colors cursor-pointer shadow-sm"
+                            className="pointer-events-auto w-9 h-9 rounded-[8px] bg-surface text-primary flex items-center justify-center hover:bg-surface-2 transition-colors cursor-pointer shadow-sm"
                             title="Padidinti"
                           >
                             <ZoomIn size={16} />
@@ -258,7 +258,7 @@ export default function BlueprintsTab({
                         )}
                         <button
                           onClick={() => pickBlueprint(category)}
-                          className="pointer-events-auto w-9 h-9 rounded-[8px] bg-white/80 text-[#4b4452] dark:text-gray-300 flex items-center justify-center hover:bg-white transition-colors cursor-pointer shadow-sm"
+                          className="pointer-events-auto w-9 h-9 rounded-[8px] bg-white/80 text-muted dark:text-subtle flex items-center justify-center hover:bg-white transition-colors cursor-pointer shadow-sm"
                           title="Pakeisti"
                         >
                           <Upload size={15} />
@@ -275,17 +275,17 @@ export default function BlueprintsTab({
                   ) : (
                     <div
                       onClick={() => !busy && pickBlueprint(category)}
-                      className="border-2 border-dashed border-[#cdc3d4]/50 dark:border-white/10 rounded-[12px] w-full p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#fbf0ff]/30 hover:border-primary/40 transition-colors"
+                      className="border-2 border-dashed border-border/50 dark:border-white/10 rounded-[12px] w-full p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-2/30 hover:border-primary/40 transition-colors"
                     >
                       {busy ? (
                         <Loader2 size={32} className="text-primary animate-spin mb-3" />
                       ) : (
-                        <ImageIcon size={32} className="text-[#cdc3d4] mb-3" />
+                        <ImageIcon size={32} className="text-subtle mb-3" />
                       )}
-                      <p className="font-semibold text-[#1d033a] dark:text-gray-100 text-[13px]">
+                      <p className="font-semibold text-text dark:text-gray-100 text-[13px]">
                         {busy ? 'Įkeliama...' : 'Įkelti brėžinį'}
                       </p>
-                      <p className="text-[11px] text-[#7c7484] dark:text-gray-400 mt-1">PNG, JPG, PDF, DWG</p>
+                      <p className="text-[11px] text-subtle dark:text-subtle mt-1">PNG, JPG, PDF, DWG</p>
                     </div>
                   )}
                 </div>
@@ -301,18 +301,18 @@ export default function BlueprintsTab({
       {/* ── New blueprint category modal ── */}
       {showCategoryModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#18181b] rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#cdc3d4]/30 dark:border-white/10">
-              <h3 className="text-[16px] font-bold text-[#1d033a] dark:text-gray-100">Nauja kategorija</h3>
+          <div className="bg-surface rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 dark:border-white/10">
+              <h3 className="text-[16px] font-bold text-text dark:text-gray-100">Nauja kategorija</h3>
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="cursor-pointer text-[#7c7484] dark:text-gray-400 hover:text-[#1d033a] transition-colors"
+                className="cursor-pointer text-subtle dark:text-subtle hover:text-text transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6">
-              <label className="block text-[13px] font-semibold text-[#4b4452] dark:text-gray-300 uppercase tracking-wider mb-2">
+              <label className="block text-[13px] font-semibold text-muted dark:text-subtle uppercase tracking-wider mb-2">
                 Pavadinimas <span className="text-red-500">*</span>
               </label>
               <input
@@ -322,13 +322,13 @@ export default function BlueprintsTab({
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
                 placeholder="Pvz.: Vizualizacija"
                 autoFocus
-                className="w-full h-[44px] px-3 bg-[#f6f5fa] dark:bg-[#27272a] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[14px] text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-[#cdc3d4] dark:border-white/10 text-[#4b4452] dark:text-gray-300 hover:bg-[#f6f5fa] transition-colors cursor-pointer"
+                className="flex-1 h-[44px] font-semibold text-[14px] rounded-[8px] border border-border dark:border-white/10 text-muted dark:text-subtle hover:bg-surface-2 transition-colors cursor-pointer"
               >
                 Atšaukti
               </button>

@@ -60,7 +60,7 @@ export default function InstallerPhotosSection({
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />
-        <span className="ml-3 text-[14px] text-[#7c7484] dark:text-gray-400">Kraunamos nuotraukos...</span>
+        <span className="ml-3 text-[14px] text-subtle dark:text-subtle">Kraunamos nuotraukos...</span>
       </div>
     );
   }
@@ -69,12 +69,12 @@ export default function InstallerPhotosSection({
 
   return (
     <>
-      <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm overflow-hidden">
+      <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-3.5 border-b border-[#cdc3d4]/20 dark:border-white/10 bg-[#f6f5fa]/50 flex items-center gap-2">
+        <div className="px-5 py-3.5 border-b border-border/20 dark:border-white/10 bg-surface-2/50 flex items-center gap-2">
           <ImageIcon size={18} className="text-primary" />
-          <h3 className="font-semibold text-[#1d033a] dark:text-gray-100 text-[14px]">Montuotojų nuotraukos</h3>
-          <span className="ml-auto text-[12px] text-[#7c7484] dark:text-gray-400">
+          <h3 className="font-semibold text-text dark:text-gray-100 text-[14px]">Montuotojų nuotraukos</h3>
+          <span className="ml-auto text-[12px] text-subtle dark:text-subtle">
             {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
           </span>
         </div>
@@ -87,7 +87,7 @@ export default function InstallerPhotosSection({
               return (
                 <div
                   key={photo.id}
-                  className="group relative aspect-square rounded-[10px] overflow-hidden bg-[#f6f5fa] dark:bg-[#27272a] border border-[#cdc3d4]/20 dark:border-white/10 hover:border-primary/40 transition-colors"
+                  className="group relative aspect-square rounded-[10px] overflow-hidden bg-surface-2 dark:bg-surface-2 border border-border/20 dark:border-white/10 hover:border-primary/40 transition-colors"
                 >
                   {/* Thumbnail (click → lightbox) */}
                   <button
@@ -103,7 +103,7 @@ export default function InstallerPhotosSection({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon size={24} className="text-[#cdc3d4]" />
+                        <ImageIcon size={24} className="text-subtle" />
                       </div>
                     )}
                   </button>
@@ -120,7 +120,7 @@ export default function InstallerPhotosSection({
                         onClick={(e) => { e.stopPropagation(); void handleDownload(photo); }}
                         disabled={downloading || isDeleting}
                         title="Atsisiųsti"
-                        className="w-8 h-8 rounded-[6px] bg-white/90 text-[#1d033a] dark:text-gray-100 flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                        className="w-8 h-8 rounded-[6px] bg-white/90 text-text dark:text-gray-100 flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                       >
                         {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                       </button>
@@ -178,7 +178,7 @@ export default function InstallerPhotosSection({
               onClick={() => void handleDownload(lightboxPhoto)}
               disabled={downloading || deletingId === lightboxPhoto.id}
               title="Atsisiųsti"
-              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-[#1d033a] dark:text-gray-100 font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-text dark:text-gray-100 font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
             >
               {downloading
                 ? <Loader2 size={14} className="animate-spin" />

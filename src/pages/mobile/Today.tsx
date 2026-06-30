@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { startWork } from '../../api/timeTracking';
 import { getCurrentPositionWithTimeout } from '../../lib/geolocation';
 import { getInstallerSites } from '../../api/sites';
+import { isUpcomingInstallerSiteStatus } from '../../lib/siteStatus';
 import { useAuthStore } from '../../stores/authStore';
 import SiteCard from '../../components/mobile/SiteCard';
 import * as Sentry from "@sentry/react";
@@ -73,7 +74,7 @@ export default function Today() {
   // started — and STRICTLY never completed jobs.
   const activeSites = sitesData?.filter(s => s.status === 'in_progress' || s.status === 'paused') || [];
   const upcomingSites = sitesData?.filter(
-    s => s.status !== 'in_progress' && s.status !== 'paused' && s.status !== 'completed',
+    s => isUpcomingInstallerSiteStatus(s.status),
   ) || [];
   const currentViewSites = activeTab === 'active' ? activeSites : upcomingSites;
 
@@ -81,20 +82,20 @@ export default function Today() {
     <div>
       {/* Greeting — clean iOS header on the page background (no card) */}
       <div className="px-4 pt-5">
-        <h2 className="text-2xl font-extrabold text-gray-900 dark:text-zinc-100 tracking-tight">
+        <h2 className="text-2xl font-extrabold text-text tracking-tight">
           {greeting}, {firstName}!
         </h2>
-        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5 capitalize">
+        <p className="text-sm text-muted mt-0.5 capitalize">
           {format(new Date(), "yyyy 'm.' MMMM d 'd.,' EEEE", { locale: lt })}
         </p>
       </div>
 
       {/* iOS segmented control */}
-      <div className="mx-4 mt-5 mb-4 flex rounded-xl bg-gray-100 dark:bg-white/10 p-1">
+      <div className="mx-4 mt-5 mb-4 flex rounded-xl bg-surface-2 p-1">
         <button
           onClick={() => setActiveTab('active')}
           className={`flex-1 py-2 text-[14px] font-semibold rounded-md transition-colors ${
-            activeTab === 'active' ? 'bg-white dark:bg-[#18181b] shadow-sm text-gray-900 dark:text-zinc-100' : 'text-gray-500 dark:text-zinc-400'
+            activeTab === 'active' ? 'bg-surface shadow-card text-text' : 'text-muted'
           }`}
         >
           Aktyvūs ({activeSites.length})
@@ -102,7 +103,7 @@ export default function Today() {
         <button
           onClick={() => setActiveTab('upcoming')}
           className={`flex-1 py-2 text-[14px] font-semibold rounded-md transition-colors ${
-            activeTab === 'upcoming' ? 'bg-white dark:bg-[#18181b] shadow-sm text-gray-900 dark:text-zinc-100' : 'text-gray-500 dark:text-zinc-400'
+            activeTab === 'upcoming' ? 'bg-surface shadow-card text-text' : 'text-muted'
           }`}
         >
           Ateinantys ({upcomingSites.length})
@@ -111,8 +112,8 @@ export default function Today() {
 
       {isLoadingSites ? (
         <>
-          <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
-          <div className="rounded-2xl bg-white dark:bg-[#18181b] animate-pulse h-48 mx-4 mb-3"></div>
+          <div className="rounded-[20px] bg-surface animate-pulse h-48 mx-4 mb-3"></div>
+          <div className="rounded-[20px] bg-surface animate-pulse h-48 mx-4 mb-3"></div>
         </>
       ) : currentViewSites.length > 0 ? (
         currentViewSites.map((site) => (
@@ -125,11 +126,11 @@ export default function Today() {
       ) : (
         <div className="mx-4 text-center py-14 flex flex-col items-center gap-2">
           {activeTab === 'active' ? (
-            <CheckCircle2 className="w-10 h-10 text-gray-300 dark:text-zinc-600" />
+            <CheckCircle2 className="w-10 h-10 text-subtle" />
           ) : (
-            <CalendarX className="w-10 h-10 text-gray-300 dark:text-zinc-600" />
+            <CalendarX className="w-10 h-10 text-subtle" />
           )}
-          <p className="text-[14px] text-gray-400 dark:text-zinc-500">
+          <p className="text-[14px] text-subtle">
             {activeTab === 'active' ? 'Šiuo metu aktyvių objektų nėra.' : 'Šiuo metu ateinančių objektų nėra.'}
           </p>
         </div>

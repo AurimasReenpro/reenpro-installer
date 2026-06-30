@@ -17,9 +17,9 @@ interface SiteDetailActionBarProps {
 }
 
 const primaryBtn =
-  'flex-1 h-[48px] rounded-xl bg-primary text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed';
+  'flex-1 h-[48px] rounded-btn bg-primary text-white font-semibold text-[15px] shadow-primary flex items-center justify-center gap-2 active:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed';
 const secondaryBtn =
-  'flex-1 h-[48px] rounded-xl bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-zinc-100 font-semibold text-[15px] flex items-center justify-center gap-2 active:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  'flex-1 h-[48px] rounded-btn bg-surface-2 text-text font-semibold text-[15px] flex items-center justify-center gap-2 active:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed';
 
 export default function SiteDetailActionBar({
   status,
@@ -38,12 +38,12 @@ export default function SiteDetailActionBar({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[70] backdrop-blur-md bg-white/90 dark:bg-zinc-900/90 border-t border-gray-100 dark:border-white/10 px-4 pt-3 pb-6">
+    <div className="fixed bottom-0 left-0 right-0 z-[70] backdrop-blur-md bg-surface/90 border-t border-border px-4 pt-3 pb-6">
       {status === 'pending' && (
         <button
           onClick={onCheckIn}
           disabled={isCheckingIn}
-          className="w-full h-[52px] rounded-xl bg-primary text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:opacity-90 transition-opacity disabled:opacity-60"
+          className="w-full h-[52px] rounded-btn bg-primary text-white font-semibold text-[15px] shadow-primary flex items-center justify-center gap-2 active:opacity-90 transition-opacity disabled:opacity-60"
         >
           {isCheckingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Play className="w-[18px] h-[18px]" /> Pradėti darbą</>}
         </button>
@@ -52,8 +52,8 @@ export default function SiteDetailActionBar({
       {status === 'in_progress' && (
         <div className="flex flex-col gap-3">
           <div className="flex justify-center">
-            <span className="inline-flex items-center gap-2 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-zinc-100 font-mono text-sm px-3 py-1 rounded-full">
-              <Clock className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="inline-flex items-center gap-2 bg-surface-2 text-text font-mono text-sm px-3 py-1 rounded-full">
+              <Clock className="w-3.5 h-3.5 text-success" />
               <LiveTimer entries={entries} installerId={installerId} />
             </span>
           </div>
@@ -71,7 +71,7 @@ export default function SiteDetailActionBar({
       {status === 'paused' && (
         <div className="flex flex-col gap-3">
           <div className="flex justify-center">
-            <span className="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 font-mono text-sm px-3 py-1 rounded-full">
+            <span className="inline-flex items-center gap-2 bg-warning-bg text-warning font-mono text-sm px-3 py-1 rounded-full">
               <Pause className="w-3.5 h-3.5" /> Pertrauka
               <LiveTimer entries={entries} installerId={installerId} />
             </span>

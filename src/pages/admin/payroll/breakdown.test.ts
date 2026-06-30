@@ -19,12 +19,20 @@ describe('parseBreakdown', () => {
     expect(poolEur).toBe(498);
   });
 
-  it('labels rules in Lithuanian and builds a per-unit detail', () => {
+  it('keeps the custom rule label and builds a per-unit detail', () => {
     const { rules } = parseBreakdown(ruleBreakdown);
-    expect(rules[0].label).toBe('Bazinis objektas');
+    expect(rules[0].label).toBe('Bazinis');
     expect(rules[2].detail).toMatch(/^24 vnt\. ×/);
     expect(rules[3].applied).toBe(false);
     expect(rules[3].note).toBe('trūko QC');
+  });
+
+  it('renders a custom manual template label', () => {
+    const { rules } = parseBreakdown({
+      pool_cents: 2000,
+      rules: [{ rule_id: 'manual', code: 'CUSTOM', label: 'Sudėtingas stogas', rule_type: 'manual_template', mode: 'auto', default_applicable: true, applied: true, quantity: null, unit_amount: 20, amount: 20, source: 'detected', note: null }],
+    });
+    expect(rules[0].label).toBe('Sudėtingas stogas');
   });
 
   it('falls back to legacy component lines when there is no rules array', () => {

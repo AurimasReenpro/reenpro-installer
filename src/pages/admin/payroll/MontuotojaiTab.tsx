@@ -105,10 +105,10 @@ export default function MontuotojaiTab({
         <Banner tone="amber" icon={<Info size={16} />} text="Preliminarios sumos. Jos gali keistis po perskaičiavimo ar korekcijų." />
       )}
 
-      <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-x-auto">
+      <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[920px]">
           <thead>
-            <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-[#27272a]">
+            <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-surface-2">
               <th className={th}>Montuotojas</th>
               <th className={th}>Komanda</th>
               <th className={`${th} text-right`}>Objektų sk.</th>
@@ -129,7 +129,7 @@ export default function MontuotojaiTab({
               const aboveAvg = avgTotal > 0 && baskets.length > 1 && b.total > avgTotal * 1.5;
               return (
                 <Fragment key={b.installerId}>
-                  <tr onClick={() => toggle(b.installerId)} className={`border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-[#27272a] transition-colors cursor-pointer ${zero ? 'opacity-50' : ''}`}>
+                  <tr onClick={() => toggle(b.installerId)} className={`border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-surface-2 transition-colors cursor-pointer ${zero ? 'opacity-50' : ''}`}>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2 flex-wrap">
                         <ChevronDown size={14} className={`text-zinc-400 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
@@ -156,9 +156,9 @@ export default function MontuotojaiTab({
                         <td className="py-2 px-4 text-[12px]"><span className="font-semibold text-zinc-600 dark:text-zinc-300">{ENTRY_TYPE_LABELS[e.entry_type]}</span></td>
                         <td className="py-2 px-4 text-[12px]" colSpan={4}>
                           <div className="flex items-center gap-2 min-w-0">
-                            {code && <span className="text-[11px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded shrink-0">{code}</span>}
+                            {code && <span className="text-[11px] font-bold text-primary dark:text-primary-ink bg-primary-fixed dark:bg-primary/30 px-1.5 py-0.5 rounded shrink-0">{code}</span>}
                             <span className="text-zinc-600 dark:text-zinc-300 truncate">{e.description ?? '—'}</span>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${e.source === 'auto' ? 'bg-zinc-100 dark:bg-white/5 text-zinc-400' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300'}`}>{e.source === 'auto' ? 'auto' : 'rankinis'}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${e.source === 'auto' ? 'bg-zinc-100 dark:bg-white/5 text-zinc-400' : 'bg-primary-fixed dark:bg-primary/20 text-primary dark:text-primary-ink'}`}>{e.source === 'auto' ? 'auto' : 'rankinis'}</span>
                           </div>
                         </td>
                         <td className="py-2 px-4 text-right text-[13px] font-semibold tabular-nums">
@@ -215,7 +215,7 @@ function Flag({ tone, children }: { tone: 'red' | 'amber'; children: React.React
 
 function EmptyCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
-    <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl py-16 text-center">
+    <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl py-16 text-center">
       <span className="text-zinc-300 dark:text-zinc-600 mb-2 inline-flex">{icon}</span>
       <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium">{title}</p>
       {subtitle && <p className="text-[13px] text-zinc-400 mt-1">{subtitle}</p>}

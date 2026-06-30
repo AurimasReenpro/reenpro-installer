@@ -17,27 +17,39 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { addDays, format, isToday, startOfToday } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
-import { supabase } from '../../lib/supabase';
-import { getTeams } from '../../api/installers';
+import { getActiveTeams, getActiveInstallers } from '../../api/installers';
+import {
+  assignSiteToSchedule,
+  getScheduleSites,
+  unassignSiteFromSchedule,
+  type ScheduleSite,
+} from '../../api/sites';
 import { useCreateBlankSite } from '../../hooks/useCreateSite';
 import { isSiteDraft } from '../../lib/siteDraft';
 import {
-  MapPin, Zap, Battery, GripVertical, CalendarClock, Inbox, ArrowUpRight,
+  applyScheduleDrop,
+  buildSiteDragData,
+  InvalidScheduleDropError,
+  parseScheduleCellId,
+  type ScheduleSiteDragData,
+} from './scheduleDnD';
+import {
+  buildScheduleCellSummary,
+  buildScheduleSiteEquipmentSummary,
+  SCHEDULE_KWP_OVERLOAD_THRESHOLD,
+  SCHEDULE_OBJECT_COUNT_OVERLOAD_THRESHOLD,
+} from './scheduleModel';
+import {
+  buildTeamWorkRoleMap,
+  getScheduleWarningLabel,
+  getScheduleWarnings,
+  type ScheduleWarning,
+} from './scheduleWarnings';
+import type { InstallerWorkRole } from '../../lib/installerWorkRoles';
+import {
+  MapPin, Zap, GripVertical, CalendarClock, Inbox, ArrowUpRight,
   ChevronLeft, ChevronRight, Plus, RotateCcw,
 } from 'lucide-react';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface ScheduleSite {
-  id: string;
-  code: string | null;
-  client_name: string | null;
-  address: string | null;
-  status: string | null;
-  scheduled_start: string | null;
-  kwp: number | null;
-  kwh: number | null;
-  team_id: string | null;
-}
 
 const DAY_COUNT = 7;
 const dayKey = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -48,22 +60,24 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   completed:   { label: 'Baigtas',     cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
   in_progress: { label: 'Vykdomas',    cls: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
   paused:      { label: 'Pristabdyta', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
-  pending:     { label: 'Laukia',      cls: 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400' },
+  pending:     { label: 'Laukia',      cls: 'bg-surface-2 text-muted dark:bg-white/10 dark:text-subtle' },
 };
 
 // ── Draggable site card ───────────────────────────────────────────────────────
 function SiteCard({
   site,
+  warnings = [],
   compact = false,
   onOpen,
   onUnassign,
 }: {
   site: ScheduleSite;
+  warnings?: ScheduleWarning[];
   compact?: boolean;
   onOpen?: () => void;
   onUnassign?: () => void;
 }) {
-  const hasBattery = site.kwh != null;
+  const equipmentSummary = buildScheduleSiteEquipmentSummary(site);
   const isCompleted = site.status === 'completed';
   const draft = isSiteDraft(site);
   const badge = site.status ? STATUS_BADGE[site.status] : undefined;
@@ -71,7 +85,7 @@ function SiteCard({
   const canUnassign = site.team_id !== null && !isCompleted;
   return (
     <div
-      className={`group relative rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#27272a] shadow-sm ${
+      className={`group relative rounded-xl border border-border bg-white dark:bg-surface-2 shadow-sm ${
         compact ? 'p-2.5' : 'p-3'
       } ${isCompleted ? 'opacity-60' : ''}`}
     >
@@ -82,7 +96,7 @@ function SiteCard({
               onClick={(e) => { e.stopPropagation(); onUnassign(); }}
               onPointerDown={(e) => e.stopPropagation()}
               title="Atšaukti priskyrimą"
-              className="bg-white/90 dark:bg-[#27272a]/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-gray-100 dark:border-white/10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              className="bg-white/90 dark:bg-surface-2/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-border text-subtle hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
             >
               <RotateCcw size={14} />
             </button>
@@ -92,7 +106,7 @@ function SiteCard({
               onClick={(e) => { e.stopPropagation(); onOpen(); }}
               onPointerDown={(e) => e.stopPropagation()}
               title="Atidaryti objektą"
-              className="bg-white/90 dark:bg-[#27272a]/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-gray-100 dark:border-white/10 text-gray-500 hover:text-purple-600 dark:hover:text-white transition-colors cursor-pointer"
+              className="bg-white/90 dark:bg-surface-2/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-border text-muted hover:text-primary dark:hover:text-white transition-colors cursor-pointer"
             >
               <ArrowUpRight size={14} />
             </button>
@@ -100,10 +114,10 @@ function SiteCard({
         </div>
       )}
       <div className="flex items-start gap-2">
-        <GripVertical size={15} className="text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" />
+        <GripVertical size={15} className="text-subtle dark:text-muted shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap pr-6">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-subtle uppercase tracking-wider">
               #{site.code ?? '—'}
             </span>
             {draft ? (
@@ -116,25 +130,32 @@ function SiteCard({
               </span>
             )}
           </div>
-          <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 truncate leading-tight mt-0.5">
+          <p className="text-[13px] font-bold text-text truncate leading-tight mt-0.5">
             {site.client_name || 'Nežinomas klientas'}
           </p>
           {!compact && site.address && (
-            <p className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+            <p className="flex items-center gap-1 text-[11px] text-subtle truncate mt-0.5">
               <MapPin size={11} className="shrink-0" />
               <span className="truncate">{site.address}</span>
             </p>
           )}
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 dark:text-gray-400">
-              <Zap size={11} className="text-amber-500" /> {site.kwp ?? '—'} kWp
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted">
+              <Zap size={11} className="text-amber-500" /> {equipmentSummary}
             </span>
-            {hasBattery && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 dark:text-gray-400">
-                <Battery size={11} className="text-emerald-500" /> {site.kwh} kWh
-              </span>
-            )}
           </div>
+          {warnings.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {warnings.map((warning) => (
+                <span
+                  key={warning}
+                  className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300"
+                >
+                  {getScheduleWarningLabel(warning)}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -143,19 +164,22 @@ function SiteCard({
 
 function DraggableSite({
   site,
+  warnings = [],
   compact,
   onOpen,
   onUnassign,
 }: {
   site: ScheduleSite;
+  warnings?: ScheduleWarning[];
   compact?: boolean;
   onOpen?: () => void;
   onUnassign?: () => void;
 }) {
-  // Completed jobs and incomplete drafts cannot be dragged onto the calendar.
-  const locked = site.status === 'completed' || isSiteDraft(site);
+  // Completed jobs stay locked; waiting/draft jobs can be placed from the backlog.
+  const locked = site.status === 'completed';
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: site.id,
+    data: buildSiteDragData(site),
     disabled: locked,
   });
   return (
@@ -165,7 +189,7 @@ function DraggableSite({
       className={`touch-none ${locked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
       {...(locked ? {} : { ...listeners, ...attributes })}
     >
-      <SiteCard site={site} compact={compact} onOpen={onOpen} onUnassign={onUnassign} />
+      <SiteCard site={site} warnings={warnings} compact={compact} onOpen={onOpen} onUnassign={onUnassign} />
     </div>
   );
 }
@@ -175,7 +199,9 @@ function DroppableCell({
   teamId,
   dKey,
   sites,
+  teamWorkRoles,
   highlight,
+  draggingSite,
   onOpenSite,
   onQuickAdd,
   onUnassignSite,
@@ -183,40 +209,66 @@ function DroppableCell({
   teamId: string;
   dKey: string;
   sites: ScheduleSite[];
+  teamWorkRoles: Map<string, Set<InstallerWorkRole>>;
   highlight: boolean;
+  draggingSite: boolean;
   onOpenSite: (id: string) => void;
   onQuickAdd: () => void;
   onUnassignSite: (id: string) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `cell-team_${teamId}-date_${dKey}` });
-  const totalKwp = sites.reduce((sum, s) => sum + (s.kwp ?? 0), 0);
+  const { setNodeRef, isOver } = useDroppable({
+    id: `cell-team_${teamId}-date_${dKey}`,
+    data: { type: 'schedule-cell', teamId, date: dKey },
+  });
+  const summary = buildScheduleCellSummary(sites);
+  const tooManySites = summary.objectCount > SCHEDULE_OBJECT_COUNT_OVERLOAD_THRESHOLD;
+  const highKwp = (summary.totalKwp ?? 0) > SCHEDULE_KWP_OVERLOAD_THRESHOLD;
   const isEmpty = sites.length === 0;
   return (
     <div
       ref={setNodeRef}
-      className={`group relative flex flex-col gap-2 p-2 min-h-[120px] h-full border-b border-r border-gray-50 dark:border-white/5 transition-colors ${
+      className={`group relative flex flex-col gap-2 p-2 min-h-[120px] h-full border-b border-r border-border dark:border-white/5 transition-colors ${
         isOver
-          ? 'bg-purple-100/60 dark:bg-purple-500/15 ring-1 ring-inset ring-purple-400'
+          ? 'bg-primary-fixed/60 dark:bg-primary/15 ring-1 ring-inset ring-primary'
+          : draggingSite
+          ? 'bg-primary-fixed/20 dark:bg-primary/5'
           : highlight
-          ? 'bg-purple-50/30 dark:bg-purple-900/10'
+          ? 'bg-primary-fixed/30 dark:bg-primary/10'
           : ''
       }`}
     >
+      {isOver && (
+        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-surface/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary shadow-sm ring-1 ring-primary/20 dark:bg-surface-2/90 dark:text-primary-ink">
+          Numesti čia
+        </span>
+      )}
       {sites.map((s) => (
         <DraggableSite
           key={s.id}
           site={s}
+          warnings={getScheduleWarnings(s, teamWorkRoles)}
           compact
           onOpen={() => onOpenSite(s.id)}
           onUnassign={() => onUnassignSite(s.id)}
         />
       ))}
 
-      {/* Daily capacity indicator */}
-      {totalKwp > 0 && (
-        <span className="mt-auto self-end text-[10px] font-semibold text-gray-400 dark:text-gray-500">
-          {totalKwp.toFixed(1)} kWp
-        </span>
+      {!isEmpty && (
+        <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-muted dark:bg-white/10 dark:text-subtle">
+            {summary.label}
+          </span>
+          {tooManySites && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300">
+              Daug objektų
+            </span>
+          )}
+          {highKwp && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300">
+              Didelė apkrova
+            </span>
+          )}
+        </div>
       )}
 
       {/* Quick-add (empty cells only) */}
@@ -225,7 +277,7 @@ function DroppableCell({
           onClick={() => onQuickAdd()}
           onPointerDown={(e) => e.stopPropagation()}
           title="Pridėti objektą"
-          className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-primary-fixed text-primary dark:bg-primary/20 dark:text-primary-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         >
           <Plus size={16} />
         </button>
@@ -249,18 +301,15 @@ export default function Schedule() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const openSite = (id: string) => { void navigate(`/admin/sites/${id}`); };
-  // Quick-add creates an UNASSIGNED draft and jumps to its detail page. Drafts
-  // can't be placed on the calendar until they're filled in (see the drag guard).
+  // Quick-add creates an UNASSIGNED draft and jumps to its detail page.
   const openQuickAdd = () => { void createBlankSite(); };
 
   // One-click unassign → clears team + planned day, returns the card to the backlog.
   // Reliable replacement for the abandoned drag-to-backlog interaction.
   const handleUnassign = async (siteId: string) => {
-    const { error } = await supabase
-      .from('sites')
-      .update({ team_id: null, scheduled_start: null, status: 'pending' })
-      .eq('id', siteId);
-    if (error) {
+    try {
+      await unassignSiteFromSchedule(siteId);
+    } catch (error) {
       console.error('Unassign failed:', error);
       toast.error('Nepavyko atšaukti priskyrimo');
       return;
@@ -272,26 +321,28 @@ export default function Schedule() {
   };
 
   // Fetch 1: teams (Y-axis)
-  const { data: teams } = useQuery({ queryKey: ['admin_teams'], queryFn: getTeams });
+  const { data: teams } = useQuery({ queryKey: ['active_teams'], queryFn: getActiveTeams });
+
+  const { data: installerOptions } = useQuery({
+    queryKey: ['installers_list'],
+    queryFn: getActiveInstallers,
+    staleTime: 60_000,
+  });
 
   // Fetch 2: pending + active sites
   const { data: sites } = useQuery({
     queryKey: ['schedule_sites'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sites')
-        .select('id, code, client_name, address, status, scheduled_start, kwp, kwh, team_id')
-        .in('status', ['pending', 'in_progress', 'paused', 'completed'])
-        .order('scheduled_start', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) satisfies ScheduleSite[];
-    },
+    queryFn: getScheduleSites,
   });
 
   const allSites = useMemo<ScheduleSite[]>(() => sites ?? [], [sites]);
   const allTeams = teams ?? [];
+  const teamWorkRoles = useMemo(
+    () => buildTeamWorkRoleMap(installerOptions ?? []),
+    [installerOptions],
+  );
 
-  // Backlog = genuinely unassigned (no team AND no planned day). Driven purely by
+  // Backlog = unassigned or unscheduled work. Driven purely by
   // server data — no local overlay. The grid re-renders from the refetch after a drop.
   const backlogSites = useMemo(
     () => allSites.filter((s) => !s.team_id || !s.scheduled_start),
@@ -315,25 +366,29 @@ export default function Schedule() {
   const onDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
-    console.log('Drag ended over:', over?.id);
     if (!over) return;
     const siteId = String(active.id);
     const overId = String(over.id);
     const currentStatus = allSites.find((s) => s.id === siteId)?.status ?? null;
+    const dragged = allSites.find((s) => s.id === siteId);
+    const dragData = (active.data.current as ScheduleSiteDragData | undefined)
+      ?? (dragged ? buildSiteDragData(dragged) : null);
+    if (!dragData || dragData.type !== 'site') return;
 
     const refetch = () => {
       void qc.invalidateQueries({ queryKey: ['schedule_sites'] });
       void qc.invalidateQueries({ queryKey: ['admin_all_sites'] });
+      void qc.invalidateQueries({ queryKey: ['admin_sites_list'] });
       void qc.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+      void qc.invalidateQueries({ queryKey: ['admin-operations-dashboard'] });
     };
 
     // ── Drop onto the backlog → unassign ──
     if (overId === 'backlog-zone') {
-      const { error } = await supabase
-        .from('sites')
-        .update({ team_id: null, scheduled_start: null, status: 'pending' })
-        .eq('id', siteId);
-      if (error) {
+      if (dragData.source === 'unassigned') return;
+      try {
+        await unassignSiteFromSchedule(siteId);
+      } catch (error) {
         console.error('DB Update Failed:', error);
         toast.error('Klaida atšaukiant priskyrimą');
         return;
@@ -343,37 +398,37 @@ export default function Schedule() {
     }
 
     // ── Drop onto a team/day cell → assign ──
-    const match = overId.match(/^cell-team_(.+)-date_(.+)$/);
-    if (!match) return;
-    const teamId = match[1];
-    const date = match[2];
-    if (!teamId || !date) return;
-
-    // Backstop: drafts must be completed before they can be scheduled.
-    const dragged = allSites.find((s) => s.id === siteId);
-    if (dragged && isSiteDraft(dragged)) {
-      toast.error('Užpildykite objekto duomenis prieš priskiriant');
+    const target = parseScheduleCellId(overId);
+    if (!target) return;
+    if (!target.teamId || !target.date) {
+      toast.error('Pasirinkta netinkama vieta tvarkaraštyje.');
       return;
     }
 
-    const { error } = await supabase
-      .from('sites')
-      .update({
-        team_id: teamId,
-        // Anchor 08:00 to LOCAL (Vilnius) time so the card never jumps a column.
-        scheduled_start: format(new Date(`${date}T08:00:00`), "yyyy-MM-dd'T'HH:mm:ssXXX"),
-        status: currentStatus === 'completed' ? 'completed' : 'pending',
-      })
-      .eq('id', siteId);
-    if (error) {
+    try {
+      const result = await applyScheduleDrop(dragData, target, currentStatus, (assignment) =>
+        assignSiteToSchedule(
+          assignment.siteId,
+          assignment.teamId,
+          assignment.scheduledStart,
+          assignment.status,
+        )
+      );
+      if (result === 'ignored') return;
+    } catch (error) {
       console.error('DB Update Failed:', error);
-      toast.error('Klaida atnaujinant tvarkaraštį');
+      toast.error(error instanceof InvalidScheduleDropError
+        ? error.message
+        : 'Nepavyko priskirti objekto.');
       return;
     }
     refetch();
   };
 
-  const { setNodeRef: backlogRef, isOver: backlogOver } = useDroppable({ id: 'backlog-zone' });
+  const { setNodeRef: backlogRef, isOver: backlogOver } = useDroppable({
+    id: 'backlog-zone',
+    data: { type: 'backlog' },
+  });
 
   const gridCols = `180px repeat(${days.length}, minmax(150px, 1fr))`;
 
@@ -382,31 +437,31 @@ export default function Schedule() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4 shrink-0 gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Tvarkaraštis</h2>
-          <p className="text-[14px] text-gray-500 dark:text-gray-400">
+          <h2 className="text-2xl font-extrabold tracking-tight text-text">Tvarkaraštis</h2>
+          <p className="text-[14px] text-muted">
             Tempkite objektus iš laukiančiųjų į komandos dieną
           </p>
         </div>
 
         {/* Week navigation */}
-        <div className="flex items-center gap-1 bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1 shadow-sm">
           <button
             onClick={() => setBaseDate(startOfToday())}
-            className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             Šiandien
           </button>
           <button
             onClick={() => setBaseDate((d) => addDays(d, -DAY_COUNT))}
             title="Ankstesnė savaitė"
-            className="px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={() => setBaseDate((d) => addDays(d, DAY_COUNT))}
             title="Kita savaitė"
-            className="px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             <ChevronRight size={18} />
           </button>
@@ -416,10 +471,10 @@ export default function Schedule() {
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={(e) => { void onDragEnd(e); }}>
         <div className="flex gap-5 flex-1 min-h-0">
           {/* ── Main timeline grid ── */}
-          <div className="flex-1 min-w-0 bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-auto">
+          <div className="flex-1 min-w-0 bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-auto">
             <div className="min-w-max" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
               {/* Header row */}
-              <div className="sticky top-0 left-0 z-30 bg-gray-50/80 dark:bg-[#27272a] backdrop-blur-sm border-b border-r border-gray-100 dark:border-white/10 px-4 py-3 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              <div className="sticky top-0 left-0 z-30 bg-surface-2/80 dark:bg-surface-2 backdrop-blur-sm border-b border-r border-border px-4 py-3 text-[11px] font-bold text-subtle uppercase tracking-wider">
                 Komandos
               </div>
               {days.map((d) => {
@@ -427,16 +482,16 @@ export default function Schedule() {
                 return (
                   <div
                     key={dayKey(d)}
-                    className={`sticky top-0 z-20 backdrop-blur-sm border-b border-r border-gray-100 dark:border-white/10 px-3 py-2.5 text-center ${
+                    className={`sticky top-0 z-20 backdrop-blur-sm border-b border-r border-border px-3 py-2.5 text-center ${
                       today
-                        ? 'bg-purple-50/80 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300'
-                        : 'bg-gray-50/80 dark:bg-[#27272a] text-gray-500 dark:text-gray-400'
+                        ? 'bg-primary-fixed/80 dark:bg-primary/20 text-primary dark:text-primary-ink'
+                        : 'bg-surface-2/80 dark:bg-surface-2 text-muted'
                     }`}
                   >
                     <p className="text-[11px] font-bold uppercase tracking-wider">
                       {cap(format(d, 'EEEE', { locale: lt }))}
                     </p>
-                    <p className={`text-[15px] font-extrabold ${today ? '' : 'text-gray-900 dark:text-gray-100'}`}>
+                    <p className={`text-[15px] font-extrabold ${today ? '' : 'text-text'}`}>
                       {format(d, 'MM-dd')}
                     </p>
                   </div>
@@ -446,8 +501,8 @@ export default function Schedule() {
               {/* Team rows */}
               {allTeams.map((team) => (
                 <Fragment key={team.id}>
-                  <div className="sticky left-0 z-10 bg-white dark:bg-[#18181b] border-b border-r border-gray-100 dark:border-white/10 px-4 py-3 flex items-center">
-                    <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100 truncate">{team.name}</span>
+                  <div className="sticky left-0 z-10 bg-surface border-b border-r border-border px-4 py-3 flex items-center">
+                    <span className="text-[13px] font-bold text-text truncate">{team.name}</span>
                   </div>
                   {days.map((d) => (
                     <DroppableCell
@@ -455,7 +510,9 @@ export default function Schedule() {
                       teamId={team.id}
                       dKey={dayKey(d)}
                       sites={cellSites(team.id, dayKey(d))}
+                      teamWorkRoles={teamWorkRoles}
                       highlight={isToday(d)}
+                      draggingSite={!!activeId}
                       onOpenSite={openSite}
                       onQuickAdd={openQuickAdd}
                       onUnassignSite={(id) => { void handleUnassign(id); }}
@@ -465,7 +522,7 @@ export default function Schedule() {
               ))}
 
               {allTeams.length === 0 && (
-                <div className="col-span-full px-4 py-12 text-center text-[14px] text-gray-400 dark:text-gray-500">
+                <div className="col-span-full px-4 py-12 text-center text-[14px] text-subtle">
                   Komandų nėra. Sukurkite komandą skiltyje „Montuotojai".
                 </div>
               )}
@@ -477,25 +534,25 @@ export default function Schedule() {
             ref={backlogRef}
             className={`w-[320px] h-full shrink-0 flex flex-col border rounded-2xl shadow-sm dark:shadow-none overflow-hidden transition-colors ${
               backlogOver
-                ? 'bg-purple-50/20 dark:bg-purple-900/10 border-purple-300 dark:border-purple-500/40 ring-2 ring-inset ring-purple-400'
-                : 'bg-white dark:bg-[#18181b] border-gray-100 dark:border-white/10'
+                ? 'bg-primary-fixed/20 dark:bg-primary/10 border-primary dark:border-primary/40 ring-2 ring-inset ring-primary'
+                : 'bg-surface border-border'
             }`}
           >
-            <div className="px-4 py-3.5 border-b border-gray-100 dark:border-white/10 flex items-center gap-2 shrink-0">
-              <CalendarClock size={16} className="text-purple-600 dark:text-purple-300" />
-              <h3 className="text-[14px] font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Laukia priskyrimo</h3>
-              <span className="ml-auto text-[11px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-[#27272a] rounded-full px-2 py-0.5">
+            <div className="px-4 py-3.5 border-b border-border flex items-center gap-2 shrink-0">
+              <CalendarClock size={16} className="text-primary dark:text-primary-ink" />
+              <h3 className="text-[14px] font-extrabold tracking-tight text-text">Laukia priskyrimo</h3>
+              <span className="ml-auto text-[11px] font-bold text-subtle bg-surface-2 rounded-full px-2 py-0.5">
                 {backlogSites.length}
               </span>
             </div>
-            <div className={`flex-1 overflow-y-auto p-3 space-y-2.5 transition-colors ${backlogOver ? 'bg-purple-50/50 dark:bg-purple-500/10' : ''}`}>
+            <div className={`flex-1 overflow-y-auto p-3 space-y-2.5 transition-colors ${backlogOver ? 'bg-primary-fixed/50 dark:bg-primary/10' : ''}`}>
               {backlogSites.map((s) => (
                 <DraggableSite key={s.id} site={s} onOpen={() => openSite(s.id)} />
               ))}
               {backlogSites.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-                  <Inbox size={28} className="text-gray-300 dark:text-gray-600" />
-                  <p className="text-[13px] text-gray-400 dark:text-gray-500">
+                  <Inbox size={28} className="text-subtle dark:text-muted" />
+                  <p className="text-[13px] text-subtle">
                     {backlogOver ? 'Atleiskite, kad grąžintumėte į laukiančiuosius' : 'Visi objektai priskirti'}
                   </p>
                 </div>
@@ -508,7 +565,7 @@ export default function Schedule() {
         <DragOverlay dropAnimation={null} zIndex={100}>
           {activeSite ? (
             <div className="relative z-[100] w-[280px] rotate-2 cursor-grabbing">
-              <SiteCard site={activeSite} />
+              <SiteCard site={activeSite} warnings={getScheduleWarnings(activeSite, teamWorkRoles)} />
             </div>
           ) : null}
         </DragOverlay>

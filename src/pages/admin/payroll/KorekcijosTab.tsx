@@ -33,7 +33,7 @@ export default function KorekcijosTab({
     onError: (e: unknown) => toast.error(payrollErrorMessage(e)),
   });
 
-  const addBtnCls = 'inline-flex items-center gap-1.5 h-[38px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 text-[13px] font-medium bg-white dark:bg-[#18181b] hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default';
+  const addBtnCls = 'inline-flex items-center gap-1.5 h-[38px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 text-[13px] font-medium bg-surface hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default';
 
   return (
     <div className="space-y-4">
@@ -51,10 +51,10 @@ export default function KorekcijosTab({
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl overflow-x-auto">
+      <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[760px]">
           <thead>
-            <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-[#27272a]">
+            <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-surface-2">
               <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Data</th>
               <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Montuotojas</th>
               <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Tipas</th>
@@ -71,13 +71,13 @@ export default function KorekcijosTab({
                 <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium">Rankinių įrašų nėra.</p>
               </td></tr>
             ) : manual.map((e) => (
-              <tr key={e.id} className="border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-[#27272a] transition-colors">
+              <tr key={e.id} className="border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-surface-2 transition-colors">
                 <td className="py-2.5 px-4 text-[12px] text-zinc-400 tabular-nums">{fmtDate(e.created_at)}</td>
                 <td className="py-2.5 px-4 text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">{nameById.get(e.installer_id) ?? '—'}</td>
                 <td className="py-2.5 px-4 text-[12px] text-zinc-600 dark:text-zinc-300">{ENTRY_TYPE_LABELS[e.entry_type]}</td>
                 <td className="py-2.5 px-4 text-[12px]">
                   {e.site_snapshot_id && codeBySnapshot.get(e.site_snapshot_id)
-                    ? <span className="font-bold text-purple-600 dark:text-purple-300">{codeBySnapshot.get(e.site_snapshot_id)}</span>
+                    ? <span className="font-bold text-primary dark:text-primary-ink">{codeBySnapshot.get(e.site_snapshot_id)}</span>
                     : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                 </td>
                 <td className="py-2.5 px-4 text-[13px] text-zinc-600 dark:text-zinc-300 max-w-[280px] truncate">{e.description ?? '—'}</td>

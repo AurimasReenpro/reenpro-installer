@@ -4,9 +4,10 @@ import { toast } from 'sonner';
 import { ChevronDown, AlertTriangle, Users, Coins, EyeOff, Eye, Building2, SlidersHorizontal } from 'lucide-react';
 import {
   setPayrollSiteIncluded, recalculatePayrollPeriod, payrollErrorMessage,
-  type PayrollSiteSnapshot, type PayrollInstaller,
+  type PayrollSiteSnapshot, type PayrollInstaller, type PayrollRateCard,
 } from '../../../api/payroll';
 import { fmtCents, fmtEur, fmtDate, parseBreakdown, PARTICIPANT_SOURCE, toCents } from './format';
+import { rateCardSourceLabel, type RateCardSource } from './siteRateCard';
 import ReasonModal from './ReasonModal';
 import ParticipantsModal from './ParticipantsModal';
 import ManualEntryModal from './ManualEntryModal';
@@ -18,17 +19,18 @@ const tdNum = `${td} text-right tabular-nums`;
 
 const CHIP_CLS: Record<string, string> = {
   AUTO: 'bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10',
-  RANKINIS: 'bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 border-purple-200 dark:border-purple-500/20',
+  RANKINIS: 'bg-primary-fixed text-primary dark:bg-primary/15 dark:text-primary-ink border-primary dark:border-primary/20',
   PRALEISTA: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
 };
 
 export default function ObjektaiTab({
-  periodId, year, month, rateCardId, snapshots, installers, isLocked, teamFilter, installerFilter, onChanged,
+  periodId, year, month, rateCardId, rateCards, snapshots, installers, isLocked, teamFilter, installerFilter, onChanged,
 }: {
   periodId: string;
   year: number;
   month: number;
   rateCardId: string | null;
+  rateCards: PayrollRateCard[];
   snapshots: PayrollSiteSnapshot[];
   installers: PayrollInstaller[];
   isLocked: boolean;
@@ -67,16 +69,17 @@ export default function ObjektaiTab({
   });
 
   return (
-    <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[1100px]">
+    <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-x-auto">
+      <table className="w-full text-left border-collapse min-w-[1200px]">
         <thead>
-          <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-[#27272a]">
+          <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-surface-2">
             <th className={th}>Objektas</th>
             <th className={th}>Klientas / adresas</th>
             <th className={th}>Užbaigta</th>
             <th className={th}>Sistema / kWp</th>
             <th className={th}>Dalyviai</th>
             <th className={th}>Šaltinis</th>
+            <th className={th}>Tarifas</th>
             <th className={`${th} text-right`}>Bazė</th>
             <th className={`${th} text-right`}>Priedai</th>
             <th className={`${th} text-right`}>Bonusai</th>
@@ -89,7 +92,7 @@ export default function ObjektaiTab({
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={14} className="py-16 text-center">
+            <tr><td colSpan={15} className="py-16 text-center">
               <Building2 size={34} className="text-zinc-300 dark:text-zinc-600 mb-2 inline-block" />
               <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium">Objektų nėra. Perskaičiuokite periodą.</p>
             </td></tr>
@@ -99,13 +102,16 @@ export default function ObjektaiTab({
             const excluded = s.is_manually_excluded;
             const isOpen = expanded.has(s.id);
             const src = PARTICIPANT_SOURCE[s.participant_source];
+            const breakdown = s.calculation_breakdown;
+            const rateCardName = typeof breakdown.rate_card_name === 'string' ? breakdown.rate_card_name : 'Periodo tarifas';
+            const rateCardSource: RateCardSource = breakdown.rate_card_source === 'site_override' ? 'site_override' : 'period_default';
             return (
               <Fragment key={s.id}>
-                <tr className={`border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-[#27272a] transition-colors ${excluded ? 'opacity-50' : ''}`}>
+                <tr className={`border-b border-zinc-50 dark:border-white/5 hover:bg-zinc-50/60 dark:hover:bg-surface-2 transition-colors ${excluded ? 'opacity-50' : ''}`}>
                   <td className={td}>
                     <button onClick={() => toggle(s.id)} className="flex items-center gap-1.5 cursor-pointer">
                       <ChevronDown size={14} className={`text-zinc-400 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
-                      <span className="font-bold text-purple-600 dark:text-purple-300">{s.site?.code ?? '—'}</span>
+                      <span className="font-bold text-primary dark:text-primary-ink">{s.site?.code ?? '—'}</span>
                     </button>
                   </td>
                   <td className={td}>
@@ -128,6 +134,12 @@ export default function ObjektaiTab({
                   </td>
                   <td className={td}>
                     <span className={`inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${src.cls}`}>{src.label}</span>
+                  </td>
+                  <td className={td}>
+                    <div className="max-w-[150px]">
+                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate" title={rateCardName}>{rateCardName}</p>
+                      <span className="inline-flex text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10">{rateCardSourceLabel(rateCardSource)}</span>
+                    </div>
                   </td>
                   <td className={tdNum}>{fmtEur(s.base_amount)}</td>
                   <td className={tdNum}>{s.addon_amount ? fmtEur(s.addon_amount) : '—'}</td>
@@ -167,7 +179,7 @@ export default function ObjektaiTab({
                 </tr>
                 {isOpen && (
                   <tr className="bg-zinc-50/50 dark:bg-[#1f1f23] border-b border-zinc-50 dark:border-white/5">
-                    <td colSpan={14} className="px-12 py-4">
+                    <td colSpan={15} className="px-12 py-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Skaičiavimas</p>
@@ -178,7 +190,7 @@ export default function ObjektaiTab({
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {n === 0 ? <span className="text-[12px] text-zinc-400 italic">Nėra</span> :
                               s.participant_ids.map((id) => (
-                                <span key={id} className="text-[12px] bg-white dark:bg-[#27272a] border border-zinc-200 dark:border-white/10 px-2 py-0.5 rounded-md text-zinc-700 dark:text-zinc-300">
+                                <span key={id} className="text-[12px] bg-white dark:bg-surface-2 border border-zinc-200 dark:border-white/10 px-2 py-0.5 rounded-md text-zinc-700 dark:text-zinc-300">
                                   {nameById.get(id) ?? id.slice(0, 8)}
                                 </span>
                               ))}
@@ -237,7 +249,7 @@ export default function ObjektaiTab({
         <SiteRulesModal
           periodId={periodId} siteId={rulesFor.site_id}
           siteCode={rulesFor.site?.code ?? ''} siteClient={rulesFor.site?.client_name ?? ''}
-          year={year} month={month} rateCardId={rateCardId}
+          year={year} month={month} rateCardId={rateCardId} rateCards={rateCards}
           onClose={() => setRulesFor(null)} onSaved={onChanged}
         />
       )}

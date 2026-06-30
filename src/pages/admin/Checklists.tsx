@@ -195,27 +195,27 @@ export default function Checklists() {
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Checklist'ų šablonai</h2>
-          <p className="text-[14px] text-gray-500 dark:text-gray-400">Valdykite pre ir post darbų užduotis</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-text">Checklist'ų šablonai</h2>
+          <p className="text-[14px] text-muted">Valdykite pre ir post darbų užduotis</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setIsCategoryModalOpen(true)}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 bg-white dark:bg-[#18181b] hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-gray-200 bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
           >
             <FolderCog size={18} />
             Valdyti grupes
           </button>
           <button
             onClick={handleSync}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 bg-white dark:bg-[#18181b] hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-gray-200 bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
           >
             <RefreshCw size={18} />
             Pritaikyti naujiems objektams
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-sm flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all shadow-sm flex items-center gap-2"
           >
             <Plus size={18} />
             Pridėti naują punktą
@@ -224,15 +224,15 @@ export default function Checklists() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-100 dark:border-white/10 gap-6 overflow-x-auto scrollbar-hide">
+      <div className="flex border-b border-border gap-6 overflow-x-auto scrollbar-hide">
         {activeTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveCategory(tab)}
             className={`py-3 text-[14px] font-bold transition-colors border-b-2 -mb-[1px] whitespace-nowrap ${
               activeCategory === tab
-                ? 'border-primary text-primary dark:text-purple-300'
-                : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'border-primary text-primary dark:text-primary-ink'
+                : 'border-transparent text-subtle hover:text-muted dark:hover:text-gray-200'
             }`}
           >
             {tab}
@@ -241,33 +241,33 @@ export default function Checklists() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-[#27272a]">
-                <th className="py-3 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Pavadinimas</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Fazė</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Kategorija</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Nuotrauka</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Veiksmai</th>
+              <tr className="border-b border-border bg-surface-2">
+                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Pavadinimas</th>
+                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Fazė</th>
+                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Kategorija</th>
+                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider text-center">Nuotrauka</th>
+                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider text-right">Veiksmai</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-400 dark:text-gray-500">Kraunama...</td>
+                  <td colSpan={5} className="py-8 text-center text-subtle">Kraunama...</td>
                 </tr>
               ) : templates && templates.length > 0 ? (
                 templates
                   .filter((item) => activeCategory === 'Visi' || item.category === activeCategory)
                   .map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors group">
-                    <td className="py-4 px-6 text-[14px] font-medium text-gray-900 dark:text-gray-100">{item.name}</td>
+                  <tr key={item.id} className="hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors group">
+                    <td className="py-4 px-6 text-[14px] font-medium text-text">{item.name}</td>
                     <td className="py-4 px-6">
                       <span className={`px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border ${
                         item.phase === 'pre'
-                          ? 'bg-[#ecdcff] dark:bg-purple-900/30 text-primary dark:text-purple-300 border-primary/20 dark:border-purple-500/20'
+                          ? 'bg-[#ecdcff] dark:bg-primary/30 text-primary dark:text-primary-ink border-primary/20 dark:border-primary/20'
                           : item.phase === 'during'
                           ? 'bg-[#EFF6FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-300 border-[#2563EB]/20 dark:border-blue-500/20'
                           : 'bg-[#ffdad6] dark:bg-red-900/30 text-[#ba1a1a] dark:text-red-300 border-[#ba1a1a]/20 dark:border-red-500/20'
@@ -276,7 +276,7 @@ export default function Checklists() {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="bg-gray-50 dark:bg-[#27272a] text-gray-500 dark:text-gray-300 px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border border-gray-100 dark:border-white/10">
+                      <span className="bg-surface-2 text-muted dark:text-subtle px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border border-border">
                         {item.category || '-'}
                       </span>
                     </td>
@@ -286,14 +286,14 @@ export default function Checklists() {
                           <Camera className="text-[#10B981] dark:text-emerald-400 w-4 h-4" />
                         </span>
                       ) : (
-                        <span className="text-gray-300 dark:text-gray-600 text-[14px]">-</span>
+                        <span className="text-subtle dark:text-muted text-[14px]">-</span>
                       )}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleOpenModal(item)}
-                          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-primary dark:text-purple-300 bg-gray-50 dark:bg-[#27272a] hover:bg-[#ecdcff] dark:hover:bg-purple-900/30 border border-gray-100 dark:border-white/10 hover:border-primary/20 transition-colors cursor-pointer"
+                          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-primary dark:text-primary-ink bg-surface-2 hover:bg-[#ecdcff] dark:hover:bg-primary/30 border border-border hover:border-primary/20 transition-colors cursor-pointer"
                           title="Redaguoti"
                         >
                           <Edit2 size={13} />
@@ -301,7 +301,7 @@ export default function Checklists() {
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-[#e2250a] hover:bg-[#ffdad6] dark:hover:bg-red-900/30 border border-gray-100 dark:border-white/10 hover:border-[#e2250a]/20 transition-colors cursor-pointer"
+                          className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center text-subtle hover:text-[#e2250a] hover:bg-[#ffdad6] dark:hover:bg-red-900/30 border border-border hover:border-[#e2250a]/20 transition-colors cursor-pointer"
                           title="Trinti"
                         >
                           <Trash2 size={14} />
@@ -312,7 +312,7 @@ export default function Checklists() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-400 dark:text-gray-500">Šablonų nerasta.</td>
+                  <td colSpan={5} className="py-8 text-center text-subtle">Šablonų nerasta.</td>
                 </tr>
               )}
             </tbody>
@@ -323,14 +323,14 @@ export default function Checklists() {
       {/* Edit/Add Template Modal Overlay */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
-              <h3 className="text-[18px] font-bold text-gray-900 dark:text-gray-100">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-[18px] font-bold text-text">
                 {editingItem ? 'Redaguoti punktą' : 'Pridėti naują punktą'}
               </h3>
               <button 
                 onClick={closeModal}
-                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                className="text-subtle hover:text-muted dark:hover:text-gray-200 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -338,24 +338,24 @@ export default function Checklists() {
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Pavadinimas</label>
+                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Pavadinimas</label>
                 <input 
                   type="text" 
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="Šablono užduotis..."
-                  className="w-full h-[44px] px-4 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Fazė</label>
+                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Fazė</label>
                 <select 
                   required
                   value={formData.phase}
                   onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'during' | 'post'})}
-                  className="w-full h-[44px] px-4 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="pre">Pre (prieš pradžią)</option>
                   <option value="during">During (darbų eigoje)</option>
@@ -364,12 +364,12 @@ export default function Checklists() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Grupė / Kategorija</label>
+                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Grupė / Kategorija</label>
                 <select 
                   required
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="w-full h-[44px] px-4 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="">-- Pasirinkti --</option>
                   {categories?.map((cat) => (
@@ -384,23 +384,23 @@ export default function Checklists() {
                   id="requires_photo"
                   checked={formData.requires_photo}
                   onChange={e => setFormData({...formData, requires_photo: e.target.checked})}
-                  className="w-4 h-4 text-primary border-[#cdc3d4] rounded focus:ring-primary"
+                  className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="requires_photo" className="text-[14px] font-medium text-gray-900 dark:text-gray-200">Reikalauja nuotraukos</label>
+                <label htmlFor="requires_photo" className="text-[14px] font-medium text-text dark:text-gray-200">Reikalauja nuotraukos</label>
               </div>
 
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors"
+                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors"
                 >
                   Atšaukti
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all flex items-center justify-center disabled:opacity-70"
+                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all flex items-center justify-center disabled:opacity-70"
                 >
                   {saveMutation.isPending ? 'Saugoma...' : 'Išsaugoti'}
                 </button>
@@ -413,12 +413,12 @@ export default function Checklists() {
       {/* Category Manager Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
-              <h3 className="text-[18px] font-bold text-gray-900 dark:text-gray-100">Valdyti grupes</h3>
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+              <h3 className="text-[18px] font-bold text-text">Valdyti grupes</h3>
               <button 
                 onClick={() => setIsCategoryModalOpen(false)}
-                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                className="text-subtle hover:text-muted dark:hover:text-gray-200 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -427,14 +427,14 @@ export default function Checklists() {
             <div className="p-6 overflow-y-auto flex-1">
               <div className="space-y-2 mb-6">
                 {isLoadingCategories ? (
-                  <p className="text-[14px] text-gray-400 dark:text-gray-500 text-center">Kraunama...</p>
+                  <p className="text-[14px] text-subtle text-center">Kraunama...</p>
                 ) : categories && categories.length > 0 ? (
                   categories.map((cat) => (
-                    <div key={cat.id} className="flex items-center justify-between bg-gray-50 dark:bg-[#27272a] px-4 py-3 rounded-xl border border-gray-100 dark:border-white/10">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100 text-[14px]">{cat.name}</span>
+                    <div key={cat.id} className="flex items-center justify-between bg-surface-2 px-4 py-3 rounded-xl border border-border">
+                      <span className="font-semibold text-text text-[14px]">{cat.name}</span>
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-gray-400 hover:text-[#e2250a] transition-colors p-1 rounded-full hover:bg-[#ffdad6] dark:hover:bg-red-900/30"
+                        className="text-subtle hover:text-[#e2250a] transition-colors p-1 rounded-full hover:bg-[#ffdad6] dark:hover:bg-red-900/30"
                         title="Trinti grupę"
                       >
                         <Trash2 size={16} />
@@ -442,23 +442,23 @@ export default function Checklists() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-[14px] text-gray-400 dark:text-gray-500 text-center">Grupių nerasta.</p>
+                  <p className="text-[14px] text-subtle text-center">Grupių nerasta.</p>
                 )}
               </div>
 
-              <form onSubmit={handleAddCategory} className="flex gap-2 border-t border-gray-100 dark:border-white/10 pt-6">
+              <form onSubmit={handleAddCategory} className="flex gap-2 border-t border-border pt-6">
                 <input
                   type="text"
                   required
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Naujos grupės pavadinimas"
-                  className="flex-1 h-[44px] px-4 bg-gray-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-[#27272a] focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="flex-1 h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
                 <button
                   type="submit"
                   disabled={addCategoryMutation.isPending || !newCategoryName.trim()}
-                  className="h-[44px] px-4 font-medium text-[14px] rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all disabled:opacity-70 flex-shrink-0"
+                  className="h-[44px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all disabled:opacity-70 flex-shrink-0"
                 >
                   {addCategoryMutation.isPending ? '...' : 'Pridėti'}
                 </button>

@@ -1,204 +1,289 @@
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { supabase } from '../../lib/supabase';
-import { useConfirm } from '../../hooks/useConfirm';
 import { toast } from 'sonner';
-import * as Sentry from "@sentry/react";
-import { Plus, MapPin, Trash2, Search, Loader2 } from 'lucide-react';
+import {
+  Plus, MapPin, Search, Loader2, AlertTriangle, ListChecks, Image as ImageIcon, Clock,
+} from 'lucide-react';
+import { useConfirm } from '../../hooks/useConfirm';
 import { useCreateBlankSite } from '../../hooks/useCreateSite';
+import { getSitesList, archiveSite, deleteSiteSafe } from '../../api/sites';
+import { getActiveTeams, getActiveInstallers } from '../../api/installers';
+import {
+  buildSiteRow, matchesFilters, computeKpis, WARNING_LABELS, EMPTY_FILTERS, STATUS_OPTIONS,
+  type SiteListRow, type SiteFilters, type PeriodFilter,
+} from './sites/siteListModel';
+import SiteActionsMenu from './sites/SiteActionsMenu';
+import SiteQuickModal from './sites/SiteQuickModal';
+
+const STATUS_CHIP: Record<string, { label: string; cls: string }> = {
+  pending:     { label: 'Laukia',      cls: 'bg-[#F0F9FF] text-[#0284C7] dark:bg-sky-500/15 dark:text-sky-300' },
+  in_progress: { label: 'Vykdomas',    cls: 'bg-[#ECFDF5] text-[#10B981] dark:bg-emerald-500/15 dark:text-emerald-300' },
+  paused:      { label: 'Sustabdytas', cls: 'bg-[#FFFBEB] text-[#F59E0B] dark:bg-amber-500/15 dark:text-amber-300' },
+  completed:   { label: 'Baigtas',     cls: 'bg-[#F3F4F6] text-[#6B7280] dark:bg-white/10 dark:text-zinc-300' },
+  archived:    { label: 'Archyvuotas', cls: 'bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-500' },
+};
+const statusChip = (s: string | null) => STATUS_CHIP[s ?? 'pending'] ?? { label: s ?? '—', cls: 'bg-surface-2 text-muted' };
+
+function fmtDuration(ms: number): string {
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return h > 0 ? `${h} val. ${m} min.` : `${m} min.`;
+}
+
+const th = 'py-3 px-4 text-[11px] font-bold text-subtle uppercase tracking-wider whitespace-nowrap';
+const selectCls = 'h-[40px] px-3 rounded-xl bg-surface border border-border text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer';
 
 export default function Sites() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const { createBlankSite, isCreating } = useCreateBlankSite();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<SiteFilters>(EMPTY_FILTERS);
+  const [quick, setQuick] = useState<{ site: SiteListRow; mode: 'team' | 'status' } | null>(null);
 
-  const handleDeleteSite = async (siteId: string) => {
-    const ok = await confirm({
-      title: 'Ištrinti objektą',
-      message: 'Ar tikrai norite ištrinti šį objektą? Šis veiksmas ištrins visus susijusius duomenis ir yra negrįžtamas.',
-      confirmText: 'Ištrinti',
-      cancelText: 'Atšaukti',
-      variant: 'danger',
-    });
-
-    if (!ok) return;
-
-    try {
-      const { error } = await supabase
-        .from('sites')
-        .delete()
-        .eq('id', siteId);
-
-      if (error) throw error;
-
-      toast.success('Objektas ištrintas');
-      void queryClient.invalidateQueries({ queryKey: ['admin_all_sites'] });
-    } catch (err) {
-      console.error('Error deleting site:', err);
-      Sentry.captureException(err, { extra: { context: 'Error deleting site' } });
-      toast.error('Nepavyko ištrinti objekto');
-    }
-  };
-
-  const { data: sites, isLoading } = useQuery({
-    queryKey: ['admin_all_sites'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sites')
-        .select(`
-          id,
-          code,
-          client_name,
-          address,
-          status,
-          scheduled_start,
-          team:teams(name)
-        `)
-        .order('scheduled_start', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching sites:', error); Sentry.captureException(error, { extra: { context: 'Error fetching sites:' } });
-        return [];
-      }
-      return data;
-    },
-    staleTime: 60_000,
+  const { data: rawSites, isLoading } = useQuery({
+    queryKey: ['admin_sites_list'],
+    queryFn: getSitesList,
+    staleTime: 30_000,
   });
+  const { data: teams = [] } = useQuery({ queryKey: ['active_teams'], queryFn: getActiveTeams });
+  const { data: installers = [] } = useQuery({ queryKey: ['installers_list'], queryFn: getActiveInstallers });
 
-  // Instant client-side search across name, address and code (case-insensitive).
-  const query = searchQuery.trim().toLowerCase();
-  const filteredSites = query
-    ? (sites ?? []).filter((site) =>
-        [site.client_name, site.address, site.code]
-          .some((field) => (field ?? '').toLowerCase().includes(query)),
-      )
-    : (sites ?? []);
+  // Captured once at mount (relative time for warnings/elapsed); refreshes with data.
+  const [now] = useState(() => Date.now());
+  const rows = useMemo(() => (rawSites ?? []).map((s) => buildSiteRow(s, now)), [rawSites, now]);
+  const kpis = useMemo(() => computeKpis(rows), [rows]);
+  const filtered = useMemo(() => rows.filter((r) => matchesFilters(r, filters, now)), [rows, filters, now]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'in_progress':
-        return <span className="bg-[#ECFDF5] text-[#10B981] px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>Vykdomas</span>;
-      case 'paused':
-        return <span className="bg-[#FFFBEB] text-[#F59E0B] px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1.5 w-max">Sustabdytas</span>;
-      case 'completed':
-        return <span className="bg-[#F3F4F6] text-[#6B7280] px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1.5 w-max">Baigtas</span>;
-      case 'pending':
-        return <span className="bg-[#F0F9FF] text-[#0284C7] px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1.5 w-max">Laukia</span>;
-      default:
-        return <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[12px] font-bold">{status}</span>;
-    }
+  const setF = (patch: Partial<SiteFilters>) => setFilters((p) => ({ ...p, ...patch }));
+
+  // ── Archive (soft, reversible) ──
+  const archive = useMutation({
+    mutationFn: (id: string) => archiveSite(id),
+    onSuccess: () => { toast.success('Objektas archyvuotas.'); void queryClient.invalidateQueries({ queryKey: ['admin_sites_list'] }); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Nepavyko archyvuoti.'),
+  });
+  const handleArchive = async (row: SiteListRow) => {
+    const ok = await confirm({
+      title: 'Archyvuoti objektą?',
+      message: `„${row.code} · ${row.client_name}" bus paslėptas iš aktyvaus sąrašo. Galėsite jį grąžinti pakeitę statusą.`,
+      confirmText: 'Archyvuoti', cancelText: 'Atšaukti', variant: 'primary',
+    });
+    if (ok) archive.mutate(row.id);
   };
+
+  // ── Protected hard delete ──
+  const del = useMutation({
+    mutationFn: (id: string) => deleteSiteSafe(id),
+    onSuccess: () => { toast.success('Objektas ištrintas.'); void queryClient.invalidateQueries({ queryKey: ['admin_sites_list'] }); },
+    onError: (e: unknown) => {
+      if (e instanceof Error && e.message === 'SITE_HAS_RELATED_DATA') {
+        toast.error('Objektas turi susijusių duomenų, todėl jo ištrinti negalima. Galite jį archyvuoti.');
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Nepavyko ištrinti objekto.');
+      }
+    },
+  });
+  const handleDelete = async (row: SiteListRow) => {
+    const ok = await confirm({
+      title: 'Ištrinti objektą?',
+      message: 'Objektas bus ištrintas visam laikui. Tai galima tik jei jis neturi susijusių duomenų (laiko įrašų, checklist, nuotraukų, atlygio). Kitu atveju – archyvuokite.',
+      confirmText: 'Ištrinti', cancelText: 'Atšaukti', variant: 'danger',
+    });
+    if (ok) del.mutate(row.id);
+  };
+
+  const noData = !isLoading && (rawSites ?? []).length === 0;
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Visi Objektai</h2>
+    <div className="space-y-5 h-full flex flex-col">
+      {/* ── Header ── */}
+      <div className="flex justify-between items-start gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-text">Visi objektai</h1>
+          <p className="text-[14px] text-subtle mt-0.5">Objektų sąrašas, komandos, statusai ir vykdymo eiga.</p>
+        </div>
         <button
           onClick={() => { void createBlankSite(); }}
           disabled={isCreating}
-          className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="rounded-xl bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isCreating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
           {isCreating ? 'Kuriama...' : 'Sukurti naują objektą'}
         </button>
       </div>
 
-      {/* Instant search */}
-      <div className="relative w-full max-w-md">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Ieškoti pagal pavadinimą, adresą ar ID..."
-          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#18181b] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-        />
+      {/* ── KPI row (clickable → sets filters) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Kpi label="Visi objektai" value={kpis.total} active={filters === EMPTY_FILTERS} onClick={() => setFilters(EMPTY_FILTERS)} />
+        <Kpi label="Laukia" value={kpis.pending} tone="sky" active={filters.status === 'pending'} onClick={() => setF({ status: filters.status === 'pending' ? '' : 'pending' })} />
+        <Kpi label="Vykdomi" value={kpis.inProgress} tone="emerald" active={filters.status === 'in_progress'} onClick={() => setF({ status: filters.status === 'in_progress' ? '' : 'in_progress' })} />
+        <Kpi label="Baigti" value={kpis.completed} tone="zinc" active={filters.status === 'completed'} onClick={() => setF({ status: filters.status === 'completed' ? '' : 'completed' })} />
+        <Kpi label="Be komandos" value={kpis.noTeam} tone="amber" active={filters.onlyNoTeam} onClick={() => setF({ onlyNoTeam: !filters.onlyNoTeam })} />
+        <Kpi label="Reikia dėmesio" value={kpis.attention} tone="red" active={filters.onlyProblems} onClick={() => setF({ onlyProblems: !filters.onlyProblems })} />
       </div>
 
-      <div className="bg-white dark:bg-[#18181b] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-none flex-1 overflow-hidden flex flex-col">
+      {/* ── Filter bar ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
+          <input
+            value={filters.search} onChange={(e) => setF({ search: e.target.value })}
+            placeholder="Ieškoti pagal kodą, pavadinimą ar adresą…"
+            className="w-full h-[40px] pl-9 pr-3 rounded-xl bg-surface border border-border text-[14px] text-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+        <select value={filters.status} onChange={(e) => setF({ status: e.target.value })} className={selectCls} title="Statusas">
+          <option value="">Visi statusai</option>
+          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <select value={filters.teamId} onChange={(e) => setF({ teamId: e.target.value })} className={selectCls} title="Komanda">
+          <option value="">Visos komandos</option>
+          <option value="none">Be komandos</option>
+          {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select value={filters.installerId} onChange={(e) => setF({ installerId: e.target.value })} className={selectCls} title="Montuotojas">
+          <option value="">Visi montuotojai</option>
+          {installers.map((u) => <option key={u.id} value={u.id}>{u.full_name ?? 'Be vardo'}</option>)}
+        </select>
+        <select value={filters.period} onChange={(e) => setF({ period: e.target.value as PeriodFilter })} className={selectCls} title="Laikotarpis">
+          <option value="all">Visas laikotarpis</option>
+          <option value="this_month">Šis mėnuo</option>
+          <option value="next_month">Kitas mėnuo</option>
+        </select>
+        <button onClick={() => setF({ onlyNoTeam: !filters.onlyNoTeam })} className={`h-[40px] px-3 rounded-xl border text-[13px] font-medium transition-colors cursor-pointer ${filters.onlyNoTeam ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-300' : 'bg-surface border-border text-muted hover:bg-surface-2'}`}>
+          Tik be komandos
+        </button>
+        <button onClick={() => setF({ onlyProblems: !filters.onlyProblems })} className={`h-[40px] px-3 rounded-xl border text-[13px] font-medium transition-colors cursor-pointer ${filters.onlyProblems ? 'bg-red-50 dark:bg-red-500/15 border-red-300 dark:border-red-500/30 text-red-700 dark:text-red-300' : 'bg-surface border-border text-muted hover:bg-surface-2'}`}>
+          Tik su problemomis
+        </button>
+      </div>
+
+      {/* ── Table ── */}
+      <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none flex-1 overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-white/10 bg-gray-50/50 dark:bg-[#27272a]">
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Kodas</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Pavadinimas</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Adresas</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Planuojama pradžia</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Statusas</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Komanda</th>
-                <th className="py-4 px-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Veiksmai</th>
+              <tr className="border-b border-border bg-surface-2/50 dark:bg-surface-2">
+                <th className={th}>Kodas</th>
+                <th className={th}>Pavadinimas</th>
+                <th className={th}>Adresas</th>
+                <th className={th}>Planuojama pradžia</th>
+                <th className={th}>Statusas</th>
+                <th className={th}>Komanda</th>
+                <th className={th}>Sistema</th>
+                <th className={th}>Eiga</th>
+                <th className={th}>Laikas</th>
+                <th className={th}>Įspėjimai</th>
+                <th className={`${th} text-right`}>Veiksmai</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400 dark:text-gray-500">Kraunama...</td>
-                </tr>
-              ) : filteredSites.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400 dark:text-gray-500">
-                    {query ? `Pagal „${searchQuery}“ objektų nerasta.` : 'Objektų nerasta.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredSites.map((site) => {
-                  return (
-                    <tr key={site.id} className="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-[#27272a] transition-colors">
-                      <td className="py-4 px-6">
-                        <span className="bg-[#fbf0ff] dark:bg-purple-900/30 border border-[#cdc3d4]/50 dark:border-white/10 text-[12px] font-bold px-2.5 py-1 rounded-md text-primary dark:text-purple-300">
-                          {site.code}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 font-bold text-[#1d033a] dark:text-gray-100">{site.client_name}</td>
-                      <td className="py-4 px-6 text-[#4b4452] dark:text-gray-400 text-[14px]">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin size={16} className="text-[#cdc3d4] dark:text-gray-600" />
-                          {site.address}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-[#4b4452] dark:text-gray-400 text-[14px] font-medium">
-                        {site.scheduled_start ? format(new Date(site.scheduled_start), 'yyyy-MM-dd HH:mm') : '-'}
-                      </td>
-                      <td className="py-4 px-6">
-                        {getStatusBadge(site.status || '')}
-                      </td>
-                      <td className="py-4 px-6">
-                        {(() => {
-                          const team = site.team;
-                          return team ? (
-                            <span className="bg-[#f0fdf4] dark:bg-emerald-900/30 text-[#16a34a] dark:text-emerald-300 border border-[#16a34a]/20 dark:border-emerald-500/20 px-2.5 py-1 rounded-[6px] text-[12px] font-bold">
-                              {team.name}
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="border-b border-border dark:border-white/5">
+                    <td colSpan={11} className="py-3 px-4"><div className="h-6 rounded-lg bg-surface-2 dark:bg-white/5 animate-pulse" /></td>
+                  </tr>
+                ))
+              ) : noData ? (
+                <tr><td colSpan={11} className="py-16 text-center text-subtle">Dar nėra sukurtų objektų.</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={11} className="py-16 text-center text-subtle">Objektų pagal pasirinktus filtrus nerasta.</td></tr>
+              ) : filtered.map((r) => {
+                const chip = statusChip(r.status);
+                const archived = r.status === 'archived';
+                return (
+                  <tr key={r.id} className={`border-b border-border dark:border-white/5 hover:bg-surface-2/50 dark:hover:bg-surface-2 transition-colors ${archived ? 'opacity-60' : ''}`}>
+                    <td className="py-3 px-4">
+                      <Link to={`/admin/sites/${r.id}`} className="bg-surface-2 dark:bg-primary/30 border border-border/50 dark:border-white/10 text-[12px] font-bold px-2.5 py-1 rounded-md text-primary dark:text-primary-ink hover:underline">{r.code}</Link>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-text dark:text-gray-100 max-w-[200px] truncate">{r.client_name}</td>
+                    <td className="py-3 px-4 text-muted dark:text-subtle text-[13px] max-w-[200px]">
+                      <span className="flex items-center gap-1.5 truncate"><MapPin size={14} className="text-subtle shrink-0" />{r.address || '—'}</span>
+                    </td>
+                    <td className="py-3 px-4 text-muted dark:text-subtle text-[13px] whitespace-nowrap">{r.scheduled_start ? format(new Date(r.scheduled_start), 'yyyy-MM-dd HH:mm') : '—'}</td>
+                    <td className="py-3 px-4"><span className={`px-2.5 py-1 rounded-full text-[12px] font-bold whitespace-nowrap ${chip.cls}`}>{chip.label}</span></td>
+                    <td className="py-3 px-4">
+                      {r.teamName && !archived ? (
+                        <span className="bg-[#f0fdf4] dark:bg-emerald-900/30 text-[#16a34a] dark:text-emerald-300 border border-[#16a34a]/20 dark:border-emerald-500/20 px-2.5 py-1 rounded-[6px] text-[12px] font-bold whitespace-nowrap">{r.teamName}</span>
+                      ) : (
+                        <span className="text-subtle dark:text-muted text-[13px]">Nepriskirta</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-[13px] text-muted dark:text-subtle whitespace-nowrap">{r.equipmentSummary}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2 text-[12px] text-muted">
+                        {r.progress ? (
+                          <span className={`inline-flex items-center gap-1 ${r.progress.failed > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                            <ListChecks size={13} /> {r.progress.passed}/{r.progress.total}
+                          </span>
+                        ) : null}
+                        {r.photoCount > 0 && <span className="inline-flex items-center gap-1"><ImageIcon size={13} /> {r.photoCount}</span>}
+                        {!r.progress && r.photoCount === 0 && <span className="text-subtle">—</span>}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-[13px] whitespace-nowrap">
+                      {r.time.activeMs != null ? (
+                        <span className={`inline-flex items-center gap-1 ${r.time.suspicious ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}><Clock size={13} /> {fmtDuration(r.time.activeMs)}</span>
+                      ) : r.time.totalHours != null ? (
+                        <span className={`inline-flex items-center gap-1 ${r.time.suspicious ? 'text-red-600 dark:text-red-400' : 'text-muted'}`}>{r.time.totalHours} val.</span>
+                      ) : <span className="text-subtle">—</span>}
+                    </td>
+                    <td className="py-3 px-4">
+                      {r.warnings.length === 0 ? <span className="text-subtle">—</span> : (
+                        <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          {r.warnings.map((w) => (
+                            <span key={w} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                              <AlertTriangle size={9} /> {WARNING_LABELS[w]}
                             </span>
-                          ) : (
-                            <span className="text-[#cdc3d4] dark:text-gray-600 text-[13px]">Nepriskirta</span>
-                          );
-                        })()}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <Link to={`/admin/sites/${site.id}`} className="text-primary dark:text-purple-300 font-semibold text-[14px] hover:underline">
-                            Žiūrėti
-                          </Link>
-                          <button
-                            onClick={() => { void handleDeleteSite(site.id); }}
-                            className="text-red-500 hover:text-red-700 transition-colors p-1 cursor-pointer"
-                            title="Ištrinti objektą"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          ))}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <SiteActionsMenu
+                        site={r}
+                        onAssignTeam={() => setQuick({ site: r, mode: 'team' })}
+                        onChangeStatus={() => setQuick({ site: r, mode: 'status' })}
+                        onArchive={() => void handleArchive(r)}
+                        onDelete={() => void handleDelete(r)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {quick && (
+        <SiteQuickModal
+          site={quick.site} mode={quick.mode} teams={teams}
+          onClose={() => setQuick(null)} onSaved={() => setQuick(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function Kpi({ label, value, tone = 'default', active, onClick }: { label: string; value: number; tone?: 'default' | 'sky' | 'emerald' | 'amber' | 'red' | 'zinc'; active?: boolean; onClick: () => void }) {
+  const toneCls: Record<string, string> = {
+    default: 'text-text',
+    sky: 'text-sky-600 dark:text-sky-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    red: 'text-red-600 dark:text-red-400',
+    zinc: 'text-zinc-500 dark:text-zinc-400',
+  };
+  return (
+    <button
+      onClick={onClick}
+      className={`text-left rounded-2xl border px-4 py-3 transition-all cursor-pointer ${active ? 'border-primary ring-1 ring-primary/30 bg-surface' : 'border-border bg-surface hover:bg-surface-2/50'}`}
+    >
+      <p className="text-[11px] font-semibold text-subtle uppercase tracking-wider truncate">{label}</p>
+      <p className={`text-[24px] font-extrabold tabular-nums leading-tight ${toneCls[tone]}`}>{value}</p>
+    </button>
   );
 }

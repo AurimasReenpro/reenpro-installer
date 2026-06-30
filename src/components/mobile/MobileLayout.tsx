@@ -38,7 +38,7 @@ function NetworkStatusChip() {
     return (
       <span
         title="Neprisijungta — duomenys saugomi telefone ir bus išsiųsti atsiradus ryšiui"
-        className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[#FFFBEB] text-[#B45309] border border-[#F59E0B]/40 text-[11px] font-semibold whitespace-nowrap"
+        className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-warning-bg text-warning border border-warning/40 text-[11px] font-semibold whitespace-nowrap"
       >
         <WifiOff className="w-3.5 h-3.5" />
         {pendingPhotos > 0 ? `Neprisijungta · ${pendingPhotos} nuotr.` : 'Neprisijungta'}
@@ -47,7 +47,7 @@ function NetworkStatusChip() {
   }
   if (pending > 0 || pendingPhotos > 0) {
     return (
-      <span className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#2563EB]/20 text-[11px] font-semibold whitespace-nowrap">
+      <span className="flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-primary-fixed text-on-primary-fixed border border-primary/20 text-[11px] font-semibold whitespace-nowrap">
         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
         {pendingPhotos > 0 ? `Keliama (${pendingPhotos})` : 'Sinchronizuojama…'}
       </span>
@@ -123,7 +123,7 @@ export default function MobileLayout() {
       </main>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-surface-bright border-t border-outline-variant shadow-[0_-2px_10px_rgba(29,3,58,0.05)] z-50 flex">
+      <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-surface-bright border-t border-outline-variant shadow-[0_-2px_10px_rgba(24,35,33,0.05)] z-50 flex">
         {navItems.map((item) => {
           const isActive = item.exact
             ? location.pathname === item.path

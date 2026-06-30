@@ -7,6 +7,7 @@ import {
   createPayrollRateRule, payrollErrorMessage, type RuleType, type RuleUnit,
 } from '../../../api/payroll';
 import { RULE_LABELS, AUTO_RULE_TYPES } from './format';
+import { validateRuleLabel } from './siteRateCard';
 
 const RULE_TYPES: RuleType[] = [
   'base_site_fee', 'bess_fixed', 'optimizer_per_unit', 'efficiency_bonus',
@@ -27,12 +28,15 @@ export default function RuleEditorModal({
   onSaved: () => void;
 }) {
   const [ruleType, setRuleType] = useState<RuleType>('base_site_fee');
+  const [label, setLabel] = useState(RULE_LABELS.base_site_fee);
+  const [unit, setUnit] = useState<RuleUnit>(DEFAULT_UNIT.base_site_fee);
   const [amount, setAmount] = useState('');
   const [code, setCode] = useState('');
   const [targetHoursPerKwp, setTargetHoursPerKwp] = useState('');
 
   const amountNum = Number(amount.replace(',', '.'));
   const amountValid = /^\d+(\.\d{1,2})?$/.test(amount.trim().replace(',', '.')) && amountNum >= 0;
+  const labelError = validateRuleLabel(label);
   const isEfficiency = ruleType === 'efficiency_bonus';
 
   const save = useMutation({
@@ -44,10 +48,10 @@ export default function RuleEditorModal({
       return createPayrollRateRule({
         rateCardId,
         code: code.trim() || ruleType.toUpperCase(),
-        label: RULE_LABELS[ruleType],
+        label: label.trim(),
         ruleType,
         amount: Math.round(amountNum * 100) / 100,
-        unit: DEFAULT_UNIT[ruleType],
+        unit,
         params,
       });
     },
@@ -55,7 +59,7 @@ export default function RuleEditorModal({
     onError: (e: unknown) => toast.error(payrollErrorMessage(e)),
   });
 
-  const inputCls = 'w-full h-[42px] px-3 bg-zinc-50 dark:bg-[#27272a] border border-transparent dark:border-white/10 rounded-xl text-[14px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all';
+  const inputCls = 'w-full h-[42px] px-3 bg-zinc-50 dark:bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all';
 
   return (
     <motion.div
@@ -66,18 +70,23 @@ export default function RuleEditorModal({
       <motion.div
         initial={{ scale: 0.96, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
-        className="bg-white dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-md border border-zinc-100 dark:border-white/10"
+        className="bg-surface rounded-[20px] shadow-2xl w-full max-w-md border border-zinc-100 dark:border-white/10"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-white/10">
           <h2 className="font-bold text-[16px] text-zinc-900 dark:text-zinc-100">Nauja taisyklė</h2>
-          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">
+          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">
             <X size={18} className="text-zinc-400" />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Tipas</label>
-            <select value={ruleType} onChange={(e) => setRuleType(e.target.value as RuleType)} className={`${inputCls} cursor-pointer`}>
+            <select value={ruleType} onChange={(e) => {
+              const next = e.target.value as RuleType;
+              setLabel((current) => current === RULE_LABELS[ruleType] ? RULE_LABELS[next] : current);
+              setUnit((current) => current === DEFAULT_UNIT[ruleType] ? DEFAULT_UNIT[next] : current);
+              setRuleType(next);
+            }} className={`${inputCls} cursor-pointer`}>
               {RULE_TYPES.map((t) => (
                 <option key={t} value={t}>{RULE_LABELS[t]}{AUTO_RULE_TYPES.has(t) ? '' : ' (saugoma)'}</option>
               ))}
@@ -85,6 +94,19 @@ export default function RuleEditorModal({
             <p className="text-[11px] text-zinc-400 mt-1">
               {AUTO_RULE_TYPES.has(ruleType) ? 'Automatinė taisyklė — taikoma perskaičiuojant.' : 'Saugoma rankiniam/būsimam naudojimui — neautomatinė.'}
             </p>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Pavadinimas</label>
+            <input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Pvz., Sudėtingas stogas" className={inputCls} />
+            {labelError && <p className="text-[11px] text-red-600 dark:text-red-400 mt-1">{labelError}</p>}
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Vienetas</label>
+            <select value={unit} onChange={(e) => setUnit(e.target.value as RuleUnit)} className={`${inputCls} cursor-pointer`}>
+              <option value="fixed">Fiksuota suma</option>
+              <option value="per_unit">Už vienetą</option>
+              <option value="percent">Procentai</option>
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -104,9 +126,9 @@ export default function RuleEditorModal({
             </div>
           )}
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 font-medium text-[14px] hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">Atšaukti</button>
-            <button onClick={() => save.mutate()} disabled={save.isPending || !amountValid}
-              className="flex-1 h-[42px] rounded-xl bg-purple-600 text-white font-medium text-[14px] hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2">
+            <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 font-medium text-[14px] hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">Atšaukti</button>
+            <button onClick={() => save.mutate()} disabled={save.isPending || !amountValid || !!labelError}
+              className="flex-1 h-[42px] rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2">
               {save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               Pridėti
             </button>

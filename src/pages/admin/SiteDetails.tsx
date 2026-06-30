@@ -64,7 +64,7 @@ export default function SiteDetails() {
   if (!site) {
     return (
       <div className="flex-1 flex items-center justify-center py-32">
-        <p className="text-[#4b4452] dark:text-gray-300">Objektas nerastas.</p>
+        <p className="text-muted dark:text-subtle">Objektas nerastas.</p>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function SiteDetails() {
       <SiteDetailsHeader site={site} siteId={id!} onBack={() => { void navigate('/admin/sites'); }} />
 
       {/* ── Tabs ── */}
-      <div className="relative flex gap-1 bg-[#f6f5fa] dark:bg-[#27272a] rounded-[12px] p-1.5 overflow-x-auto border border-[#cdc3d4]/30 dark:border-white/10 flex-shrink-0 min-h-[48px]">
+      <div className="relative flex gap-1 bg-surface-2 dark:bg-surface-2 rounded-[12px] p-1.5 overflow-x-auto border border-border/30 dark:border-white/10 flex-shrink-0 min-h-[48px]">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -96,12 +96,12 @@ export default function SiteDetails() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className="relative z-10 px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap"
-              style={{ color: isActive ? '#9333ea' : '#7c7484' }}
+              style={{ color: isActive ? 'var(--primary)' : 'var(--text-subtle)' }}
             >
               {isActive && (
                 <motion.div
                   layoutId="sitedetail-tab"
-                  className="absolute inset-0 bg-white dark:bg-[#18181b] rounded-[8px] shadow-sm border border-[#cdc3d4]/20 dark:border-white/10"
+                  className="absolute inset-0 bg-surface rounded-[8px] shadow-sm border border-border/20 dark:border-white/10"
                   style={{ zIndex: -1 }}
                   transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
                 />

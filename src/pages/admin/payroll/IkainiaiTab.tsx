@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, Copy, Loader2, Lock, Check, Power, Tag } from 'lucide-react';
+import { Plus, Copy, Loader2, Lock, Check, Power, Tag, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useConfirm } from '../../../hooks/useConfirm';
 import {
   getPayrollRateCardRules, createPayrollRateCard, duplicatePayrollRateCard,
-  updatePayrollRateRule, payrollErrorMessage,
+  updatePayrollRateCard, updatePayrollRateRule, deletePayrollRateRule,
+  deactivatePayrollRateRule, getPayrollRateRuleUsage, payrollErrorMessage,
   type PayrollRateCard, type PayrollRateRule,
 } from '../../../api/payroll';
-import { RULE_LABELS, AUTO_RULE_TYPES, RULE_UNIT_LABELS, fmtEur } from './format';
+import { AUTO_RULE_TYPES, RULE_UNIT_LABELS, fmtEur } from './format';
 import NameModal from './NameModal';
 import RuleEditorModal from './RuleEditorModal';
+import { filterRateRules, getRuleRemovalAction, validateRateCardName } from './rateCardManagement';
+import { validateRuleLabel } from './siteRateCard';
 
 export default function IkainiaiTab({
   rateCards, selectedCardId, onSelectCard, lockedCardIds, onCardsChanged,
@@ -21,10 +25,14 @@ export default function IkainiaiTab({
   onCardsChanged: () => void;
 }) {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [showNew, setShowNew] = useState(false);
   const [dupFor, setDupFor] = useState<PayrollRateCard | null>(null);
+  const [editCard, setEditCard] = useState<PayrollRateCard | null>(null);
   const [addRule, setAddRule] = useState(false);
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [labelEdits, setLabelEdits] = useState<Record<string, string>>({});
+  const [showInactive, setShowInactive] = useState(false);
 
   const card = rateCards.find((c) => c.id === selectedCardId) ?? null;
   const locked = card ? lockedCardIds.has(card.id) : false;
@@ -34,6 +42,8 @@ export default function IkainiaiTab({
     queryFn: () => getPayrollRateCardRules(selectedCardId as string),
     enabled: !!selectedCardId,
   });
+  const visibleRules = filterRateRules(rules, showInactive);
+  const activeRuleCount = rules.filter((rule) => rule.is_active).length;
 
   const invalidateRules = () => void queryClient.invalidateQueries({ queryKey: ['payroll-rate-rules', selectedCardId] });
 
@@ -49,6 +59,23 @@ export default function IkainiaiTab({
     onError: (e: unknown) => toast.error(payrollErrorMessage(e)),
   });
 
+  const renameCard = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => updatePayrollRateCard(id, { name }),
+    onMutate: async ({ id, name }) => {
+      await queryClient.cancelQueries({ queryKey: ['payroll-rate-cards'] });
+      const previous = queryClient.getQueryData<PayrollRateCard[]>(['payroll-rate-cards']);
+      queryClient.setQueryData<PayrollRateCard[]>(['payroll-rate-cards'], (cards) =>
+        cards?.map((item) => item.id === id ? { ...item, name } : item),
+      );
+      return { previous };
+    },
+    onSuccess: () => { toast.success('Kortelės pavadinimas atnaujintas.'); setEditCard(null); onCardsChanged(); },
+    onError: (e: unknown, _input, context) => {
+      queryClient.setQueryData(['payroll-rate-cards'], context?.previous);
+      toast.error(payrollErrorMessage(e));
+    },
+  });
+
   const editAmount = useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => updatePayrollRateRule(id, { amount }),
     onSuccess: () => { toast.success('Įkainis atnaujintas.'); invalidateRules(); },
@@ -61,6 +88,23 @@ export default function IkainiaiTab({
     onError: (e: unknown) => toast.error(payrollErrorMessage(e)),
   });
 
+  const removeRule = useMutation({
+    mutationFn: async (rule: PayrollRateRule) => {
+      const usage = await getPayrollRateRuleUsage(rule.id, rule.rate_card_id);
+      const action = getRuleRemovalAction({ cardLocked: locked, ...usage });
+      if (action === 'blocked') throw new Error('Kortelė naudojama užrakintame periode.');
+      if (action === 'delete') await deletePayrollRateRule(rule.id);
+      else await deactivatePayrollRateRule(rule.id);
+      return action;
+    },
+    onSuccess: (action) => {
+      toast.success(action === 'delete' ? 'Taisyklė ištrinta.' : 'Taisyklė išjungta, nes ji jau naudota skaičiavimuose.');
+      invalidateRules();
+      onCardsChanged();
+    },
+    onError: (e: unknown) => toast.error(payrollErrorMessage(e)),
+  });
+
   const saveAmount = (r: PayrollRateRule) => {
     const raw = (edits[r.id] ?? '').replace(',', '.').trim();
     setEdits((p) => { const n = { ...p }; delete n[r.id]; return n; });
@@ -69,13 +113,37 @@ export default function IkainiaiTab({
     if (amount !== r.amount) editAmount.mutate({ id: r.id, amount });
   };
 
+  const saveLabel = (r: PayrollRateRule) => {
+    const label = (labelEdits[r.id] ?? '').trim();
+    setLabelEdits((previous) => { const next = { ...previous }; delete next[r.id]; return next; });
+    const error = validateRuleLabel(label);
+    if (error) { toast.error(error); return; }
+    if (label !== r.label) updatePayrollRateRule(r.id, { label }).then(invalidateRules).catch((e: unknown) => toast.error(payrollErrorMessage(e)));
+  };
+
+  const handleRemoveRule = async (rule: PayrollRateRule) => {
+    if (locked) return;
+    if (rule.is_active && activeRuleCount === 1) {
+      toast.error('Tai paskutinė aktyvi taisyklė šioje kortelėje. Palikite bent vieną aktyvią taisyklę arba dubliuokite kortelę.');
+      return;
+    }
+    const ok = await confirm({
+      title: 'Ištrinti taisyklę?',
+      message: 'Jei taisyklė jau naudota skaičiavimuose, ji bus išjungta, o ne pašalinta.',
+      confirmText: 'Ištrinti',
+      cancelText: 'Atšaukti',
+      variant: 'danger',
+    });
+    if (ok) removeRule.mutate(rule);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
       {/* Cards list */}
-      <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl p-3 h-fit">
+      <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl p-3 h-fit">
         <div className="flex items-center justify-between px-2 py-1 mb-1">
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Tarifų kortelės</span>
-          <button onClick={() => setShowNew(true)} title="Nauja kortelė" className="w-7 h-7 flex items-center justify-center rounded-lg text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer">
+          <button onClick={() => setShowNew(true)} title="Nauja kortelė" className="w-7 h-7 flex items-center justify-center rounded-lg text-primary dark:text-primary-ink hover:bg-primary-fixed dark:hover:bg-primary/20 transition-colors cursor-pointer">
             <Plus size={16} />
           </button>
         </div>
@@ -85,8 +153,8 @@ export default function IkainiaiTab({
             const isSel = c.id === selectedCardId;
             return (
               <button key={c.id} onClick={() => onSelectCard(c.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-2 ${isSel ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30' : 'hover:bg-zinc-50 dark:hover:bg-[#27272a] border border-transparent'}`}>
-                <Tag size={14} className={isSel ? 'text-purple-600 dark:text-purple-300' : 'text-zinc-400'} />
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors cursor-pointer flex items-center gap-2 ${isSel ? 'bg-primary-fixed dark:bg-primary/20 border border-primary dark:border-primary/30' : 'hover:bg-zinc-50 dark:hover:bg-surface-2 border border-transparent'}`}>
+                <Tag size={14} className={isSel ? 'text-primary dark:text-primary-ink' : 'text-zinc-400'} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 truncate">{c.name}</span>
                 </span>
@@ -99,22 +167,32 @@ export default function IkainiaiTab({
       </div>
 
       {/* Rules */}
-      <div className="bg-white dark:bg-[#18181b] border border-zinc-100 dark:border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl overflow-hidden">
         {!card ? (
           <div className="py-16 text-center text-[14px] text-zinc-400">Pasirinkite tarifų kortelę.</div>
         ) : (
           <>
             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-zinc-100 dark:border-white/10 flex-wrap">
               <div>
-                <h3 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{card.name}</h3>
-                <p className="text-[12px] text-zinc-400">{rules.length} taisykl{rules.length === 1 ? 'ė' : 'ės'}</p>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{card.name}</h3>
+                  {!locked && (
+                    <button onClick={() => setEditCard(card)} title="Pervadinti kortelę" className="w-7 h-7 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-primary hover:bg-primary-fixed dark:hover:bg-primary/20 transition-colors cursor-pointer">
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                </div>
+                <p className="text-[12px] text-zinc-400">{activeRuleCount} aktyvi{activeRuleCount === 1 ? '' : 'os'} taisykl{activeRuleCount === 1 ? 'ė' : 'ės'}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setDupFor(card)} className="inline-flex items-center gap-1.5 h-[36px] px-3 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 text-[13px] font-medium hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer">
+                <button onClick={() => setShowInactive((value) => !value)} title={showInactive ? 'Slėpti išjungtas taisykles' : 'Rodyti išjungtas taisykles'} className="w-9 h-[36px] inline-flex items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer">
+                  {showInactive ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+                <button onClick={() => setDupFor(card)} className="inline-flex items-center gap-1.5 h-[36px] px-3 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 text-[13px] font-medium hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer">
                   <Copy size={14} /> {locked ? 'Dubliuoti ir redaguoti' : 'Dubliuoti'}
                 </button>
                 {!locked && (
-                  <button onClick={() => setAddRule(true)} className="inline-flex items-center gap-1.5 h-[36px] px-3 rounded-xl bg-purple-600 text-white text-[13px] font-medium hover:bg-purple-700 transition-colors cursor-pointer">
+                  <button onClick={() => setAddRule(true)} className="inline-flex items-center gap-1.5 h-[36px] px-3 rounded-xl bg-primary text-white text-[13px] font-medium hover:bg-primary transition-colors cursor-pointer">
                     <Plus size={14} /> Taisyklė
                   </button>
                 )}
@@ -124,7 +202,7 @@ export default function IkainiaiTab({
             {locked && (
               <div className="mx-5 mt-4 rounded-xl bg-zinc-100/70 dark:bg-white/5 border border-zinc-200 dark:border-white/10 px-4 py-3 flex items-start gap-2.5">
                 <Lock size={16} className="text-zinc-500 shrink-0 mt-0.5" />
-                <p className="text-[12px] text-zinc-600 dark:text-zinc-300">Ši kortelė naudojama užrakintame periode — redaguoti negalima. Naudokite „Dubliuoti ir redaguoti“.</p>
+                <p className="text-[12px] text-zinc-600 dark:text-zinc-300">Kortelė naudota užrakintame periode. Tiesioginis redagavimas negalimas — dubliuokite kortelę.</p>
               </div>
             )}
 
@@ -133,25 +211,35 @@ export default function IkainiaiTab({
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-[#27272a]">
+                  <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-surface-2">
                     <th className="py-2.5 px-5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Taisyklė</th>
                     <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Taikymas</th>
                     <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-right">Suma</th>
                     <th className="py-2.5 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Vnt.</th>
                     <th className="py-2.5 px-5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-right">Būsena</th>
+                    <th className="py-2.5 px-4"><span className="sr-only">Veiksmai</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rules.length === 0 ? (
-                    <tr><td colSpan={5} className="py-10 text-center text-[13px] text-zinc-400">Taisyklių nėra.</td></tr>
-                  ) : rules.map((r) => {
+                  {visibleRules.length === 0 ? (
+                    <tr><td colSpan={6} className="py-10 text-center text-[13px] text-zinc-400">{rules.length === 0 ? 'Taisyklių nėra.' : 'Išjungtos taisyklės paslėptos.'}</td></tr>
+                  ) : visibleRules.map((r) => {
                     const auto = AUTO_RULE_TYPES.has(r.rule_type);
                     const editing = edits[r.id] !== undefined;
                     return (
                       <tr key={r.id} className={`border-b border-zinc-50 dark:border-white/5 ${r.is_active ? '' : 'opacity-50'}`}>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">{RULE_LABELS[r.rule_type]}</span>
-                          {r.label !== RULE_LABELS[r.rule_type] && <span className="block text-[11px] text-zinc-400">{r.label}</span>}
+                          {labelEdits[r.id] !== undefined && !locked ? (
+                            <input type="text" autoFocus value={labelEdits[r.id]}
+                              onChange={(e) => setLabelEdits((previous) => ({ ...previous, [r.id]: e.target.value }))}
+                              onBlur={() => saveLabel(r)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(r); if (e.key === 'Escape') setLabelEdits((previous) => { const next = { ...previous }; delete next[r.id]; return next; }); }}
+                              className="w-full max-w-56 h-[32px] px-2 bg-zinc-50 dark:bg-surface-2 border border-primary rounded-lg text-[13px] text-zinc-900 dark:text-white focus:outline-none" />
+                          ) : (
+                            <button disabled={locked} onClick={() => setLabelEdits((previous) => ({ ...previous, [r.id]: r.label }))} className="text-left text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 hover:text-primary disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-200 cursor-pointer disabled:cursor-default">
+                              {r.label}
+                            </button>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${auto ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' : 'bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10'}`}>
@@ -168,10 +256,10 @@ export default function IkainiaiTab({
                               onChange={(e) => setEdits((p) => ({ ...p, [r.id]: e.target.value }))}
                               onBlur={() => saveAmount(r)}
                               onKeyDown={(e) => { if (e.key === 'Enter') saveAmount(r); if (e.key === 'Escape') setEdits((p) => { const n = { ...p }; delete n[r.id]; return n; }); }}
-                              className="w-24 h-[32px] px-2 text-right bg-zinc-50 dark:bg-[#27272a] border border-purple-400 rounded-lg text-[13px] tabular-nums text-zinc-900 dark:text-white focus:outline-none"
+                              className="w-24 h-[32px] px-2 text-right bg-zinc-50 dark:bg-surface-2 border border-primary rounded-lg text-[13px] tabular-nums text-zinc-900 dark:text-white focus:outline-none"
                             />
                           ) : (
-                            <button onClick={() => setEdits((p) => ({ ...p, [r.id]: String(r.amount) }))} className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-300 cursor-pointer">
+                            <button onClick={() => setEdits((p) => ({ ...p, [r.id]: String(r.amount) }))} className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200 hover:text-primary dark:hover:text-primary-ink cursor-pointer">
                               {fmtEur(r.amount)}
                             </button>
                           )}
@@ -185,7 +273,17 @@ export default function IkainiaiTab({
                             className={`inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default ${r.is_active ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/10'}`}
                           >
                             {r.is_active ? <Check size={13} /> : <Power size={13} />}
-                            {r.is_active ? 'Aktyvi' : 'Neaktyvi'}
+                            {r.is_active ? 'Aktyvi' : 'Išjungta'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => void handleRemoveRule(r)}
+                            disabled={locked || removeRule.isPending}
+                            title={locked ? 'Užrakintos kortelės taisyklės negalima šalinti' : 'Pašalinti taisyklę'}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                          >
+                            {removeRule.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
                         </td>
                       </tr>
@@ -200,12 +298,17 @@ export default function IkainiaiTab({
 
       {showNew && (
         <NameModal title="Nauja tarifų kortelė" confirmLabel="Sukurti" pending={createCard.isPending}
-          onConfirm={(name) => createCard.mutate(name)} onClose={() => setShowNew(false)} />
+          validate={validateRateCardName} onConfirm={(name) => createCard.mutate(name)} onClose={() => setShowNew(false)} />
       )}
       {dupFor && (
         <NameModal title="Dubliuoti kortelę" label="Naujos kortelės pavadinimas" defaultValue={`${dupFor.name} (kopija)`}
           confirmLabel="Dubliuoti" pending={dupCard.isPending}
-          onConfirm={(name) => dupCard.mutate({ id: dupFor.id, name })} onClose={() => setDupFor(null)} />
+          validate={validateRateCardName} onConfirm={(name) => dupCard.mutate({ id: dupFor.id, name })} onClose={() => setDupFor(null)} />
+      )}
+      {editCard && (
+        <NameModal title="Pervadinti tarifų kortelę" label="Kortelės pavadinimas" defaultValue={editCard.name}
+          confirmLabel="Išsaugoti" pending={renameCard.isPending} validate={validateRateCardName}
+          onConfirm={(name) => renameCard.mutate({ id: editCard.id, name })} onClose={() => setEditCard(null)} />
       )}
       {addRule && card && (
         <RuleEditorModal rateCardId={card.id} onClose={() => setAddRule(false)} onSaved={invalidateRules} />

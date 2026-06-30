@@ -61,10 +61,10 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
   const showWarning = missing && status === 'completed';
 
   return (
-    <div className="bg-white dark:bg-[#18181b] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+    <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px] flex items-center gap-2">
-          <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        <h3 className="font-semibold text-text text-[15px] flex items-center gap-2">
+          <Coins className="w-4 h-4 text-primary dark:text-primary-ink" />
           Objekto kaina
         </h3>
         {showWarning && (
@@ -81,7 +81,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
       ) : (
         <div className="space-y-3">
           <div>
-            <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">
+            <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">
               Fiksuota kaina (EUR)
             </label>
             <div className="relative">
@@ -93,16 +93,16 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
                 value={fee}
                 onChange={(e) => setFee(e.target.value)}
                 placeholder="0.00"
-                className="w-full h-[40px] pl-3 pr-9 bg-gray-50 dark:bg-[#27272a] border border-gray-200 dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 tabular-nums focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-[#27272a] transition-colors"
+                className="w-full h-[40px] pl-3 pr-9 bg-surface-2 border border-border rounded-xl text-[14px] text-text tabular-nums focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-gray-400 font-medium pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-subtle font-medium pointer-events-none">
                 €
               </span>
             </div>
           </div>
 
           <div>
-            <label className="text-[12px] text-gray-400 font-medium tracking-wide block mb-1">
+            <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">
               Pastaba (nebūtina)
             </label>
             <input
@@ -110,12 +110,12 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Pvz.: papildomos sąlygos"
-              className="w-full h-[40px] px-3 bg-gray-50 dark:bg-[#27272a] border border-gray-200 dark:border-white/10 rounded-xl text-[14px] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-[#27272a] transition-colors"
+              className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
             />
           </div>
 
           <div className="flex items-center justify-between pt-0.5">
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-subtle">
               {comp?.updated_at
                 ? `Atnaujinta: ${new Date(comp.updated_at).toLocaleDateString('lt-LT')}`
                 : 'Dar nenustatyta'}
@@ -123,7 +123,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
             <button
               onClick={() => save.mutate()}
               disabled={save.isPending || !dirty}
-              className="flex items-center gap-1.5 h-[36px] px-4 rounded-xl bg-purple-600 text-white font-medium text-[13px] hover:bg-purple-700 transition-all disabled:opacity-40 disabled:cursor-default cursor-pointer"
+              className="flex items-center gap-1.5 h-[36px] px-4 rounded-xl bg-primary text-white font-medium text-[13px] hover:bg-primary transition-all disabled:opacity-40 disabled:cursor-default cursor-pointer"
             >
               {save.isPending && <Loader2 size={14} className="animate-spin" />}
               Išsaugoti

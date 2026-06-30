@@ -4,8 +4,23 @@ import { describe, it, expect, vi } from 'vitest';
 // The functions under test don't touch it, so stub the module out.
 vi.mock('../lib/supabase', () => ({ supabase: {} }));
 
-import { calculateKwpFromEquipment, calculateKwhFromEquipment } from './sites';
+import { calculateKwpFromEquipment, calculateKwhFromEquipment, hasDeletionBlockers, type SiteDeletionBlockers } from './sites';
 import type { EquipmentItem } from '../types/equipment.types';
+
+describe('hasDeletionBlockers (hard-delete safety gate)', () => {
+  const zero: SiteDeletionBlockers = { timeEntries: 0, checklistItems: 0, photos: 0, files: 0, snapshots: 0, earnings: 0 };
+  it('allows delete only when every related count is zero', () => {
+    expect(hasDeletionBlockers(zero)).toBe(false);
+  });
+  it('blocks when any related data exists', () => {
+    expect(hasDeletionBlockers({ ...zero, timeEntries: 1 })).toBe(true);
+    expect(hasDeletionBlockers({ ...zero, photos: 3 })).toBe(true);
+    expect(hasDeletionBlockers({ ...zero, snapshots: 1 })).toBe(true);
+    expect(hasDeletionBlockers({ ...zero, earnings: 2 })).toBe(true);
+    expect(hasDeletionBlockers({ ...zero, checklistItems: 5 })).toBe(true);
+    expect(hasDeletionBlockers({ ...zero, files: 1 })).toBe(true);
+  });
+});
 
 const mod = (model: string, quantity = 1): EquipmentItem => ({
   category: 'Moduliai', model, quantity, unit: 'vnt.', notes: '',

@@ -59,13 +59,13 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke="currentColor" strokeWidth={stroke}
-          className="text-gray-200 dark:text-zinc-800"
+          className="text-border"
         />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke="currentColor" strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
-          className={complete ? 'text-emerald-500' : 'text-gray-400 dark:text-zinc-400'}
+          className={complete ? 'text-success' : 'text-primary-ink'}
           style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)' }}
         />
       </svg>
@@ -97,9 +97,9 @@ function WorkingRow({
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       onClick={() => onSelect?.(entry)}
       className="group relative flex w-full items-center gap-4 px-5 py-3.5 text-left
-                 border-b border-gray-50 dark:border-white/5 last:border-0
-                 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03]
-                 focus:outline-none focus-visible:bg-gray-100/60 dark:focus-visible:bg-white/[0.05]"
+                 border-b border-border last:border-0
+                 transition-colors hover:bg-surface-2
+                 focus:outline-none focus-visible:bg-surface-2"
     >
       {/* Avatar */}
       {entry.avatarUrl ? (
@@ -109,17 +109,17 @@ function WorkingRow({
           className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10"
         />
       ) : (
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-[12px] font-semibold text-gray-600 dark:text-zinc-300 ring-1 ring-black/5 dark:ring-white/5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[12px] font-semibold text-muted ring-1 ring-black/5 dark:ring-white/5">
           {initials(entry.installerName)}
         </div>
       )}
 
       {/* Identity */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-medium text-gray-900 dark:text-zinc-100">{entry.installerName}</p>
-        <p className="truncate text-[13px] text-gray-400 dark:text-zinc-400">
-          <span className="font-medium text-gray-500 dark:text-zinc-500">{entry.siteCode}</span>
-          <span className="mx-1.5 text-gray-300 dark:text-zinc-600">·</span>
+        <p className="truncate text-[14px] font-medium text-text">{entry.installerName}</p>
+        <p className="truncate text-[13px] text-muted">
+          <span className="font-medium text-muted">{entry.siteCode}</span>
+          <span className="mx-1.5 text-subtle">·</span>
           {entry.siteName}
         </p>
       </div>
@@ -128,16 +128,16 @@ function WorkingRow({
       <div className="flex shrink-0 items-center gap-2">
         {entry.isOnline ? (
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
         ) : (
           // Offline: muted dot + hover tooltip "offline N min"
           <span className="group/dot relative flex h-2 w-2">
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-300 dark:bg-zinc-600" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-subtle" />
             <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md
-                             border border-black/10 dark:border-white/10 bg-gray-900 dark:bg-zinc-800 px-2 py-1
-                             text-[11px] text-white dark:text-zinc-300 opacity-0 shadow-lg
+                             border border-border bg-text px-2 py-1
+                             text-[11px] text-bg opacity-0 shadow-lg
                              transition-opacity duration-150 group-hover/dot:opacity-100">
               {offlineMin != null ? `offline ${offlineMin} min` : 'offline'}
             </span>
@@ -145,7 +145,7 @@ function WorkingRow({
         )}
         <span
           className={`w-[112px] text-right font-mono text-[13px] tabular-nums ${
-            entry.isOnline ? 'text-gray-700 dark:text-zinc-200' : 'text-gray-400 dark:text-zinc-500'
+            entry.isOnline ? 'text-text' : 'text-subtle'
           }`}
         >
           {elapsed}
@@ -157,7 +157,7 @@ function WorkingRow({
         <ProgressRing done={entry.checklistDone} total={entry.checklistTotal} />
         <span
           className={`w-10 text-right text-[12px] tabular-nums ${
-            complete ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-zinc-500'
+            complete ? 'font-medium text-success' : 'text-muted'
           }`}
         >
           {entry.checklistDone}/{entry.checklistTotal}
@@ -167,7 +167,7 @@ function WorkingRow({
       {/* Hover chevron */}
       <ChevronRight
         size={16}
-        className="shrink-0 text-gray-300 dark:text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100"
+        className="shrink-0 text-subtle opacity-0 transition-opacity group-hover:opacity-100"
       />
     </motion.button>
   );
@@ -183,32 +183,32 @@ export default function WorkingTodayPanel({ entries, onSelect, onOpenMap }: Work
   }, []);
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-gray-100 dark:border-white/5 bg-white dark:bg-zinc-900 shadow-sm dark:shadow-none">
+    <div className="w-full overflow-hidden rounded-[20px] border border-border bg-surface shadow-card">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-zinc-100">Šiandien dirba</h2>
-          <span className="rounded-full bg-gray-100 dark:bg-white/5 px-2 py-0.5 text-[12px] font-medium tabular-nums text-gray-500 dark:text-zinc-400">
+          <h2 className="text-[15px] font-semibold tracking-tight text-text">Šiandien dirba</h2>
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-medium tabular-nums text-muted">
             {entries.length}
           </span>
         </div>
         <button
           type="button"
           onClick={onOpenMap}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-gray-500 dark:text-zinc-400
-                     transition-colors hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-zinc-100 focus:outline-none"
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-muted
+                     transition-colors hover:bg-surface-2 hover:text-text focus:outline-none"
         >
           <Map size={15} />
           Žemėlapis
         </button>
       </div>
 
-      <div className="h-px bg-gray-100 dark:bg-white/5" />
+      <div className="h-px bg-border" />
 
       {/* Rows / empty state */}
       {entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 px-5 py-16 text-center">
-          <p className="text-[14px] text-gray-400 dark:text-zinc-600">Šiuo metu niekas nedirba</p>
+          <p className="text-[14px] text-subtle">Šiuo metu niekas nedirba</p>
         </div>
       ) : (
         <AnimatePresence initial={false} mode="popLayout">

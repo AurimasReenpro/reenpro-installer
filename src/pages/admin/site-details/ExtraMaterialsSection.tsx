@@ -36,12 +36,12 @@ export default function ExtraMaterialsSection({ siteId }: { siteId: string }) {
       </div>
 
       {materialsLoading ? (
-        <div className="flex items-center gap-2 text-[#7c7484] dark:text-gray-400 px-4 py-3">
+        <div className="flex items-center gap-2 text-subtle dark:text-subtle px-4 py-3">
           <Loader2 size={15} className="animate-spin" />
           <span className="text-[13px]">Kraunama…</span>
         </div>
       ) : !extraMaterials || extraMaterials.length === 0 ? (
-        <p className="text-[13px] text-[#7c7484] dark:text-gray-400 italic px-4 py-3 bg-[#f6f5fa] dark:bg-[#27272a] rounded-[10px] border border-dashed border-[#cdc3d4]/50 dark:border-white/10">
+        <p className="text-[13px] text-subtle dark:text-subtle italic px-4 py-3 bg-surface-2 dark:bg-surface-2 rounded-[10px] border border-dashed border-border/50 dark:border-white/10">
           Papildomų medžiagų neužregistruota.
         </p>
       ) : (
@@ -61,7 +61,7 @@ export default function ExtraMaterialsSection({ siteId }: { siteId: string }) {
             >
               {/* Name + linked extra-work context */}
               <div className="min-w-0">
-                <p className="text-[14px] font-semibold text-[#1d033a] dark:text-gray-100 leading-snug">{m.name}</p>
+                <p className="text-[14px] font-semibold text-text dark:text-gray-100 leading-snug">{m.name}</p>
                 {m.checklist_item?.question_text && (
                   <p className="text-[12px] text-[#92400E]/80 mt-0.5 leading-snug">
                     Panaudota prie: {m.checklist_item.question_text}
@@ -71,17 +71,17 @@ export default function ExtraMaterialsSection({ siteId }: { siteId: string }) {
 
               {/* Quantity + unit */}
               <div className="pt-0.5 flex items-center gap-1.5">
-                <span className="text-[15px] font-bold text-[#1d033a] dark:text-gray-100">{m.quantity}</span>
+                <span className="text-[15px] font-bold text-text dark:text-gray-100">{m.quantity}</span>
                 <span className="text-[11px] font-semibold text-[#92400E] bg-[#FEF3C7] border border-[#F59E0B]/30 px-1.5 py-0.5 rounded-md">{m.unit}</span>
               </div>
 
               {/* Registered by */}
-              <div className="pt-0.5 text-[13px] text-[#1d033a] dark:text-gray-100 truncate">
+              <div className="pt-0.5 text-[13px] text-text dark:text-gray-100 truncate">
                 {m.creator?.full_name ?? '—'}
               </div>
 
               {/* Date */}
-              <div className="pt-0.5 text-[13px] text-[#7c7484] dark:text-gray-400 whitespace-nowrap">
+              <div className="pt-0.5 text-[13px] text-subtle dark:text-subtle whitespace-nowrap">
                 {format(new Date(m.created_at), 'yyyy-MM-dd')}
               </div>
             </div>

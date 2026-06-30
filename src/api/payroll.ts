@@ -155,6 +155,12 @@ export interface BreakdownRule {
   note: string | null;
 }
 
+export interface PayrollSiteEffectiveRateCard {
+  effective_rate_card_id: string;
+  effective_rate_card_name: string;
+  source: 'period_default' | 'site_override';
+}
+
 export interface PayrollInstaller {
   id: string;
   full_name: string | null;
@@ -266,12 +272,15 @@ export async function createPayrollRateRule(input: {
   unit: RuleUnit | null;
   params?: Record<string, unknown>;
 }): Promise<PayrollRateRule> {
+  const label = input.label.trim();
+  if (!label) throw new Error('Įveskite taisyklės pavadinimą.');
+  if (label.length < 2) throw new Error('Pavadinimas per trumpas.');
   const { data, error } = await supabase
     .from('payroll_rate_rules')
     .insert({
       rate_card_id: input.rateCardId,
       code: input.code,
-      label: input.label,
+      label,
       rule_type: input.ruleType,
       amount: input.amount,
       unit: input.unit,
@@ -289,7 +298,12 @@ export async function updatePayrollRateRule(
 ): Promise<void> {
   const upd: Record<string, unknown> = {};
   if (patch.amount !== undefined) upd.amount = patch.amount;
-  if (patch.label !== undefined) upd.label = patch.label;
+  if (patch.label !== undefined) {
+    const label = patch.label.trim();
+    if (!label) throw new Error('Įveskite taisyklės pavadinimą.');
+    if (label.length < 2) throw new Error('Pavadinimas per trumpas.');
+    upd.label = label;
+  }
   if (patch.unit !== undefined) upd.unit = patch.unit;
   if (patch.is_active !== undefined) upd.is_active = patch.is_active;
   if (patch.params !== undefined) upd.params = patch.params;
@@ -300,6 +314,37 @@ export async function updatePayrollRateRule(
 export async function deactivatePayrollRateRule(id: string, active = false): Promise<void> {
   const { error } = await supabase.from('payroll_rate_rules').update({ is_active: active }).eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+export async function deletePayrollRateRule(id: string): Promise<void> {
+  const { error } = await supabase.from('payroll_rate_rules').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * A rule tied to any period or site-level override must stay available for
+ * historical payroll context. The UI deactivates it instead of deleting it.
+ */
+export async function getPayrollRateRuleUsage(ruleId: string, rateCardId: string): Promise<{
+  hasOverrides: boolean;
+  cardUsedInPeriod: boolean;
+}> {
+  const [{ count: overrideCount, error: overrideError }, { count: periodCount, error: periodError }] = await Promise.all([
+    supabase
+      .from('payroll_site_rule_overrides')
+      .select('id', { count: 'exact', head: true })
+      .eq('rate_rule_id', ruleId),
+    supabase
+      .from('payroll_periods')
+      .select('id', { count: 'exact', head: true })
+      .eq('rate_card_id', rateCardId),
+  ]);
+  if (overrideError) throw new Error(overrideError.message);
+  if (periodError) throw new Error(periodError.message);
+  return {
+    hasOverrides: (overrideCount ?? 0) > 0,
+    cardUsedInPeriod: (periodCount ?? 0) > 0,
+  };
 }
 
 // ── Periods ─────────────────────────────────────────────────────────────────
@@ -399,13 +444,46 @@ export async function setPayrollSiteParticipants(
 }
 
 // ── Per-site rule overrides ──────────────────────────────────────────────────
-export async function getPayrollSiteRuleState(periodId: string, siteId: string): Promise<PayrollSiteRuleState[]> {
-  const { data, error } = await supabase.rpc('get_payroll_site_rule_state', {
+export async function getPayrollSiteRuleState(
+  periodId: string,
+  siteId: string,
+  rateCardId?: string,
+): Promise<PayrollSiteRuleState[]> {
+  const args = rateCardId
+    ? { p_period_id: periodId, p_site_id: siteId, p_rate_card_id: rateCardId }
+    : { p_period_id: periodId, p_site_id: siteId };
+  const { data, error } = await supabase.rpc('get_payroll_site_rule_state', args);
+  if (error) throw error;
+  return (data ?? []) as unknown as PayrollSiteRuleState[];
+}
+
+export async function getPayrollSiteEffectiveRateCard(
+  periodId: string,
+  siteId: string,
+): Promise<PayrollSiteEffectiveRateCard> {
+  const { data, error } = await supabase.rpc('get_payroll_site_effective_rate_card', {
     p_period_id: periodId,
     p_site_id: siteId,
   });
   if (error) throw error;
-  return (data ?? []) as unknown as PayrollSiteRuleState[];
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('Objekto tarifo kortelė nerasta.');
+  return row as unknown as PayrollSiteEffectiveRateCard;
+}
+
+export async function setPayrollSiteRateCardOverride(input: {
+  periodId: string;
+  siteId: string;
+  rateCardId: string | null;
+  note?: string | null;
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_payroll_site_rate_card_override', {
+    p_period_id: input.periodId,
+    p_site_id: input.siteId,
+    p_rate_card_id: input.rateCardId,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
 }
 
 export async function setPayrollSiteRuleOverride(input: {

@@ -14,11 +14,11 @@ export default function Profile() {
 
   return (
     <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold text-primary">Profilis</h2>
-      
-      <div className="bg-white dark:bg-[#18181b] rounded-2xl p-6 shadow-sm border border-outline-variant/20">
+      <h2 className="text-2xl font-bold text-primary-ink">Profilis</h2>
+
+      <div className="bg-surface rounded-[20px] p-6 shadow-card border border-border">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-avatar-accent text-white flex items-center justify-center text-xl font-bold">
+          <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-xl font-bold">
             {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : '??'}
           </div>
           <div>
@@ -29,20 +29,20 @@ export default function Profile() {
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-outline uppercase tracking-wider">El. paštas</label>
+            <label className="text-xs font-semibold text-subtle uppercase tracking-wider">El. paštas</label>
             <p className="text-on-surface font-medium mt-1">{profile?.email || 'Nenurodyta'}</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-outline uppercase tracking-wider">Telefonas</label>
+            <label className="text-xs font-semibold text-subtle uppercase tracking-wider">Telefonas</label>
             <p className="text-on-surface font-medium mt-1">{profile?.phone || 'Nenurodyta'}</p>
           </div>
         </div>
       </div>
 
       {/* Appearance — Light / Dark / System */}
-      <div className="bg-white dark:bg-[#18181b] rounded-2xl p-4 shadow-sm border border-outline-variant/20">
-        <p className="text-xs font-semibold text-outline uppercase tracking-wider mb-3">Išvaizda</p>
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 rounded-xl p-1">
+      <div className="bg-surface rounded-[20px] p-4 shadow-card border border-border">
+        <p className="text-xs font-semibold text-subtle uppercase tracking-wider mb-3">Išvaizda</p>
+        <div className="flex items-center gap-1 bg-surface-2 rounded-xl p-1">
           {THEME_OPTIONS.map(({ value, label, Icon }) => (
             <button
               key={value}
@@ -50,8 +50,8 @@ export default function Profile() {
               aria-pressed={theme === value}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-semibold transition-all ${
                 theme === value
-                  ? 'bg-white dark:bg-[#27272a] shadow-sm text-primary'
-                  : 'text-on-surface-variant active:bg-black/5 dark:active:bg-white/5'
+                  ? 'bg-surface shadow-card text-primary-ink'
+                  : 'text-muted active:bg-surface'
               }`}
             >
               <Icon size={15} />
@@ -63,7 +63,7 @@ export default function Profile() {
 
       <button
         onClick={() => { void logout(); }}
-        className="w-full bg-[#FFF1F0] text-[#fc391d] border border-[#fc391d]/20 font-bold text-[15px] h-[48px] rounded-[12px] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        className="w-full bg-[var(--danger)]/10 text-danger border border-danger/20 font-bold text-[15px] h-[48px] rounded-btn flex items-center justify-center gap-2 active:scale-95 transition-transform"
       >
         <LogOut className="w-5 h-5" />
         Atsijungti

@@ -71,14 +71,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full">
+      <div className="bg-surface border border-border rounded-[20px] shadow-card p-8 max-w-sm w-full">
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-2">
-            <Sun className="text-[#fc391d] w-10 h-10 fill-[#fc391d]" />
+            <Sun className="text-primary w-10 h-10 fill-primary" />
             <h1 className="text-on-surface font-bold text-xl">InstallerApp</h1>
           </div>
-          <p className="text-primary-light text-sm mt-1">
+          <p className="text-primary-ink text-sm mt-1">
             Montuotojų platforma
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function Login() {
             <input
               type="email"
               {...register('email')}
-              className="w-full rounded-xl border border-outline-variant px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-on-surface bg-white"
+              className="w-full rounded-input border border-outline-variant px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-on-surface bg-surface"
             />
             {errors.email && (
               <span className="text-error text-xs">{errors.email.message}</span>
@@ -106,7 +106,7 @@ export default function Login() {
             <input
               type="password"
               {...register('password')}
-              className="w-full rounded-xl border border-outline-variant px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-on-surface bg-white"
+              className="w-full rounded-input border border-outline-variant px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-on-surface bg-surface"
             />
             {errors.password && (
               <span className="text-error text-xs">
@@ -116,7 +116,7 @@ export default function Login() {
           </div>
 
           {authError && (
-            <div className="bg-[#ffdad6] text-[#ba1a1a] rounded-xl px-4 py-3 text-sm">
+            <div className="bg-warning-bg text-danger rounded-input px-4 py-3 text-sm">
               {authError}
             </div>
           )}
@@ -124,7 +124,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-[52px] bg-primary text-white rounded-xl font-semibold text-[15px] hover:bg-[#330666] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-[52px] bg-primary text-white rounded-btn font-semibold text-[15px] shadow-primary hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

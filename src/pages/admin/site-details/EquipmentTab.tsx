@@ -88,17 +88,17 @@ export default function EquipmentTab({
   }, {});
 
   return (
-    <div className="bg-white dark:bg-[#18181b] rounded-[16px] border border-[#cdc3d4]/20 dark:border-white/10 shadow-sm p-6">
+    <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-[16px] font-bold text-[#1d033a] dark:text-gray-100 flex items-center gap-2">
+        <h2 className="text-[16px] font-bold text-text dark:text-gray-100 flex items-center gap-2">
           <Package size={18} className="text-primary" />
           Komplektacija / Įranga
         </h2>
         {!editing ? (
           <button
             onClick={startEditing}
-            className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-[#f6f5fa] dark:bg-[#27272a] text-primary font-semibold text-[13px] hover:bg-[#ede8f5] transition-colors cursor-pointer border border-[#cdc3d4]/30 dark:border-white/10"
+            className="flex items-center gap-2 h-[34px] px-4 rounded-[8px] bg-surface-2 dark:bg-surface-2 text-primary font-semibold text-[13px] hover:bg-surface-2 transition-colors cursor-pointer border border-border/30 dark:border-white/10"
           >
             <Pencil size={14} />
             Redaguoti
@@ -108,7 +108,7 @@ export default function EquipmentTab({
             <button
               onClick={() => setEditing(false)}
               disabled={saveMutation.isPending}
-              className="h-[34px] px-4 rounded-[8px] border border-[#cdc3d4] dark:border-white/10 text-[#4b4452] dark:text-gray-300 font-semibold text-[13px] hover:bg-[#f6f5fa] transition-colors cursor-pointer disabled:opacity-60"
+              className="h-[34px] px-4 rounded-[8px] border border-border dark:border-white/10 text-muted dark:text-subtle font-semibold text-[13px] hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-60"
             >
               Atšaukti
             </button>
@@ -131,7 +131,7 @@ export default function EquipmentTab({
 
       {/* Info callout */}
       {!editing && (
-        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-[#1d033a] dark:text-gray-100">
+        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-text dark:text-gray-100">
           <Info size={15} className="text-[#2563EB] flex-shrink-0 mt-0.5" />
           <span>
             <span className="font-semibold">Kategorija</span> automatiškai nustatoma pagal objekto tipą. Galima laisvai pridėti bet kokių papildomų komponentų.
@@ -146,7 +146,7 @@ export default function EquipmentTab({
       {editing && (
         <div className="flex flex-col gap-2">
           {/* Column headers */}
-          <div className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 px-1 mb-0.5 text-[10px] font-bold text-[#7c7484] dark:text-gray-400 uppercase tracking-wider">
+          <div className="grid grid-cols-[160px_1fr_56px_76px_1fr_32px] gap-2 px-1 mb-0.5 text-[10px] font-bold text-subtle dark:text-subtle uppercase tracking-wider">
             <span>Kategorija</span>
             <span>Modelis / Specifikacija</span>
             <span>Kiekis</span>
@@ -190,7 +190,7 @@ export default function EquipmentTab({
                       <select
                         value={row.model}
                         onChange={(e) => updateRow(i, 'model', e.target.value)}
-                        className="w-full h-[38px] pl-3 pr-8 bg-white dark:bg-[#18181b] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[13px] text-[#1d033a] dark:text-gray-100 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
+                        className="w-full h-[38px] pl-3 pr-8 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
                       >
                         <option value="">— Pasirinkite —</option>
                         {(catalogByCategory[row.category] ?? []).map(c => (
@@ -200,7 +200,7 @@ export default function EquipmentTab({
                         ))}
                         <option value="__custom">Įvesti ranka...</option>
                       </select>
-                      <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7c7484] dark:text-gray-400 pointer-events-none" />
+                      <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle dark:text-subtle pointer-events-none" />
                     </>
                   ) : hasCatalog && row.model === '__custom' ? (
                     <div className="flex gap-1.5">
@@ -210,9 +210,9 @@ export default function EquipmentTab({
                         placeholder="Pvz.: Huawei SUN2000 10kW"
                         onBlur={(e) => { if (e.target.value.trim()) updateRow(i, 'model', e.target.value.trim()); }}
                         onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) updateRow(i, 'model', v); } }}
-                        className="flex-1 h-[38px] px-3 bg-white dark:bg-[#18181b] border-2 border-primary rounded-[8px] text-[13px] text-[#1d033a] dark:text-gray-100 focus:outline-none"
+                        className="flex-1 h-[38px] px-3 bg-surface border-2 border-primary rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none"
                       />
-                      <button onClick={() => updateRow(i, 'model', '')} className="h-[38px] px-2 text-[#7c7484] dark:text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
+                      <button onClick={() => updateRow(i, 'model', '')} className="h-[38px] px-2 text-subtle dark:text-subtle hover:text-red-500 transition-colors cursor-pointer">
                         <X size={14} />
                       </button>
                     </div>
@@ -222,7 +222,7 @@ export default function EquipmentTab({
                       value={row.model}
                       onChange={(e) => updateRow(i, 'model', e.target.value)}
                       placeholder="Modelis / specifikacija"
-                      className="w-full h-[38px] px-3 bg-white dark:bg-[#18181b] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[13px] text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      className="w-full h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
                   )}
                 </div>
@@ -233,7 +233,7 @@ export default function EquipmentTab({
                   min={1}
                   value={row.quantity}
                   onChange={(e) => updateRow(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-[38px] px-1 bg-white dark:bg-[#18181b] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[13px] font-bold text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary text-center"
+                  className="h-[38px] px-1 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-bold text-text dark:text-gray-100 focus:outline-none focus:border-primary text-center"
                 />
 
                 {/* Unit */}
@@ -241,11 +241,11 @@ export default function EquipmentTab({
                   <select
                     value={row.unit || 'vnt.'}
                     onChange={(e) => updateRow(i, 'unit', e.target.value)}
-                    className="w-full h-[38px] pl-2 pr-6 bg-white dark:bg-[#18181b] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[12px] text-[#4b4452] dark:text-gray-300 appearance-none focus:outline-none focus:border-primary cursor-pointer text-center"
+                    className="w-full h-[38px] pl-2 pr-6 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[12px] text-muted dark:text-subtle appearance-none focus:outline-none focus:border-primary cursor-pointer text-center"
                   >
                     {EQUIPMENT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
-                  <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7c7484] dark:text-gray-400 pointer-events-none" />
+                  <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-subtle dark:text-subtle pointer-events-none" />
                 </div>
 
                 {/* Notes */}
@@ -254,13 +254,13 @@ export default function EquipmentTab({
                   value={row.notes}
                   onChange={(e) => updateRow(i, 'notes', e.target.value)}
                   placeholder="Pastabos..."
-                  className="h-[38px] px-3 bg-white dark:bg-[#18181b] border border-[#cdc3d4] dark:border-white/10 rounded-[8px] text-[13px] text-[#1d033a] dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
 
                 {/* Remove */}
                 <button
                   onClick={() => setRows(r => r.filter((_, idx) => idx !== i))}
-                  className="w-8 h-8 flex items-center justify-center text-[#cdc3d4] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer rounded-[8px]"
+                  className="w-8 h-8 flex items-center justify-center text-subtle hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer rounded-[8px]"
                 >
                   <X size={15} />
                 </button>
@@ -271,8 +271,8 @@ export default function EquipmentTab({
                     manually editable for custom / non-catalog batteries. */}
                 {isBattery && (
                   <div className="flex items-center gap-2 mt-2 pl-0.5 flex-wrap">
-                    <Battery className="w-4 h-4 text-gray-400 shrink-0" />
-                    <label className="text-[12px] text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">Baterijos talpa (kWh)</label>
+                    <Battery className="w-4 h-4 text-subtle shrink-0" />
+                    <label className="text-[12px] text-muted font-medium whitespace-nowrap">Baterijos talpa (kWh)</label>
                     <input
                       type="number"
                       min={0}
@@ -283,12 +283,12 @@ export default function EquipmentTab({
                       placeholder="Pvz.: 15"
                       className={`w-[120px] h-[36px] px-3 border rounded-[8px] text-[13px] font-semibold focus:outline-none ${
                         isDerived
-                          ? 'bg-gray-100 dark:bg-[#27272a] border-gray-200 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                          : 'bg-white dark:bg-[#18181b] border-[#cdc3d4] dark:border-white/10 text-[#1d033a] dark:text-gray-100 focus:border-primary focus:ring-1 focus:ring-primary/20'
+                          ? 'bg-surface-2 border-border text-muted cursor-not-allowed'
+                          : 'bg-surface border-border dark:border-white/10 text-text dark:text-gray-100 focus:border-primary focus:ring-1 focus:ring-primary/20'
                       }`}
                     />
                     {isDerived && battMatch?.capacity_kwh != null && (
-                      <span className="text-[11px] text-[#7c7484] dark:text-gray-400">
+                      <span className="text-[11px] text-subtle dark:text-subtle">
                         = {battMatch.capacity_kwh} kWh × {row.quantity} (iš katalogo)
                       </span>
                     )}

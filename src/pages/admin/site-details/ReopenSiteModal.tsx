@@ -78,9 +78,9 @@ export default function ReopenSiteModal({
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#18181b] w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-white/40 p-6"
+            className="bg-surface w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-white/40 p-6"
           >
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
+            <h2 className="text-2xl font-extrabold text-text tracking-tight mb-6">
               Atidaryti iš naujo
             </h2>
 
@@ -90,20 +90,20 @@ export default function ReopenSiteModal({
                 reopenMutation.mutate({ category: revisitCategory, notes: revisitNotes });
               }}
             >
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+              <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5 ml-1">
                 Pakartotinio vizito priežastis
               </label>
               <select
                 value={revisitCategory}
                 onChange={(e) => setRevisitCategory(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#27272a] border-0 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-500 shadow-inner transition-all focus:outline-none appearance-none"
+                className="w-full bg-surface-2 border-0 rounded-xl px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none appearance-none"
               >
                 {REVISIT_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
               </select>
 
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1 mt-4">
+              <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5 ml-1 mt-4">
                 Pastabos
               </label>
               <textarea
@@ -111,13 +111,13 @@ export default function ReopenSiteModal({
                 onChange={(e) => setRevisitNotes(e.target.value)}
                 rows={3}
                 placeholder="Trumpai aprašykite, kodėl objektas atidaromas iš naujo…"
-                className="w-full bg-gray-50 dark:bg-[#27272a] border-0 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-gray-100 focus:bg-white focus:ring-2 focus:ring-purple-500 shadow-inner transition-all focus:outline-none resize-none"
+                className="w-full bg-surface-2 border-0 rounded-xl px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none resize-none"
               />
 
               <button
                 type="submit"
                 disabled={reopenMutation.isPending}
-                className="w-full rounded-xl py-3.5 font-semibold bg-purple-600 text-white mt-6 flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors disabled:opacity-60"
+                className="w-full rounded-xl py-3.5 font-semibold bg-primary text-white mt-6 flex items-center justify-center gap-2 hover:bg-primary transition-colors disabled:opacity-60"
               >
                 {reopenMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                 Atidaryti objektą
@@ -126,7 +126,7 @@ export default function ReopenSiteModal({
                 type="button"
                 onClick={onClose}
                 disabled={reopenMutation.isPending}
-                className="mt-3 w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 transition-colors disabled:opacity-60"
+                className="mt-3 w-full text-sm font-medium text-muted hover:text-text transition-colors disabled:opacity-60"
               >
                 Atšaukti
               </button>
