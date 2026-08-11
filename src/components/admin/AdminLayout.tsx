@@ -213,8 +213,8 @@ export default function AdminLayout() {
 
   return (
     <div className="bg-bg text-text font-sans antialiased h-screen overflow-hidden flex">
-      {/* Sidebar — Copper Mist */}
-      <aside className="w-[240px] bg-surface border-r border-border flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
+      {/* Sidebar — REENPRO: slyvinė juosta, kaip reikalauja dizaino sistema */}
+      <aside className="w-[240px] bg-nav border-r border-nav-border flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
         <div>
           {/* Logo */}
           <div className="px-6 mb-8 flex items-center min-h-[48px]">
@@ -222,8 +222,8 @@ export default function AdminLayout() {
               <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-10 w-auto max-w-[180px] object-contain" />
             ) : (
               <>
-                <Sun className="text-primary w-6 h-6 flex-shrink-0" fill="currentColor" />
-                <span className="text-text font-extrabold text-[18px] tracking-tight truncate ml-2">
+                <Sun className="text-accent w-6 h-6 flex-shrink-0" fill="currentColor" />
+                <span className="text-nav-ink font-extrabold text-[18px] tracking-tight truncate ml-2">
                   {companyName || 'InstallerApp'}
                 </span>
               </>
@@ -252,7 +252,7 @@ export default function AdminLayout() {
                         }
                       })();
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium rounded-xl transition-colors ${item.className || ''} text-muted hover:bg-surface-2 hover:text-text cursor-pointer text-left`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium rounded-xl transition-colors ${item.className || ''} text-nav-muted hover:bg-nav-hover hover:text-nav-ink cursor-pointer text-left`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.name}</span>
@@ -261,7 +261,7 @@ export default function AdminLayout() {
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                       whileHover={{ scale: 1.1, rotate: 2 }}
-                      className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full"
+                      className="ml-auto text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/15 px-2 py-0.5 rounded-full"
                     >
                       Beta
                     </motion.span>
@@ -276,14 +276,14 @@ export default function AdminLayout() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-xl transition-all ${item.className || ''} ${
                       isActive
-                        ? 'bg-primary-fixed shadow-sm text-on-primary-fixed font-semibold'
-                        : 'text-muted font-medium hover:bg-surface-2 hover:text-text'
+                        ? 'bg-nav-hover text-nav-ink font-semibold'
+                        : 'text-nav-muted font-medium hover:bg-nav-hover hover:text-nav-ink'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-subtle'}`} />
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-accent' : 'text-nav-muted'}`} />
                       {item.name}
                     </>
                   )}
@@ -293,7 +293,7 @@ export default function AdminLayout() {
           </nav>
         </div>
         {/* Settings + Theme toggle */}
-        <div className="px-3 border-t border-border pt-3 pb-0 flex flex-col gap-1 mb-0">
+        <div className="px-3 border-t border-nav-border pt-3 pb-0 flex flex-col gap-1 mb-0">
           {/* Settings link */}
           <NavLink
             to={settingsItem.path}
@@ -301,14 +301,14 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-xl transition-all ${
                 isActive
-                  ? 'bg-primary-fixed shadow-sm text-on-primary-fixed font-semibold'
-                  : 'text-muted font-medium hover:bg-surface-2 hover:text-text'
+                  ? 'bg-nav-hover text-nav-ink font-semibold'
+                  : 'text-nav-muted font-medium hover:bg-nav-hover hover:text-nav-ink'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Settings className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-subtle'}`} />
+                <Settings className={`w-5 h-5 ${isActive ? 'text-accent' : 'text-nav-muted'}`} />
                 {settingsItem.name}
               </>
             )}
@@ -316,10 +316,10 @@ export default function AdminLayout() {
 
           {/* Appearance — Apple-style segmented control */}
           <div className="px-3 pt-2 pb-1">
-            <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5 ml-1">
+            <p className="text-[11px] font-bold text-nav-muted uppercase tracking-wider mb-1.5 ml-1">
               Išvaizda
             </p>
-            <div className="flex items-center gap-1 bg-surface-2 rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-nav-hover rounded-xl p-1">
               {themeOptions.map(({ value, label, Icon }) => (
                 <button
                   key={value}
@@ -328,8 +328,8 @@ export default function AdminLayout() {
                   aria-pressed={theme === value}
                   className={`flex-1 flex items-center justify-center py-1.5 rounded-lg transition-all cursor-pointer ${
                     theme === value
-                      ? 'bg-surface shadow-card text-primary-ink'
-                      : 'text-muted hover:text-text'
+                      ? 'bg-accent/25 text-nav-ink'
+                      : 'text-nav-muted hover:text-nav-ink'
                   }`}
                 >
                   <Icon size={16} />
@@ -339,18 +339,18 @@ export default function AdminLayout() {
           </div>
         </div>
         {/* Bottom Avatar */}
-        <div className="px-6 flex items-center justify-between border-t border-border pt-4 mt-2">
+        <div className="px-6 flex items-center justify-between border-t border-nav-border pt-4 mt-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[14px]">
               {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : 'AD'}
             </div>
-            <span className="text-text font-semibold text-[14px] truncate max-w-[100px]">
+            <span className="text-nav-ink font-semibold text-[14px] truncate max-w-[100px]">
               {profile?.full_name || 'Admin'}
             </span>
           </div>
           <button
             onClick={() => { void logout(); }}
-            className="text-muted hover:text-text transition-colors"
+            className="text-nav-muted hover:text-nav-ink transition-colors"
             title="Atsijungti"
           >
             <LogOut className="w-5 h-5" />

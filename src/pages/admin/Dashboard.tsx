@@ -41,19 +41,19 @@ type ActivityFilter = 'all' | 'started' | 'ended';
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending: {
     label: 'Nepradėta',
-    cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300',
+    cls: 'bg-surface-2 text-subtle',
   },
   in_progress: {
     label: 'Vyksta',
-    cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+    cls: 'bg-success-bg text-success',
   },
   paused: {
     label: 'Pristabdyta',
-    cls: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+    cls: 'bg-warning-bg text-warning',
   },
   completed: {
     label: 'Užbaigta',
-    cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+    cls: 'bg-info-bg text-info',
   },
 };
 
@@ -129,7 +129,7 @@ function AttentionRow({ item }: { item: DashboardAttentionItem }) {
 function TodayWorkRow({ site, now }: { site: DashboardSite; now: number }) {
   const status = STATUS[site.status] ?? {
     label: 'Nepradėta',
-    cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300',
+    cls: 'bg-surface-2 text-subtle',
   };
   const StatusIcon = site.status === 'in_progress' ? Play : site.status === 'paused' ? Pause : CalendarDays;
   const elapsed = site.status === 'in_progress' ? formatElapsedWorkTimer(site.openWorkStartedAt, now) : '-';
@@ -279,7 +279,7 @@ export default function Dashboard() {
         <button
           onClick={() => { void createBlankSite(); }}
           disabled={isCreating}
-          className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-semibold text-white shadow-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-[13px] font-semibold text-on-accent shadow-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           {isCreating ? 'Kuriama...' : 'Naujas objektas'}
@@ -287,10 +287,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Kpi icon={CalendarDays} label="Šiandien suplanuota" value={data.scheduledTodayCount} detail="Objektai darbo plane" tone="bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300" />
-        <Kpi icon={Users} label="Dirba dabar" value={data.workingNowCount} detail="Su atvira darbo eiga" tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" />
-        <Kpi icon={AlertTriangle} label="Reikia dėmesio" value={attention.length} detail="Veiksmai, kuriuos verta patikrinti" tone="bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" />
-        <Kpi icon={CheckCircle2} label="Užbaigta šiandien" value={data.completedTodayCount} detail="Uždaryti darbai" tone="bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300" />
+        <Kpi icon={CalendarDays} label="Šiandien suplanuota" value={data.scheduledTodayCount} detail="Objektai darbo plane" tone="bg-info-bg text-info" />
+        <Kpi icon={Users} label="Dirba dabar" value={data.workingNowCount} detail="Su atvira darbo eiga" tone="bg-success-bg text-success" />
+        <Kpi icon={AlertTriangle} label="Reikia dėmesio" value={attention.length} detail="Veiksmai, kuriuos verta patikrinti" tone="bg-warning-bg text-warning" />
+        <Kpi icon={CheckCircle2} label="Užbaigta šiandien" value={data.completedTodayCount} detail="Uždaryti darbai" tone="bg-primary-fixed text-primary-ink" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
@@ -401,7 +401,7 @@ export default function Dashboard() {
               const when = entry.latestActionTime ?? entry.endTime ?? entry.startTime;
               return (
                 <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${ended ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-primary-fixed text-primary-ink dark:bg-primary/20'}`}><Icon size={14} /></span>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${ended ? 'bg-success-bg text-success' : 'bg-primary-fixed text-primary-ink dark:bg-primary/20'}`}><Icon size={14} /></span>
                   <p className="min-w-0 flex-1 truncate text-[13px] text-muted">
                     <span className="font-semibold text-text">{entry.installerName ?? 'Montuotojas'}</span> {action}{' '}
                     {entry.siteId ? <Link to={`/admin/sites/${entry.siteId}`} className="font-semibold text-primary hover:underline dark:text-primary-ink">{entry.clientName ?? entry.siteCode ?? 'objekte'}</Link> : <span>{entry.clientName ?? entry.siteCode ?? 'objekte'}</span>}
