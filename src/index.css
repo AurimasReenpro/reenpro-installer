@@ -6,23 +6,40 @@
 
 /*
  * ============================================================================
- *  COPPER MIST — design tokens (Phase 1)
+ *  REENPRO dizaino sistema — tokenai
  * ============================================================================
- *  Warm sand background, graphite ink, forest green + copper accent.
- *  Canonical values live in :root (light) and html.dark (dark) below; the
- *  @theme block only WIRES them into Tailwind so utilities such as `bg-bg`,
- *  `bg-surface`, `text-muted`, `border-border`, `text-primary-ink`,
- *  `rounded-card`, `shadow-card`, etc. become available.
+ *  Pakeitė ankstesnę „Copper Mist" paletę. Reikšmės imtos iš
+ *  REENPRO-dizaino-sistema.md: šviesi tema iš 4 skyriaus, tamsi — iš 15.
  *
- *  Because the @theme entries reference var(--token), overriding a token in
- *  html.dark cascades through automatically — components stay theme-agnostic.
+ *  Tokenų VARDAI nekeisti sąmoningai. Komponentuose jie naudojami ~1 300
+ *  vietų (`bg-surface`, `text-muted`, `border-border`, `shadow-card`…), tad
+ *  keičiant tik reikšmes visa programa persidažo neliečiant nė vieno .tsx.
+ *
+ *  `@theme` blokas tik PRIRIŠA kintamuosius prie Tailwind klasių; kanoninės
+ *  reikšmės gyvena `:root` (šviesi) ir `html.dark` (tamsi) blokuose žemiau.
  * ----------------------------------------------------------------------------
+ *
+ *  DĖMESIO dėl `primary` ir `accent`.
+ *
+ *  `bg-primary` ir `text-primary` programoje naudojami apie 350 vietų. Jei
+ *  `primary` būtų ember (#C43C22), programa taptų oranžinė nuo krašto iki
+ *  krašto — o dizaino sistemos pirmoji taisyklė sako, kad ember skiriamas
+ *  VIENAM svarbiausiam dalykui ekrane.
+ *
+ *  Todėl:
+ *    --primary  = slyvinė  (REENPRO „Secondary" mygtukas: plum fonas, baltas tekstas)
+ *    --accent   = ember    (tikrasis akcentas, kol kas 11 vietų)
+ *
+ *  Ember prie pagrindinių veiksmų dedamas sąmoningai, ekranas po ekrano.
+ *  Norint atgal — pakeisti dvi eilutes `:root` bloke.
  */
 @theme {
-  /* Inter universally — no OS system-font stack, for 100% cross-platform consistency. */
-  --font-sans: "Inter", sans-serif;
+  /* Space Grotesk antraštėms ir mygtukams, Inter tankiems duomenims ir
+     skaičiams: Space Grotesk yra rašomas antraštėms, o ne lentelėms telefone. */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
 
-  /* ---- Copper Mist palette (preferred names for new/migrated components) ---- */
+  /* ---- Paletė ---- */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -39,10 +56,10 @@
   --color-warning-bg: var(--warning-bg);
   --color-danger: var(--danger);
 
-  /* ---- Legacy Material aliases ----
-     Existing components still reference these names; remapping them onto the
-     Copper Mist tokens re-themes the whole app without touching any component.
-     Retire these as each screen migrates to the tokens above. */
+  /* ---- Senieji Material vardai ----
+     Dalis komponentų dar remiasi jais; peradresavus juos į tuos pačius
+     tokenus, tie ekranai persidažo be jokių pakeitimų. Šalinama po vieną
+     ekraną migruojant. */
   --color-app-bg: var(--bg);
   --color-surface-bright: var(--surface);
   --color-surface-container-low: var(--surface-2);
@@ -54,84 +71,105 @@
   --color-on-primary-fixed: var(--on-primary-fixed);
   --color-error: var(--danger);
 
-  /* ---- Radii ---- → rounded-card / rounded-btn / rounded-input (chip = rounded-full) */
-  --radius-card: 20px;
-  --radius-btn: 15px;
-  --radius-input: 13px;
+  /* ---- Kampai ----
+     Dizaino sistema: kortelės 10 px, ne 20/24 px kaip svetainėje. Vidinė
+     programa turi atrodyti kaip įrankis, ne kaip rinkodaros puslapis. */
+  --radius-card: 10px;
+  --radius-btn: 8px;
+  --radius-input: 8px;
 
-  /* ---- Shadows ---- → shadow-card / shadow-primary (theme-dependent, see below) */
+  /* ---- Šešėliai ---- */
   --shadow-card: var(--sh-card);
   --shadow-primary: var(--sh-primary);
 }
 
 /*
- * ---- Light theme (default) -------------------------------------------------
+ * ---- Šviesi tema (numatytoji) ----------------------------------------------
  */
 :root {
-  --bg: #F8F3EC;
-  --surface: #FFFDF8;
-  --surface-2: #F2E9DD;
-  --border: #E3D8CA;
-  --text: #182321;
-  --text-muted: #5F6762;
-  --text-subtle: #8B918B;
-  --primary: #D95A1A;
-  --primary-ink: #D95A1A;
-  --primary-fixed: #FBE4D6;     /* pale copper chip / icon-tile background */
-  --on-primary-fixed: #B0481A;  /* readable copper text on --primary-fixed  */
-  --accent: #0F5A3D;
-  --success: #0F6B4A;
-  --success-bg: #DCEFE6;
-  --warning: #9A5B25;
-  --warning-bg: #FBE4D6;
-  --danger: #C62828;
+  --bg: #F7F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #F2F3F7;
+  --border: #EBE9F0;
+  --text: #1d033a;
+  --text-muted: #4A4458;
+  --text-subtle: #6E6880;
 
-  --sh-card: 0 8px 24px rgba(24, 35, 33, .06);
-  --sh-primary: 0 6px 14px rgba(217, 90, 26, .18);
+  --primary: #1d033a;
+  --primary-ink: #1d033a;
+  --primary-fixed: #F0EEF5;     /* blyškus slyvinis fonas ženkleliams ir ikonoms */
+  --on-primary-fixed: #1d033a;
+
+  /* Ember tekstui ir smulkiems elementams ant balto imamas #C43C22 (5,23 : 1).
+     Firminis #E94E34 ant balto duoda tik 3,75 : 1 ir AA neatitinka. */
+  --accent: #C43C22;
+
+  --success: #1E7A4C;
+  --success-bg: #EAF6EF;
+  --warning: #8A5300;
+  --warning-bg: #FDF4E3;
+  --danger: #C0281C;
+
+  /* REENPRO šešėliai santūrūs — gylis kuriamas kraštine, ne minkštu debesiu. */
+  --sh-card: 0 1px 3px rgba(29, 3, 58, .07), 0 1px 2px rgba(29, 3, 58, .04);
+  --sh-primary: 0 4px 12px rgba(29, 3, 58, .12);
 
   background-color: var(--bg);
   color: var(--text);
 }
 
 /*
- * ---- Dark theme ------------------------------------------------------------
- *  next-themes toggles `.dark` on <html>. Overriding the canonical tokens here
- *  re-themes both the mobile chrome and (via the legacy aliases) everything
- *  that reads them. Admin's explicit zinc `dark:` utilities are unaffected
- *  until those screens are migrated.
+ * ---- Tamsi tema -------------------------------------------------------------
+ *  Ne inversija. Fonas tamsesnis už brand spalvą, o pati brand slyvinė tampa
+ *  paviršiumi. Paviršiai skiriami šviesumu ir kraštinėmis, ne šešėliais —
+ *  tamsoje šešėlių praktiškai nematyti.
  */
 html.dark {
-  --bg: #15211D;
-  --surface: #1E2C27;
-  --surface-2: #283833;
-  --border: #33443D;
-  --text: #F2ECE2;
-  --text-muted: #AAB2AC;
-  --text-subtle: #7E877F;
-  --primary: #D95A1A;
-  --primary-ink: #E5894F;                       /* lighter copper for text/icons in dark */
-  --primary-fixed: rgba(217, 90, 26, .16);      /* translucent copper tile               */
-  --on-primary-fixed: #E5894F;
-  --accent: #1F8A5B;
-  --success: #5FD39E;
-  --success-bg: #173026;
-  --warning: #C99A6A;
-  --warning-bg: #3A2418;
-  --danger: #EF4444;
+  --bg: #14022A;
+  --surface: #1d033a;           /* brand plum tampa paviršiumi */
+  --surface-2: #2A0F47;
+  --border: #2E1349;
+  --text: #F4F2F8;              /* 16,1 : 1 ant paviršiaus */
+  --text-muted: #C9C3D8;        /* 9,8 : 1 */
+  --text-subtle: #9A93B8;       /* 5,7 : 1 — brand periwinkle */
 
-  --sh-card: 0 8px 28px rgba(0, 0, 0, .3);
-  --sh-primary: 0 6px 14px rgba(217, 90, 26, .28);
+  /* Slyvinė tamsoje nebeišsiskirtų iš fono, todėl akcentinis paviršius
+     pakeliamas šviesumu. */
+  --primary: #3D1F5A;
+  --primary-ink: #F4F2F8;
+  --primary-fixed: #2A0F47;
+  --on-primary-fixed: #C9C3D8;
+
+  /* Ember šviesinamas: #C43C22 ant tamsaus fono neišsiskiria. */
+  --accent: #FF6A4D;
+
+  --success: #5FCB8E;
+  --success-bg: #10301F;
+  --warning: #E8B25C;
+  --warning-bg: #33240A;
+  --danger: #FF7B6B;
+
+  --sh-card: 0 4px 12px rgba(0, 0, 0, .45);
+  --sh-primary: 0 4px 12px rgba(0, 0, 0, .45);
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
-  /* Apple-like crisp text rendering across platforms. */
+  /* Skaičiai lentelėse turi stovėti stulpeliu — kitaip suma „šokinėja“. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Pulsing "online" dot — opacity 1 ↔ 0.4, ~1.6s (per handoff). */
+/* Antraštės — Space Grotesk. Taikoma čia, o ne klasėmis komponentuose, kad
+   pirmam etapui nereikėtų liesti nė vieno .tsx failo. */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -.01em;
+}
+
+/* Pulsuojantis „prisijungęs“ taškas — opacity 1 ↔ 0.4, ~1,6 s. */
 @keyframes cm-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .4; }
