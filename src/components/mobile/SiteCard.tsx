@@ -93,7 +93,7 @@ export default function SiteCard({ site, onStartWork }: SiteCardProps) {
       )}
 
       {/* Capacity summary block */}
-      <div className={`grid ${hasBattery ? 'grid-cols-2 divide-x divide-border' : 'grid-cols-1'} border border-border rounded-xl bg-surface-2 mt-3 mb-4 py-2`}>
+      <div className={`grid ${hasBattery ? 'grid-cols-2 divide-x divide-border' : 'grid-cols-1'} border border-border rounded-card bg-surface-2 mt-3 mb-4 py-2`}>
         <div className="flex flex-col items-center">
           <Zap size={14} className="text-subtle mb-1" />
           <span className="text-sm font-bold text-text">{site.kwp ?? '—'} kWp</span>

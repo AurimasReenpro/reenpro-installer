@@ -57,9 +57,9 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Status pill (label + colour) shown on every card.
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  completed:   { label: 'Baigtas',     cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
-  in_progress: { label: 'Vykdomas',    cls: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
-  paused:      { label: 'Pristabdyta', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
+  completed:   { label: 'Baigtas',     cls: 'bg-success-bg text-success' },
+  in_progress: { label: 'Vykdomas',    cls: 'bg-info-bg text-info' },
+  paused:      { label: 'Pristabdyta', cls: 'bg-warning-bg text-warning' },
   pending:     { label: 'Laukia',      cls: 'bg-surface-2 text-muted dark:bg-white/10 dark:text-subtle' },
 };
 
@@ -85,7 +85,7 @@ function SiteCard({
   const canUnassign = site.team_id !== null && !isCompleted;
   return (
     <div
-      className={`group relative rounded-xl border border-border bg-white dark:bg-surface-2 shadow-sm ${
+      className={`group relative rounded-card border border-border bg-white dark:bg-surface-2 shadow-sm ${
         compact ? 'p-2.5' : 'p-3'
       } ${isCompleted ? 'opacity-60' : ''}`}
     >
@@ -96,7 +96,7 @@ function SiteCard({
               onClick={(e) => { e.stopPropagation(); onUnassign(); }}
               onPointerDown={(e) => e.stopPropagation()}
               title="Atšaukti priskyrimą"
-              className="bg-white/90 dark:bg-surface-2/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-border text-subtle hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              className="bg-white/90 dark:bg-surface-2/90 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-border text-subtle hover:text-danger hover:bg-danger/10 dark:hover:bg-danger/10 transition-colors cursor-pointer"
             >
               <RotateCcw size={14} />
             </button>
@@ -121,7 +121,7 @@ function SiteCard({
               #{site.code ?? '—'}
             </span>
             {draft ? (
-              <span className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="bg-warning-bg text-warning text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                 Juodraštis
               </span>
             ) : badge && (
@@ -141,7 +141,7 @@ function SiteCard({
           )}
           <div className="flex items-center gap-2 mt-1.5">
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted">
-              <Zap size={11} className="text-amber-500" /> {equipmentSummary}
+              <Zap size={11} className="text-warning" /> {equipmentSummary}
             </span>
           </div>
           {warnings.length > 0 ? (
@@ -149,7 +149,7 @@ function SiteCard({
               {warnings.map((warning) => (
                 <span
                   key={warning}
-                  className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300"
+                  className="rounded-full border border-warning bg-warning-bg px-2 py-0.5 text-[10px] font-bold text-warning"
                 >
                   {getScheduleWarningLabel(warning)}
                 </span>
@@ -259,12 +259,12 @@ function DroppableCell({
             {summary.label}
           </span>
           {tooManySites && (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300">
+            <span className="rounded-full border border-warning bg-warning-bg px-2 py-0.5 text-[10px] font-bold text-warning">
               Daug objektų
             </span>
           )}
           {highKwp && (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300">
+            <span className="rounded-full border border-warning bg-warning-bg px-2 py-0.5 text-[10px] font-bold text-warning">
               Didelė apkrova
             </span>
           )}
@@ -447,21 +447,21 @@ export default function Schedule() {
         <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1 shadow-sm">
           <button
             onClick={() => setBaseDate(startOfToday())}
-            className="px-3 py-1.5 text-sm font-medium text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             Šiandien
           </button>
           <button
             onClick={() => setBaseDate((d) => addDays(d, -DAY_COUNT))}
             title="Ankstesnė savaitė"
-            className="px-3 py-1.5 text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-muted hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={() => setBaseDate((d) => addDays(d, DAY_COUNT))}
             title="Kita savaitė"
-            className="px-3 py-1.5 text-muted dark:text-gray-200 hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
+            className="px-3 py-1.5 text-muted hover:bg-surface-2 dark:hover:bg-white/5 rounded-md transition-colors"
           >
             <ChevronRight size={18} />
           </button>
@@ -471,7 +471,7 @@ export default function Schedule() {
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={(e) => { void onDragEnd(e); }}>
         <div className="flex gap-5 flex-1 min-h-0">
           {/* ── Main timeline grid ── */}
-          <div className="flex-1 min-w-0 bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-auto">
+          <div className="flex-1 min-w-0 bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-auto">
             <div className="min-w-max" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
               {/* Header row */}
               <div className="sticky top-0 left-0 z-30 bg-surface-2/80 dark:bg-surface-2 backdrop-blur-sm border-b border-r border-border px-4 py-3 text-[11px] font-bold text-subtle uppercase tracking-wider">
@@ -532,7 +532,7 @@ export default function Schedule() {
           {/* ── Unassigned backlog (whole panel is the drop target) ── */}
           <div
             ref={backlogRef}
-            className={`w-[320px] h-full shrink-0 flex flex-col border rounded-2xl shadow-sm dark:shadow-none overflow-hidden transition-colors ${
+            className={`w-[320px] h-full shrink-0 flex flex-col border rounded-card shadow-sm dark:shadow-none overflow-hidden transition-colors ${
               backlogOver
                 ? 'bg-primary-fixed/20 dark:bg-primary/10 border-primary dark:border-primary/40 ring-2 ring-inset ring-primary'
                 : 'bg-surface border-border'

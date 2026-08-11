@@ -45,7 +45,7 @@ export default function B2BWorkCategoriesSection({
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+    <div className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden">
       <div className="px-5 py-3.5 bg-surface-2 border-b border-border">
         <h3 className="text-[14px] font-bold text-text">B2B darbai</h3>
         <p className="text-[12px] text-subtle mt-0.5">{B2B_CATALOG_HINT}</p>
@@ -59,7 +59,7 @@ export default function B2BWorkCategoriesSection({
           return (
             <div
               key={category.id}
-              className={`grid grid-cols-[minmax(0,1fr)_92px_auto] gap-2 items-end bg-surface-2 border border-border rounded-xl px-3 py-2 ${category.is_active ? '' : 'opacity-60'}`}
+              className={`grid grid-cols-[minmax(0,1fr)_92px_auto] gap-2 items-end bg-surface-2 border border-border rounded-card px-3 py-2 ${category.is_active ? '' : 'opacity-60'}`}
             >
               <div className="min-w-0">
                 <input
@@ -129,12 +129,12 @@ export default function B2BWorkCategoriesSection({
             value={newWorkLabel}
             onChange={(e) => setNewWorkLabel(e.target.value)}
             placeholder="Darbo pavadinimas"
-            className="flex-1 h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[13px] text-text focus:outline-none focus:border-primary"
+            className="flex-1 h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[13px] text-text focus:outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={!newWorkLabel.trim() || isAdding}
-            className="h-[40px] px-4 rounded-xl bg-primary text-white font-semibold text-[13px] flex items-center gap-2 disabled:opacity-60 cursor-pointer"
+            className="h-[40px] px-4 rounded-card bg-primary text-white font-semibold text-[13px] flex items-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             <Plus size={15} />
             Pridėti darbą

@@ -71,7 +71,7 @@ export default function SiteDetails() {
         <AdminEmptyState
           title="Įrašų nerasta."
           message="Objektas nerastas."
-          className="rounded-2xl border border-border bg-surface"
+          className="rounded-card border border-border bg-surface"
         />
       </div>
     );
@@ -82,9 +82,9 @@ export default function SiteDetails() {
 
       {/* ── Draft warning ── */}
       {isSiteDraft(site) && (
-        <div className="flex items-start gap-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 px-4 py-3">
-          <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-[13px] text-amber-800 dark:text-amber-300 leading-snug">
+        <div className="flex items-start gap-3 rounded-card bg-warning-bg border border-warning px-4 py-3">
+          <AlertTriangle size={18} className="text-warning shrink-0 mt-0.5" />
+          <p className="text-[13px] text-warning leading-snug">
             Šis objektas yra <span className="font-bold">juodraštis</span>. Užpildykite pavadinimą ir adresą,
             kad jis taptų aktyvus ir galėtų būti priskirtas komandai.
           </p>

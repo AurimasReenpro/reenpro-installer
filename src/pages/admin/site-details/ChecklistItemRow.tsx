@@ -160,7 +160,7 @@ export default function ChecklistItemRow({
         className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer"
       >
         <StatusIcon size={18} className={item.status === 'pass' ? 'text-[#059669]' : item.status === 'fail' ? 'text-[#DC2626]' : item.status === 'n_a' ? 'text-[#D97706]' : 'text-subtle'} />
-        <span className="flex-1 text-[13px] font-semibold text-text dark:text-gray-100 leading-snug">
+        <span className="flex-1 text-[13px] font-semibold text-text leading-snug">
           {item.question_text}
           {item.is_extra && (
             <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20 align-middle">
@@ -209,7 +209,7 @@ export default function ChecklistItemRow({
               {item.comment ? (
                 <div>
                   <p className="text-[11px] font-bold text-subtle dark:text-subtle uppercase tracking-wider mb-1">Komentaras</p>
-                  <p className="text-[13px] text-text dark:text-gray-100 bg-surface-2 dark:bg-surface-2 rounded-[8px] px-3 py-2 border border-border/30 dark:border-white/10">{item.comment}</p>
+                  <p className="text-[13px] text-text bg-surface-2 dark:bg-surface-2 rounded-[8px] px-3 py-2 border border-border/30 dark:border-white/10">{item.comment}</p>
                 </div>
               ) : (
                 <p className="text-[12px] text-subtle dark:text-subtle italic">Komentaro nėra.</p>

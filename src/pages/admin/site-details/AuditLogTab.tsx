@@ -78,7 +78,7 @@ export default function AuditLogTab({ siteId }: { siteId: string }) {
 
   if (!logs || logs.length === 0) {
     return (
-      <div className="bg-surface rounded-2xl border border-border shadow-sm py-12 flex flex-col items-center gap-3">
+      <div className="bg-surface rounded-card border border-border shadow-sm py-12 flex flex-col items-center gap-3">
         <History className="w-9 h-9 text-subtle" />
         <p className="text-[14px] text-subtle">Veiksmų istorijos dar nėra.</p>
       </div>
@@ -86,7 +86,7 @@ export default function AuditLogTab({ siteId }: { siteId: string }) {
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div className="bg-surface rounded-card border border-border shadow-sm overflow-hidden">
       <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border dark:border-white/5">
         <History size={18} className="text-primary" />
         <h3 className="font-semibold text-[15px] text-text">Veiksmų istorija</h3>

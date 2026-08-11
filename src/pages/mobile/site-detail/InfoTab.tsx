@@ -46,7 +46,7 @@ export default function InfoTab({ site }: InfoTabProps) {
   const scheduled = fmtDate(site.scheduled_start);
   const completed = fmtDate(site.actual_end);
 
-  const quickAction = 'flex-1 flex flex-col items-center gap-1.5 bg-primary-fixed text-primary-ink rounded-xl py-3 active:opacity-90 transition-opacity';
+  const quickAction = 'flex-1 flex flex-col items-center gap-1.5 bg-primary-fixed text-primary-ink rounded-card py-3 active:opacity-90 transition-opacity';
 
   // Latest revisit (FTFR) record — drives the "Pakartotinis vizitas" banner.
   const { data: revisit } = useQuery({

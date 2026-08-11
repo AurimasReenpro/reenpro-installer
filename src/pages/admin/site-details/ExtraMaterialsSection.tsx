@@ -61,7 +61,7 @@ export default function ExtraMaterialsSection({ siteId }: { siteId: string }) {
             >
               {/* Name + linked extra-work context */}
               <div className="min-w-0">
-                <p className="text-[14px] font-semibold text-text dark:text-gray-100 leading-snug">{m.name}</p>
+                <p className="text-[14px] font-semibold text-text leading-snug">{m.name}</p>
                 {m.checklist_item?.question_text && (
                   <p className="text-[12px] text-[#92400E]/80 mt-0.5 leading-snug">
                     Panaudota prie: {m.checklist_item.question_text}
@@ -71,12 +71,12 @@ export default function ExtraMaterialsSection({ siteId }: { siteId: string }) {
 
               {/* Quantity + unit */}
               <div className="pt-0.5 flex items-center gap-1.5">
-                <span className="text-[15px] font-bold text-text dark:text-gray-100">{m.quantity}</span>
+                <span className="text-[15px] font-bold text-text">{m.quantity}</span>
                 <span className="text-[11px] font-semibold text-[#92400E] bg-[#FEF3C7] border border-[#F59E0B]/30 px-1.5 py-0.5 rounded-md">{m.unit}</span>
               </div>
 
               {/* Registered by */}
-              <div className="pt-0.5 text-[13px] text-text dark:text-gray-100 truncate">
+              <div className="pt-0.5 text-[13px] text-text truncate">
                 {m.creator?.full_name ?? '—'}
               </div>
 

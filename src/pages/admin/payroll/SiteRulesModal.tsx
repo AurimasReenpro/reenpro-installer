@@ -160,7 +160,7 @@ export default function SiteRulesModal({
     onError: (e: unknown) => toast.error(ruleRpcErrorMessage(e)),
   });
 
-  const inputCls = 'h-[34px] w-24 px-2 bg-zinc-50 dark:bg-surface-2 border border-zinc-200 dark:border-white/10 rounded-lg text-[13px] tabular-nums text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary';
+  const inputCls = 'h-[34px] w-24 px-2 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-lg text-[13px] tabular-nums text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary';
 
   return (
     <motion.div
@@ -171,23 +171,23 @@ export default function SiteRulesModal({
       <motion.div
         initial={{ scale: 0.96, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
-        className="bg-surface rounded-[20px] shadow-2xl w-full max-w-3xl border border-zinc-100 dark:border-white/10 flex flex-col max-h-[88vh]"
+        className="bg-surface rounded-[20px] shadow-2xl w-full max-w-3xl border border-border dark:border-white/10 flex flex-col max-h-[88vh]"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10 shrink-0">
           <div className="min-w-0">
-            <h2 className="font-bold text-[16px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <h2 className="font-bold text-[16px] text-text flex items-center gap-2">
               <SlidersHorizontal size={17} className="text-primary dark:text-primary-ink" /> Taisyklės objektui
             </h2>
-            <p className="text-[12px] text-zinc-400 mt-0.5 truncate">{siteCode} · {siteClient}</p>
+            <p className="text-[12px] text-subtle mt-0.5 truncate">{siteCode} · {siteClient}</p>
           </div>
-          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0">
-            <X size={18} className="text-zinc-400" />
+          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0">
+            <X size={18} className="text-subtle" />
           </button>
         </div>
 
         <div className="overflow-auto">
-          <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/10 bg-zinc-50/40 dark:bg-surface-2">
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Tarifo kortelė šiam objektui</label>
+          <div className="px-6 py-4 border-b border-border dark:border-white/10 bg-surface-2/40 dark:bg-surface-2">
+            <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Tarifo kortelė šiam objektui</label>
             <select
               value={selectedOverrideRateCardId ?? ''}
               onChange={(event) => {
@@ -195,7 +195,7 @@ export default function SiteRulesModal({
                 setEdits({});
               }}
               disabled={save.isPending || effectiveRateCardLoading}
-              className="w-full h-[38px] px-3 bg-surface border border-zinc-200 dark:border-white/10 rounded-lg text-[13px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              className="w-full h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-lg text-[13px] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
             >
               <option value="">Naudoti periodo kortelę: {periodRateCard?.name ?? 'nepasirinkta'}</option>
               {rateCards.map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}
@@ -204,22 +204,22 @@ export default function SiteRulesModal({
           {isLoading || effectiveRateCardLoading ? (
             <div className="py-16 text-center"><Loader2 className="w-6 h-6 text-primary animate-spin inline-block" /></div>
           ) : isError ? (
-            <div className="py-16 px-6 text-center text-[14px] text-red-600 dark:text-red-400">
+            <div className="py-16 px-6 text-center text-[14px] text-danger">
               {ruleRpcErrorMessage(error)}
             </div>
           ) : rules.length === 0 ? (
-            <div className="py-16 text-center text-[14px] text-zinc-400">Aktyvių taisyklių nėra.</div>
+            <div className="py-16 text-center text-[14px] text-subtle">Aktyvių taisyklių nėra.</div>
           ) : (
             <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-white/10 bg-zinc-50/60 dark:bg-surface-2">
-                  <th className="py-2 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Taisyklė</th>
-                  <th className="py-2 px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Numatyta</th>
-                  <th className="py-2 px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Režimas</th>
-                  <th className="py-2 px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kiekis</th>
-                  <th className="py-2 px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Suma</th>
-                  <th className="py-2 px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Pastaba</th>
-                  <th className="py-2 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-right">Efektyvi</th>
+                <tr className="border-b border-border dark:border-white/10 bg-surface-2/60 dark:bg-surface-2">
+                  <th className="py-2 px-4 text-[10px] font-bold text-subtle uppercase tracking-wider">Taisyklė</th>
+                  <th className="py-2 px-3 text-[10px] font-bold text-subtle uppercase tracking-wider">Numatyta</th>
+                  <th className="py-2 px-3 text-[10px] font-bold text-subtle uppercase tracking-wider">Režimas</th>
+                  <th className="py-2 px-3 text-[10px] font-bold text-subtle uppercase tracking-wider">Kiekis</th>
+                  <th className="py-2 px-3 text-[10px] font-bold text-subtle uppercase tracking-wider">Suma</th>
+                  <th className="py-2 px-3 text-[10px] font-bold text-subtle uppercase tracking-wider">Pastaba</th>
+                  <th className="py-2 px-4 text-[10px] font-bold text-subtle uppercase tracking-wider text-right">Efektyvi</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,21 +229,21 @@ export default function SiteRulesModal({
                   const err = errors.get(r.rate_rule_id);
                   const perUnit = r.unit === 'per_unit';
                   return (
-                    <tr key={r.rate_rule_id} className="border-b border-zinc-50 dark:border-white/5 align-top">
+                    <tr key={r.rate_rule_id} className="border-b border-border dark:border-white/5 align-top">
                       <td className="py-3 px-4">
-                        <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-200">{r.label}</p>
-                        <p className="text-[11px] text-zinc-400">{fmtEur(r.amount)}{perUnit ? ' / vnt.' : ''}</p>
+                        <p className="text-[13px] font-semibold text-text">{r.label}</p>
+                        <p className="text-[11px] text-subtle">{fmtEur(r.amount)}{perUnit ? ' / vnt.' : ''}</p>
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${r.default_applicable ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' : 'bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10'}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${r.default_applicable ? 'bg-success-bg text-success border-success' : 'bg-surface-2 text-subtle dark:bg-white/10 border-border dark:border-white/10'}`}>
                           {r.default_applicable ? 'Taip' : 'Ne'}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="inline-flex bg-zinc-100 dark:bg-surface-2 rounded-lg p-0.5">
+                        <div className="inline-flex bg-surface-2 dark:bg-surface-2 rounded-lg p-0.5">
                           {MODES.map((m) => (
                             <button key={m.value} onClick={() => setEdit(r.rate_rule_id, { mode: m.value }, e)}
-                              className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${e.mode === m.value ? 'bg-white dark:bg-[#3f3f46] shadow-sm text-primary dark:text-primary-ink' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                              className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${e.mode === m.value ? 'bg-white dark:bg-[#3f3f46] shadow-sm text-primary dark:text-primary-ink' : 'text-subtle'}`}>
                               {m.label}
                             </button>
                           ))}
@@ -255,7 +255,7 @@ export default function SiteRulesModal({
                             onChange={(ev) => setEdit(r.rate_rule_id, { quantity: ev.target.value }, e)}
                             placeholder={r.detected_quantity != null ? String(r.detected_quantity) : '0'}
                             className={inputCls} />
-                        ) : <span className="text-zinc-300 dark:text-zinc-600 text-[12px]">—</span>}
+                        ) : <span className="text-subtle text-[12px]">—</span>}
                       </td>
                       <td className="py-3 px-3">
                         <input type="text" inputMode="decimal" value={e.amount}
@@ -267,11 +267,11 @@ export default function SiteRulesModal({
                           onChange={(ev) => setEdit(r.rate_rule_id, { note: ev.target.value }, e)}
                           placeholder={e.mode === 'auto' ? '—' : 'priežastis…'}
                           disabled={e.mode === 'auto'}
-                          className="h-[34px] w-40 px-2 bg-zinc-50 dark:bg-surface-2 border border-zinc-200 dark:border-white/10 rounded-lg text-[12px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50" />
-                        {err && <p className="text-[10px] text-red-500 mt-1">{err}</p>}
+                          className="h-[34px] w-40 px-2 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-lg text-[12px] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50" />
+                        {err && <p className="text-[10px] text-danger mt-1">{err}</p>}
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums">
-                        <span className={`text-[13px] font-bold ${eff.applied ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 line-through'}`}>{fmtEur(eff.amount)}</span>
+                        <span className={`text-[13px] font-bold ${eff.applied ? 'text-text' : 'text-subtle line-through'}`}>{fmtEur(eff.amount)}</span>
                       </td>
                     </tr>
                   );
@@ -281,14 +281,14 @@ export default function SiteRulesModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-zinc-100 dark:border-white/10 shrink-0">
-          <span className="text-[12px] text-zinc-400">{changedCount} pakeit{changedCount === 1 ? 'imas' : 'imai'}</span>
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border dark:border-white/10 shrink-0">
+          <span className="text-[12px] text-subtle">{changedCount} pakeit{changedCount === 1 ? 'imas' : 'imai'}</span>
           <div className="flex gap-3">
-            <button onClick={onClose} disabled={save.isPending} className="h-[42px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 font-medium text-[14px] hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">
+            <button onClick={onClose} disabled={save.isPending} className="h-[42px] px-4 rounded-card border border-border dark:border-white/10 text-muted font-medium text-[14px] hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">
               Atšaukti
             </button>
             <button onClick={() => save.mutate()} disabled={save.isPending || !canSubmit || changedCount === 0}
-              className="h-[42px] px-4 rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2">
+              className="h-[42px] px-4 rounded-card bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2">
               {save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               Išsaugoti ir perskaičiuoti
             </button>

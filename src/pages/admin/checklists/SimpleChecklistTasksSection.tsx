@@ -22,7 +22,7 @@ export default function SimpleChecklistTasksSection({
   const showCategory = activeCategory === 'Visi';
 
   return (
-    <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+    <div className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden">
       <div className="px-5 py-3.5 bg-surface-2 border-b border-border flex items-center justify-between gap-3">
         <h3 className="text-[14px] font-bold text-text">{getTaskSectionTitle(activeCategory)}</h3>
         <span className="text-[12px] font-semibold text-subtle">{items.length}</span>

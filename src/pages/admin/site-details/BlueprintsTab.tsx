@@ -170,7 +170,7 @@ export default function BlueprintsTab({
 
       {/* Header + new category button */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[16px] font-bold text-text dark:text-gray-100 flex items-center gap-2">
+        <h2 className="text-[16px] font-bold text-text flex items-center gap-2">
           <DraftingCompass size={18} className="text-primary" />
           Brėžiniai
         </h2>
@@ -189,7 +189,7 @@ export default function BlueprintsTab({
           <div className="w-14 h-14 rounded-[16px] bg-surface-2 dark:bg-surface-2 flex items-center justify-center border border-border/30 dark:border-white/10">
             <DraftingCompass size={28} className="text-subtle" />
           </div>
-          <p className="font-bold text-[15px] text-text dark:text-gray-100">Brėžinių dar nėra</p>
+          <p className="font-bold text-[15px] text-text">Brėžinių dar nėra</p>
           <p className="text-[13px] text-subtle dark:text-subtle max-w-sm">
             Sukurk kategoriją (pvz. „Vizualizacija", „El. schema", „Stringavimas") ir įkelk po vieną brėžinį.
           </p>
@@ -203,11 +203,11 @@ export default function BlueprintsTab({
               <div key={category} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
                 <div className="px-5 py-3.5 border-b border-border/20 dark:border-white/10 bg-surface-2/50 flex items-center gap-2">
                   <DraftingCompass size={18} className="text-primary shrink-0" />
-                  <h3 className="font-semibold text-text dark:text-gray-100 text-[14px] truncate flex-1">{category}</h3>
+                  <h3 className="font-semibold text-text text-[14px] truncate flex-1">{category}</h3>
                   <button
                     onClick={() => void handleDeleteCategory(category, file?.name)}
                     disabled={deletingCategory === category}
-                    className="w-7 h-7 flex items-center justify-center text-subtle hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                    className="w-7 h-7 flex items-center justify-center text-subtle hover:text-danger hover:bg-danger/10 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                     title="Pašalinti kategoriją"
                   >
                     {deletingCategory === category ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
@@ -265,7 +265,7 @@ export default function BlueprintsTab({
                         </button>
                         <button
                           onClick={() => void handleDeleteBlueprint(file.name)}
-                          className="pointer-events-auto w-9 h-9 rounded-[8px] bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow-sm"
+                          className="pointer-events-auto w-9 h-9 rounded-[8px] bg-danger text-white flex items-center justify-center hover:bg-danger transition-colors cursor-pointer shadow-sm"
                           title="Pašalinti"
                         >
                           <Trash2 size={15} />
@@ -282,7 +282,7 @@ export default function BlueprintsTab({
                       ) : (
                         <ImageIcon size={32} className="text-subtle mb-3" />
                       )}
-                      <p className="font-semibold text-text dark:text-gray-100 text-[13px]">
+                      <p className="font-semibold text-text text-[13px]">
                         {busy ? 'Įkeliama...' : 'Įkelti brėžinį'}
                       </p>
                       <p className="text-[11px] text-subtle dark:text-subtle mt-1">PNG, JPG, PDF, DWG</p>
@@ -303,7 +303,7 @@ export default function BlueprintsTab({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-surface rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 dark:border-white/10">
-              <h3 className="text-[16px] font-bold text-text dark:text-gray-100">Nauja kategorija</h3>
+              <h3 className="text-[16px] font-bold text-text">Nauja kategorija</h3>
               <button
                 onClick={() => setShowCategoryModal(false)}
                 className="cursor-pointer text-subtle dark:text-subtle hover:text-text transition-colors"
@@ -313,7 +313,7 @@ export default function BlueprintsTab({
             </div>
             <div className="p-6">
               <label className="block text-[13px] font-semibold text-muted dark:text-subtle uppercase tracking-wider mb-2">
-                Pavadinimas <span className="text-red-500">*</span>
+                Pavadinimas <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -322,7 +322,7 @@ export default function BlueprintsTab({
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
                 placeholder="Pvz.: Vizualizacija"
                 autoFocus
-                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
             <div className="px-6 pb-6 flex gap-3">

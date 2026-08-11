@@ -73,7 +73,7 @@ export default function InstallerPhotosSection({
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-border/20 dark:border-white/10 bg-surface-2/50 flex items-center gap-2">
           <ImageIcon size={18} className="text-primary" />
-          <h3 className="font-semibold text-text dark:text-gray-100 text-[14px]">Montuotojų nuotraukos</h3>
+          <h3 className="font-semibold text-text text-[14px]">Montuotojų nuotraukos</h3>
           <span className="ml-auto text-[12px] text-subtle dark:text-subtle">
             {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
           </span>
@@ -120,7 +120,7 @@ export default function InstallerPhotosSection({
                         onClick={(e) => { e.stopPropagation(); void handleDownload(photo); }}
                         disabled={downloading || isDeleting}
                         title="Atsisiųsti"
-                        className="w-8 h-8 rounded-[6px] bg-white/90 text-text dark:text-gray-100 flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                        className="w-8 h-8 rounded-[6px] bg-white/90 text-text flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                       >
                         {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                       </button>
@@ -128,7 +128,7 @@ export default function InstallerPhotosSection({
                         onClick={(e) => { e.stopPropagation(); void handleDelete(photo); }}
                         disabled={isDeleting || downloading}
                         title="Ištrinti"
-                        className="w-8 h-8 rounded-[6px] bg-red-500/90 text-white flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                        className="w-8 h-8 rounded-[6px] bg-danger/90 text-white flex items-center justify-center hover:bg-danger transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                       >
                         {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
@@ -178,7 +178,7 @@ export default function InstallerPhotosSection({
               onClick={() => void handleDownload(lightboxPhoto)}
               disabled={downloading || deletingId === lightboxPhoto.id}
               title="Atsisiųsti"
-              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-text dark:text-gray-100 font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-text font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
             >
               {downloading
                 ? <Loader2 size={14} className="animate-spin" />
@@ -191,7 +191,7 @@ export default function InstallerPhotosSection({
               onClick={() => void handleDelete(lightboxPhoto)}
               disabled={deletingId === lightboxPhoto.id || downloading}
               title="Ištrinti nuotrauką"
-              className="h-[38px] px-4 rounded-[8px] bg-red-500/90 backdrop-blur-sm text-white font-semibold text-[13px] flex items-center gap-2 hover:bg-red-500 transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+              className="h-[38px] px-4 rounded-[8px] bg-danger/90 backdrop-blur-sm text-white font-semibold text-[13px] flex items-center gap-2 hover:bg-danger transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
             >
               {deletingId === lightboxPhoto.id
                 ? <Loader2 size={14} className="animate-spin" />

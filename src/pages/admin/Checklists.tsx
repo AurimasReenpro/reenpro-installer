@@ -311,21 +311,21 @@ export default function Checklists() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setIsCategoryModalOpen(true)}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-gray-200 bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-card border border-border text-muted bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
           >
             <FolderCog size={18} />
             Valdyti grupes
           </button>
           <button
             onClick={handleSync}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-gray-200 bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-card border border-border text-muted bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center gap-2"
           >
             <RefreshCw size={18} />
             Pritaikyti naujiems objektams
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all shadow-sm flex items-center gap-2"
+            className="h-[40px] px-4 font-medium text-[14px] rounded-card bg-primary text-white hover:bg-primary transition-all shadow-sm flex items-center gap-2"
           >
             <Plus size={18} />
             Pridėti užduotį
@@ -342,7 +342,7 @@ export default function Checklists() {
             className={`py-3 text-[14px] font-bold transition-colors border-b-2 -mb-[1px] whitespace-nowrap ${
               activeCategory === tab
                 ? 'border-primary text-primary dark:text-primary-ink'
-                : 'border-transparent text-subtle hover:text-muted dark:hover:text-gray-200'
+                : 'border-transparent text-subtle hover:text-muted dark:hover:text-subtle'
             }`}
           >
             {tab}
@@ -385,14 +385,14 @@ export default function Checklists() {
       {/* Edit/Add Template Modal Overlay */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface rounded-card shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h3 className="text-[18px] font-bold text-text">
                 {editingItem ? 'Redaguoti užduotį' : 'Pridėti užduotį'}
               </h3>
               <button 
                 onClick={closeModal}
-                className="text-subtle hover:text-muted dark:hover:text-gray-200 transition-colors"
+                className="text-subtle hover:text-muted dark:hover:text-subtle transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -407,7 +407,7 @@ export default function Checklists() {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="Užduoties pavadinimas..."
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
               </div>
 
@@ -417,7 +417,7 @@ export default function Checklists() {
                   required
                   value={formData.phase}
                   onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'during' | 'post'})}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="pre">Pre (prieš pradžią)</option>
                   <option value="during">During (darbų eigoje)</option>
@@ -431,7 +431,7 @@ export default function Checklists() {
                   type="number"
                   value={formData.sort_order}
                   onChange={e => setFormData({...formData, sort_order: Number(e.target.value)})}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
                 <p className="mt-1 text-[11px] text-subtle">Tik rikiavimui.</p>
               </div>
@@ -451,7 +451,7 @@ export default function Checklists() {
                       ? formData.b2b_work_category_id
                       : '',
                   })}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="">-- Pasirinkti --</option>
                   {categories?.map((cat) => (
@@ -466,7 +466,7 @@ export default function Checklists() {
                   <select
                     value={formData.b2b_work_category_id}
                     onChange={e => setFormData({...formData, b2b_work_category_id: e.target.value})}
-                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   >
                     <option value="">-- Nepriskirta --</option>
                     {b2bWorkCategories
@@ -486,7 +486,7 @@ export default function Checklists() {
                   onChange={e => setFormData({...formData, is_required: e.target.checked})}
                   className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="is_required" className="text-[14px] font-medium text-text dark:text-gray-200">Privaloma</label>
+                <label htmlFor="is_required" className="text-[14px] font-medium text-text">Privaloma</label>
               </div>
 
               <div className="flex items-center gap-2">
@@ -501,7 +501,7 @@ export default function Checklists() {
                   })}
                   className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="requires_photo" className="text-[14px] font-medium text-text dark:text-gray-200">Reikia nuotraukos</label>
+                <label htmlFor="requires_photo" className="text-[14px] font-medium text-text">Reikia nuotraukos</label>
               </div>
 
               {formData.requires_photo && (
@@ -513,7 +513,7 @@ export default function Checklists() {
                     max={5}
                     value={formData.min_photo_count}
                     onChange={e => setFormData({...formData, min_photo_count: Number(e.target.value)})}
-                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
               )}
@@ -522,14 +522,14 @@ export default function Checklists() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors"
+                  className="flex-1 h-[44px] font-medium text-[14px] rounded-card border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors"
                 >
                   Atšaukti
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="flex-1 h-[44px] font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all flex items-center justify-center disabled:opacity-70"
+                  className="flex-1 h-[44px] font-medium text-[14px] rounded-card bg-primary text-white hover:bg-primary transition-all flex items-center justify-center disabled:opacity-70"
                 >
                   {saveMutation.isPending ? 'Saugoma...' : 'Išsaugoti'}
                 </button>
@@ -542,12 +542,12 @@ export default function Checklists() {
       {/* Category Manager Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+          <div className="bg-surface rounded-card shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
               <h3 className="text-[18px] font-bold text-text">Valdyti grupes</h3>
               <button 
                 onClick={() => setIsCategoryModalOpen(false)}
-                className="text-subtle hover:text-muted dark:hover:text-gray-200 transition-colors"
+                className="text-subtle hover:text-muted dark:hover:text-subtle transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -559,11 +559,11 @@ export default function Checklists() {
                   <p className="text-[14px] text-subtle text-center">Kraunama...</p>
                 ) : categories && categories.length > 0 ? (
                   categories.map((cat) => (
-                    <div key={cat.id} className="flex items-center justify-between bg-surface-2 px-4 py-3 rounded-xl border border-border">
+                    <div key={cat.id} className="flex items-center justify-between bg-surface-2 px-4 py-3 rounded-card border border-border">
                       <span className="font-semibold text-text text-[14px]">{cat.name}</span>
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-subtle hover:text-[#e2250a] transition-colors p-1 rounded-full hover:bg-[#ffdad6] dark:hover:bg-red-900/30"
+                        className="text-subtle hover:text-[#e2250a] transition-colors p-1 rounded-full hover:bg-[#ffdad6] dark:hover:bg-danger/30"
                         title="Trinti grupę"
                       >
                         <Trash2 size={16} />
@@ -582,12 +582,12 @@ export default function Checklists() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Naujos grupės pavadinimas"
-                  className="flex-1 h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="flex-1 h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
                 <button
                   type="submit"
                   disabled={addCategoryMutation.isPending || !newCategoryName.trim()}
-                  className="h-[44px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all disabled:opacity-70 flex-shrink-0"
+                  className="h-[44px] px-4 font-medium text-[14px] rounded-card bg-primary text-white hover:bg-primary transition-all disabled:opacity-70 flex-shrink-0"
                 >
                   {addCategoryMutation.isPending ? '...' : 'Pridėti'}
                 </button>

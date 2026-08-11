@@ -13,16 +13,16 @@ export default function SignedPhoto({ storage_path, className, alt, onClick }: S
 
   if (isLoading) {
     return (
-      <div className={`animate-pulse bg-gray-200 flex items-center justify-center ${className || ''}`} onClick={onClick}>
-        <Image className="text-gray-400" size={24} />
+      <div className={`animate-pulse bg-border flex items-center justify-center ${className || ''}`} onClick={onClick}>
+        <Image className="text-subtle" size={24} />
       </div>
     );
   }
 
   if (error || !url) {
     return (
-      <div className={`bg-gray-100 flex items-center justify-center border border-gray-300 ${className || ''}`} onClick={onClick}>
-        <ImageOff className="text-gray-400" size={24} />
+      <div className={`bg-surface-2 flex items-center justify-center border border-border ${className || ''}`} onClick={onClick}>
+        <ImageOff className="text-subtle" size={24} />
       </div>
     );
   }

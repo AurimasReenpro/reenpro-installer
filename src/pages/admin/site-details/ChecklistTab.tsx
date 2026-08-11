@@ -225,7 +225,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-[15px] font-bold text-text dark:text-gray-100">Darbai</h3>
+          <h3 className="text-[15px] font-bold text-text">Darbai</h3>
           <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{b2bWorkCards.length}</span>
         </div>
 
@@ -247,19 +247,19 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
                       <input
                         value={draft.label}
                         onChange={(event) => updatePhaseDraft(card, { label: event.target.value })}
-                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text dark:text-gray-100 focus:outline-none focus:border-primary"
+                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text focus:outline-none focus:border-primary"
                         aria-label="Darbo pavadinimas"
                       />
                       <input
                         type="number"
                         value={draft.sort_order}
                         onChange={(event) => updatePhaseDraft(card, { sort_order: event.target.value })}
-                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text dark:text-gray-100 focus:outline-none focus:border-primary"
+                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text focus:outline-none focus:border-primary"
                         aria-label="Eilė"
                       />
                     </div>
                   ) : (
-                    <h4 className="text-[14px] font-bold text-text dark:text-gray-100">{card.label}</h4>
+                    <h4 className="text-[14px] font-bold text-text">{card.label}</h4>
                   )}
 
                   {canEditPhase && (
@@ -349,14 +349,14 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
           <ClipboardList size={32} className="text-subtle" />
         </div>
         <div className="text-center">
-          <p className="font-bold text-[16px] text-text dark:text-gray-100 mb-1">Checklist nepriskirtas</p>
+          <p className="font-bold text-[16px] text-text mb-1">Checklist nepriskirtas</p>
           <p className="text-[13px] text-subtle dark:text-subtle">Priskirk {siteTypeLabel(normalizedSiteType)} checklist šabloną, kad sukurtum šio objekto QC sesiją.</p>
         </div>
         <div className="w-full max-w-sm flex gap-2">
           <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
-            className="flex-1 h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary"
+            className="flex-1 h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary"
           >
             <option value="">-- Pasirinkti šabloną --</option>
             {checklistGroups?.map(group => (
@@ -410,7 +410,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
               <ListChecks size={20} className="text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-[15px] text-text dark:text-gray-100">QC Sesija</h3>
+              <h3 className="font-bold text-[15px] text-text">QC Sesija</h3>
               <p className="text-[12px] text-subtle dark:text-subtle">{total} klausimai · {format(new Date(session.created_at!), 'yyyy-MM-dd')}</p>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
-            { label: 'Iš viso',    value: total,    cls: 'text-text dark:text-gray-100' },
+            { label: 'Iš viso',    value: total,    cls: 'text-text' },
             { label: 'Atlikta',    value: passed,   cls: 'text-[#059669]' },
             { label: 'Neatlikta', value: failed,   cls: 'text-[#DC2626]' },
             { label: 'Netaikoma', value: naCount,   cls: 'text-[#D97706]' },
@@ -501,7 +501,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
             {extraMaterials.map(m => (
               <div key={m.id} className="flex items-center gap-3 bg-surface-2 dark:bg-surface-2 rounded-[10px] px-3.5 py-2.5 border border-border/30 dark:border-white/10">
                 <Package size={15} className="text-subtle dark:text-subtle shrink-0" />
-                <span className="flex-1 text-[13px] font-semibold text-text dark:text-gray-100 truncate">{m.name}</span>
+                <span className="flex-1 text-[13px] font-semibold text-text truncate">{m.name}</span>
                 <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">{m.quantity} {m.unit}</span>
               </div>
             ))}
@@ -516,7 +516,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
         <div className="bg-surface rounded-[16px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 dark:border-white/10">
-            <h3 className="text-[16px] font-bold text-text dark:text-gray-100">Papildomas darbas</h3>
+            <h3 className="text-[16px] font-bold text-text">Papildomas darbas</h3>
             <button
               onClick={() => setShowAddItem(false)}
               className="cursor-pointer text-subtle dark:text-subtle hover:text-text transition-colors"
@@ -529,7 +529,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
           <div className="p-6 space-y-4">
             <div>
               <label className="block text-[13px] font-semibold text-muted dark:text-subtle uppercase tracking-wider mb-2">
-                Darbo aprašymas <span className="text-red-500">*</span>
+                Darbo aprašymas <span className="text-danger">*</span>
               </label>
               <textarea
                 value={newItemText}
@@ -537,7 +537,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
                 placeholder="Pvz.: Patikrinti DC jungčių sandarumą..."
                 rows={3}
                 autoFocus
-                className="w-full px-3 py-2 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
               />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -547,7 +547,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
                 onChange={(e) => setNewItemRequired(e.target.checked)}
                 className="w-4 h-4 accent-primary cursor-pointer"
               />
-              <span className="text-[14px] text-text dark:text-gray-100 font-medium">Reikalinga nuotrauka kaip įrodymas</span>
+              <span className="text-[14px] text-text font-medium">Reikalinga nuotrauka kaip įrodymas</span>
             </label>
           </div>
 

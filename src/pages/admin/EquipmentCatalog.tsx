@@ -264,14 +264,14 @@ export default function EquipmentCatalog() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowCatMgmt(true)}
-            className="flex items-center gap-2 h-[40px] px-4 rounded-xl border border-border text-muted dark:text-gray-200 font-medium text-[14px] bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-[40px] px-4 rounded-card border border-border text-muted font-medium text-[14px] bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
           >
             <Settings2 size={15} />
             Kategorijos
           </button>
           <button
             onClick={() => { setForm({ category: defaultCatForForm, brand: '', model: '', specifications: '', capacity_kwh: '' }); setShowForm(true); }}
-            className="flex items-center gap-2 rounded-xl bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 rounded-card bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm cursor-pointer"
           >
             <Plus size={16} />
             Pridėti įrangą
@@ -297,7 +297,7 @@ export default function EquipmentCatalog() {
               className="bg-surface rounded-[20px] shadow-2xl w-full max-w-md"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-border/20 dark:border-white/10">
-                <h2 className="font-bold text-[17px] text-text dark:text-gray-100">Nauja įranga</h2>
+                <h2 className="font-bold text-[17px] text-text">Nauja įranga</h2>
                 <button onClick={() => setShowForm(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer">
                   <X size={18} className="text-subtle dark:text-subtle" />
                 </button>
@@ -311,7 +311,7 @@ export default function EquipmentCatalog() {
                     <select
                       value={form.category}
                       onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full h-[42px] pl-3 pr-9 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                      className="w-full h-[42px] pl-3 pr-9 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all cursor-pointer"
                     >
                       {categories.map(c => (
                         <option key={c.id} value={c.name}>{c.name}</option>
@@ -329,7 +329,7 @@ export default function EquipmentCatalog() {
                     value={form.brand}
                     onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
                     placeholder="Pvz.: Huawei, Longi, BYD..."
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -342,7 +342,7 @@ export default function EquipmentCatalog() {
                     onChange={(e) => setForm(f => ({ ...f, model: e.target.value }))}
                     placeholder="Pvz.: SUN2000-10KTL-M1"
                     required
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -354,7 +354,7 @@ export default function EquipmentCatalog() {
                     value={form.specifications}
                     onChange={(e) => setForm(f => ({ ...f, specifications: e.target.value }))}
                     placeholder="Pvz.: 10 kW, 3 fazės, MPPT × 2"
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -371,7 +371,7 @@ export default function EquipmentCatalog() {
                       value={form.capacity_kwh}
                       onChange={(e) => setForm(f => ({ ...f, capacity_kwh: e.target.value }))}
                       placeholder="Pvz.: 9 (kWh už 1 bloką)"
-                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                     />
                     <p className="text-[11px] text-subtle dark:text-subtle mt-1">Bazinė talpa už vieną vienetą — bus padauginta iš kiekio objekte.</p>
                   </div>
@@ -381,14 +381,14 @@ export default function EquipmentCatalog() {
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 h-[42px] rounded-xl border border-border text-muted dark:text-subtle font-medium text-[14px] hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
+                    className="flex-1 h-[42px] rounded-card border border-border text-muted dark:text-subtle font-medium text-[14px] hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
                   >
                     Atšaukti
                   </button>
                   <button
                     type="submit"
                     disabled={createMutation.isPending}
-                    className="flex-1 h-[42px] rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
+                    className="flex-1 h-[42px] rounded-card bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
                   >
                     {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                     Pridėti
@@ -419,7 +419,7 @@ export default function EquipmentCatalog() {
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-border/20 dark:border-white/10 flex-shrink-0">
-                <h2 className="font-bold text-[17px] text-text dark:text-gray-100 flex items-center gap-2">
+                <h2 className="font-bold text-[17px] text-text flex items-center gap-2">
                   <Settings2 size={18} className="text-primary dark:text-primary-ink" />
                   Kategorijų valdymas
                 </h2>
@@ -457,7 +457,7 @@ export default function EquipmentCatalog() {
                         <button
                           onClick={() => void handleDeleteCat(cat)}
                           disabled={deleteCatMutation.isPending}
-                          className="w-7 h-7 flex items-center justify-center rounded-[6px] text-subtle dark:text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors cursor-pointer disabled:opacity-30"
+                          className="w-7 h-7 flex items-center justify-center rounded-[6px] text-subtle dark:text-muted hover:text-danger hover:bg-danger/10 dark:hover:bg-danger/30 transition-colors cursor-pointer disabled:opacity-30"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -569,14 +569,14 @@ export default function EquipmentCatalog() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Ieškoti modelio, gamintojo..."
-            className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border/50 dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
+            className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border/50 dark:border-white/10 rounded-card text-[14px] text-text dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
         <div className="relative">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="h-[40px] pl-3 pr-9 bg-surface border border-border/50 dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+            className="h-[40px] pl-3 pr-9 bg-surface border border-border/50 dark:border-white/10 rounded-card text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all cursor-pointer"
           >
             {allFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
@@ -592,7 +592,7 @@ export default function EquipmentCatalog() {
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none">
+        <div className="flex flex-col items-center justify-center py-20 bg-surface border border-border rounded-card shadow-sm dark:shadow-none">
           <Package size={40} className="text-subtle dark:text-muted mb-3" />
           <p className="text-subtle dark:text-subtle text-[14px] font-semibold">
             {items.length === 0 ? 'Katalogas tuščias.' : 'Nerasta atitikmenų.'}
@@ -616,7 +616,7 @@ export default function EquipmentCatalog() {
                 key={category}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden"
+                className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden"
               >
                 {/* Category header */}
                 <div className="px-5 py-3.5 border-b border-border bg-surface-2/50 dark:bg-surface-2 flex items-center gap-2">
@@ -626,7 +626,7 @@ export default function EquipmentCatalog() {
                   >
                     <Icon size={15} />
                   </div>
-                  <h3 className="font-bold text-[14px] text-text dark:text-gray-100">{category}</h3>
+                  <h3 className="font-bold text-[14px] text-text">{category}</h3>
                   <span className="ml-auto text-[12px] font-semibold text-subtle dark:text-subtle">{catItems.length} vnt.</span>
                 </div>
 
@@ -643,13 +643,13 @@ export default function EquipmentCatalog() {
                   <tbody>
                     {catItems.map((item) => (
                       <tr key={item.id} className="border-b border-border dark:border-white/5 last:border-none hover:bg-surface-2/50 dark:hover:bg-surface-2 transition-colors group">
-                        <td className="py-3 px-5 text-[13px] font-semibold text-text dark:text-gray-100">
+                        <td className="py-3 px-5 text-[13px] font-semibold text-text">
                           {item.brand || <span className="text-subtle dark:text-muted">—</span>}
                         </td>
-                        <td className="py-3 px-5 text-[13px] text-text dark:text-gray-200">
+                        <td className="py-3 px-5 text-[13px] text-text">
                           {item.model}
                           {item.capacity_kwh != null && (
-                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] dark:bg-blue-900/30 text-[#1D4ED8] dark:text-blue-300 border border-[#2563EB]/30 dark:border-blue-500/20 align-middle">
+                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30 align-middle">
                               <BatteryCharging size={11} /> {item.capacity_kwh} kWh
                             </span>
                           )}
@@ -661,7 +661,7 @@ export default function EquipmentCatalog() {
                           <button
                             onClick={() => void handleDelete(item)}
                             disabled={deleteMutation.isPending}
-                            className="w-7 h-7 flex items-center justify-center rounded-[6px] text-subtle dark:text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer disabled:opacity-30"
+                            className="w-7 h-7 flex items-center justify-center rounded-[6px] text-subtle dark:text-muted hover:text-danger hover:bg-danger/10 dark:hover:bg-danger/30 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer disabled:opacity-30"
                           >
                             {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>

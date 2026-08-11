@@ -48,7 +48,7 @@ export default function JobCompletionBlockedModal({
             className="bg-surface rounded-[20px] max-w-sm w-full p-6 shadow-card flex flex-col gap-4 max-h-[80vh] overflow-y-auto"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--danger)]/12 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-card bg-[var(--danger)]/12 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-danger" />
               </div>
               <div>
@@ -110,7 +110,7 @@ function BlockSection({
   items: string[];
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface-2 p-3">
+    <div className="rounded-card border border-border bg-surface-2 p-3">
       <div className="flex items-center gap-2 mb-2">
         {icon}
         <p className="text-[12px] font-bold text-text uppercase tracking-wider">{title}</p>

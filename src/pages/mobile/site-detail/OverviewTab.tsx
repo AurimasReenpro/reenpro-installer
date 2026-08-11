@@ -54,7 +54,7 @@ export default function OverviewTab({ equipmentDetails, kwp, kwh }: OverviewTabP
                   key={i}
                   className={`flex items-center gap-3 px-4 py-3 ${i < items.length - 1 ? 'border-b border-border' : ''}`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-card bg-surface-2 flex items-center justify-center shrink-0">
                     <Icon className="w-[18px] h-[18px] text-muted" />
                   </div>
                   <div className="flex-1 min-w-0">

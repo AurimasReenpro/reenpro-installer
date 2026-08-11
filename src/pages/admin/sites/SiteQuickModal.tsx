@@ -32,21 +32,21 @@ export default function SiteQuickModal({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Nepavyko išsaugoti.'),
   });
 
-  const selectCls = 'w-full h-[42px] px-3 bg-zinc-50 dark:bg-[#27272a] border border-zinc-200 dark:border-white/10 rounded-xl text-[14px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
+  const selectCls = 'w-full h-[42px] px-3 bg-surface-2 dark:bg-[#27272a] border border-border dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget && !save.isPending) onClose(); }}>
-      <div className="bg-surface dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-sm border border-zinc-100 dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-white/10">
+      <div className="bg-surface dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-sm border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10">
           <div className="min-w-0">
-            <h2 className="font-bold text-[16px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <h2 className="font-bold text-[16px] text-text flex items-center gap-2">
               {mode === 'team' ? <Users size={17} className="text-primary" /> : <Activity size={17} className="text-primary" />}
               {mode === 'team' ? 'Priskirti komandą' : 'Keisti statusą'}
             </h2>
-            <p className="text-[12px] text-zinc-400 mt-0.5 truncate">{site.code} · {site.client_name}</p>
+            <p className="text-[12px] text-subtle mt-0.5 truncate">{site.code} · {site.client_name}</p>
           </div>
-          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">
-            <X size={18} className="text-zinc-400" />
+          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">
+            <X size={18} className="text-subtle" />
           </button>
         </div>
         <div className="p-6 space-y-4">
@@ -61,10 +61,10 @@ export default function SiteQuickModal({
             </select>
           )}
           <div className="flex gap-3">
-            <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 font-medium text-[14px] hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">
+            <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-card border border-border dark:border-white/10 text-muted font-medium text-[14px] hover:bg-surface-2 dark:hover:bg-[#27272a] transition-colors cursor-pointer disabled:opacity-50">
               Atšaukti
             </button>
-            <button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1 h-[42px] rounded-xl bg-primary text-white font-medium text-[14px] hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
+            <button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1 h-[42px] rounded-card bg-primary text-white font-medium text-[14px] hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2">
               {save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               Išsaugoti
             </button>

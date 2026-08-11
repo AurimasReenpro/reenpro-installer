@@ -168,7 +168,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
         {!readOnly && (
           <button
             onClick={() => setShowNewSectionDialog(true)}
-            className="flex items-center gap-2 h-[42px] px-4 rounded-xl font-semibold text-sm bg-primary text-white active:scale-95 transition-all shadow-md"
+            className="flex items-center gap-2 h-[42px] px-4 rounded-card font-semibold text-sm bg-primary text-white active:scale-95 transition-all shadow-md"
           >
             <Plus className="w-4 h-4" />
             Nauja skiltis
@@ -178,7 +178,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
 
       {/* Global upload progress */}
       {isBusy && (
-        <div className="mb-4 rounded-xl bg-primary-fixed border border-primary/20 p-3 flex items-center gap-3">
+        <div className="mb-4 rounded-card bg-primary-fixed border border-primary/20 p-3 flex items-center gap-3">
           <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
           <p className="text-sm text-primary font-medium">
             {isCompressing ? 'Glaudinamas failas…' : 'Nuotrauka keliama į serverį…'}
@@ -227,7 +227,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
                     {sectionPhotos.map((photo) => (
                       <div
                         key={photo.id}
-                        className="relative aspect-square rounded-xl overflow-hidden bg-surface-2 border border-border"
+                        className="relative aspect-square rounded-card overflow-hidden bg-surface-2 border border-border"
                       >
                         <SignedPhoto
                           storage_path={photo.storage_path}
@@ -269,7 +269,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
           <div className="absolute bottom-10 left-0 right-0 flex flex-col gap-3 px-6">
             <button
               onClick={() => { const p = viewerPath; setViewerPath(null); setAnnotatingPath(p); }}
-              className="w-full h-[50px] bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+              className="w-full h-[50px] bg-primary text-white rounded-card font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               <Pencil className="w-5 h-5" />
               Žymėti nuotrauką
@@ -280,7 +280,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
                 <button
                   onClick={() => void handleDelete(photo)}
                   disabled={!!deletingId}
-                  className="w-full h-[50px] bg-danger text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full h-[50px] bg-danger text-white rounded-card font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {deletingId === photo.id ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -293,7 +293,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             })()}
             <button
               onClick={() => setViewerPath(null)}
-              className="w-full h-[50px] bg-surface text-text rounded-xl font-bold flex items-center justify-center gap-2"
+              className="w-full h-[50px] bg-surface text-text rounded-card font-bold flex items-center justify-center gap-2"
             >
               <X className="w-5 h-5" />
               Uždaryti
@@ -320,7 +320,7 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             <button
               type="button"
               onClick={() => handleSourceSelect('camera')}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-card bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md"
             >
               <Camera className="w-5 h-5 shrink-0" />
               Fotografuoti
@@ -328,14 +328,14 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
             <button
               type="button"
               onClick={() => handleSourceSelect('gallery')}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary-fixed text-primary-ink font-semibold text-base active:scale-95 transition-all"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-card bg-primary-fixed text-primary-ink font-semibold text-base active:scale-95 transition-all"
             >
               <Image className="w-5 h-5 shrink-0" />
               Pasirinkti iš galerijos
             </button>
             <button
               onClick={() => setPickerSection(null)}
-              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all mt-1"
+              className="flex items-center justify-center w-full h-[50px] rounded-card bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all mt-1"
             >
               Atšaukti
             </button>
@@ -363,20 +363,20 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
               value={newSectionName}
               onChange={(e) => setNewSectionName(e.target.value)}
               placeholder="Skilęs modulis"
-              className="w-full h-[50px] px-4 rounded-xl border border-border text-text text-sm focus:outline-none focus:border-primary bg-surface-2"
+              className="w-full h-[50px] px-4 rounded-card border border-border text-text text-sm focus:outline-none focus:border-primary bg-surface-2"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddSection(); }}
             />
             <button
               onClick={handleAddSection}
               disabled={!newSectionName.trim()}
-              className="w-full h-[50px] bg-primary text-white rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95 transition-all"
+              className="w-full h-[50px] bg-primary text-white rounded-card font-bold text-sm disabled:opacity-40 active:scale-95 transition-all"
             >
               Sukurti
             </button>
             <button
               onClick={() => { setShowNewSectionDialog(false); setNewSectionName(''); }}
-              className="w-full h-[46px] bg-surface-2 text-text rounded-xl font-semibold text-sm active:scale-95 transition-all"
+              className="w-full h-[46px] bg-surface-2 text-text rounded-card font-semibold text-sm active:scale-95 transition-all"
             >
               Atšaukti
             </button>

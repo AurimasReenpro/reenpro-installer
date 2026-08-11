@@ -18,7 +18,7 @@ export default function ChecklistTaskRow({
   onDeactivate: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 bg-surface-2 border border-border rounded-card px-3.5 py-2.5 sm:flex-row sm:items-center">
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-text truncate">{item.name}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-subtle">
@@ -32,7 +32,7 @@ export default function ChecklistTaskRow({
           )}
           {item.requires_photo && (
             <>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#ECFDF5] dark:bg-emerald-900/30 text-[#10B981] dark:text-emerald-400 border border-[#10B981]/20 dark:border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/20">
                 <Camera size={12} />
                 Reikia nuotraukos
               </span>
@@ -54,7 +54,7 @@ export default function ChecklistTaskRow({
         </button>
         <button
           onClick={() => onDeactivate(item.id)}
-          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-subtle hover:text-[#e2250a] hover:bg-[#ffdad6] dark:hover:bg-red-900/30 border border-border hover:border-[#e2250a]/20 transition-colors cursor-pointer"
+          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-subtle hover:text-[#e2250a] hover:bg-[#ffdad6] dark:hover:bg-danger/30 border border-border hover:border-[#e2250a]/20 transition-colors cursor-pointer"
           title="Deaktyvuoti"
         >
           <Ban size={13} />

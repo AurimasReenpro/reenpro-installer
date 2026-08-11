@@ -88,7 +88,7 @@ export default function FilesTab({
           </div>
         )}
         <div className="text-center">
-          <p className="font-semibold text-[14px] text-text dark:text-gray-100">
+          <p className="font-semibold text-[14px] text-text">
             {uploadMutation.isPending ? 'Įkeliama...' : 'Įkelti failą'}
           </p>
           <p className="text-[13px] text-subtle dark:text-subtle mt-1">Nuotraukos (JPG, PNG), DWG, arba PDF dokumentai</p>
@@ -138,7 +138,7 @@ export default function FilesTab({
               )}
 
               <div className="p-3">
-                <p className="text-[12px] font-semibold text-text dark:text-gray-100 truncate" title={file.name}>
+                <p className="text-[12px] font-semibold text-text truncate" title={file.name}>
                   {file.name}
                 </p>
                 <p className="text-[11px] text-subtle dark:text-subtle mt-0.5">{formatBytes(file.size)}</p>
@@ -176,7 +176,7 @@ export default function FilesTab({
                 )}
                 <button
                   onClick={() => void handleDeleteFile(file.name)}
-                  className="w-9 h-9 rounded-[8px] bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer shadow-sm"
+                  className="w-9 h-9 rounded-[8px] bg-danger text-white flex items-center justify-center hover:bg-danger transition-colors cursor-pointer shadow-sm"
                   title="Ištrinti"
                 >
                   <Trash2 size={15} />

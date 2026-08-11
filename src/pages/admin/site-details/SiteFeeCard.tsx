@@ -61,14 +61,14 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
   const showWarning = missing && status === 'completed';
 
   return (
-    <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+    <div className="bg-surface rounded-card border border-border shadow-sm p-5">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="font-semibold text-text text-[15px] flex items-center gap-2">
           <Coins className="w-4 h-4 text-primary dark:text-primary-ink" />
           Objekto kaina
         </h3>
         {showWarning && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/20 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-warning bg-warning-bg border border-warning px-2 py-0.5 rounded-full">
             <AlertTriangle size={11} /> Kaina nenustatyta
           </span>
         )}
@@ -93,7 +93,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
                 value={fee}
                 onChange={(e) => setFee(e.target.value)}
                 placeholder="0.00"
-                className="w-full h-[40px] pl-3 pr-9 bg-surface-2 border border-border rounded-xl text-[14px] text-text tabular-nums focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
+                className="w-full h-[40px] pl-3 pr-9 bg-surface-2 border border-border rounded-card text-[14px] text-text tabular-nums focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-subtle font-medium pointer-events-none">
                 €
@@ -110,7 +110,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Pvz.: papildomos sąlygos"
-              className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
+              className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
             <button
               onClick={() => save.mutate()}
               disabled={save.isPending || !dirty}
-              className="flex items-center gap-1.5 h-[36px] px-4 rounded-xl bg-primary text-white font-medium text-[13px] hover:bg-primary transition-all disabled:opacity-40 disabled:cursor-default cursor-pointer"
+              className="flex items-center gap-1.5 h-[36px] px-4 rounded-card bg-primary text-white font-medium text-[13px] hover:bg-primary transition-all disabled:opacity-40 disabled:cursor-default cursor-pointer"
             >
               {save.isPending && <Loader2 size={14} className="animate-spin" />}
               Išsaugoti

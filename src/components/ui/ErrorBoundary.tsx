@@ -12,8 +12,8 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-card">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-danger dark:bg-red-500/10 dark:text-red-300">
+      <div className="w-full max-w-md rounded-card border border-border bg-surface p-8 text-center shadow-card">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-card bg-danger/10 text-danger">
           <AlertCircle className="h-8 w-8" />
         </div>
 
@@ -24,7 +24,7 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
         </p>
 
         {isDev && (
-          <div className="mb-8 overflow-auto rounded-xl border border-border bg-surface-2 p-4 text-left">
+          <div className="mb-8 overflow-auto rounded-card border border-border bg-surface-2 p-4 text-left">
             <p className="font-mono text-[13px] text-primary">{error.message}</p>
           </div>
         )}
@@ -32,7 +32,7 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
         <div className="flex flex-col gap-3">
           <button
             onClick={resetError}
-            className="h-[48px] w-full rounded-xl bg-primary text-[15px] font-bold text-white transition-colors hover:opacity-90 active:scale-[0.98]"
+            className="h-[48px] w-full rounded-card bg-primary text-[15px] font-bold text-white transition-colors hover:opacity-90 active:scale-[0.98]"
           >
             Bandyti iš naujo
           </button>
@@ -40,7 +40,7 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
             onClick={() => {
               window.location.href = '/';
             }}
-            className="h-[48px] w-full rounded-xl border border-border bg-surface text-[15px] font-bold text-text transition-colors hover:bg-surface-2 active:scale-[0.98]"
+            className="h-[48px] w-full rounded-card border border-border bg-surface text-[15px] font-bold text-text transition-colors hover:bg-surface-2 active:scale-[0.98]"
           >
             Grįžti į pradžią
           </button>

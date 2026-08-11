@@ -79,7 +79,7 @@ export default function EquipmentViewTable({
 
             {/* Model + notes */}
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-text dark:text-gray-100 leading-snug">{item.model || '—'}</p>
+              <p className="text-[14px] font-semibold text-text leading-snug">{item.model || '—'}</p>
               {isBatteryCategory(item.category) && item.capacity_kwh != null && (
                 <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30">
                   <Battery className="w-3 h-3" /> {item.capacity_kwh} kWh
@@ -92,7 +92,7 @@ export default function EquipmentViewTable({
 
             {/* Quantity + unit badge */}
             <div className="pt-0.5 flex items-center gap-1.5">
-              <span className="text-[15px] font-bold text-text dark:text-gray-100">{item.quantity}</span>
+              <span className="text-[15px] font-bold text-text">{item.quantity}</span>
               <span className="text-[11px] font-semibold text-subtle dark:text-subtle bg-surface-2 dark:bg-surface-2 border border-border/50 dark:border-white/10 px-1.5 py-0.5 rounded-md">{item.unit || 'vnt.'}</span>
             </div>
 
@@ -108,7 +108,7 @@ export default function EquipmentViewTable({
                 <div className="absolute right-0 top-8 z-20 bg-surface rounded-[10px] shadow-lg border border-border/40 dark:border-white/5 py-1 min-w-[130px]">
                   <button
                     onClick={() => { setKebabOpen(null); onEdit(); }}
-                    className="w-full px-4 py-2 text-[13px] text-text dark:text-gray-100 hover:bg-surface-2 text-left flex items-center gap-2 cursor-pointer"
+                    className="w-full px-4 py-2 text-[13px] text-text hover:bg-surface-2 text-left flex items-center gap-2 cursor-pointer"
                   >
                     <Pencil size={13} className="text-primary" /> Redaguoti
                   </button>

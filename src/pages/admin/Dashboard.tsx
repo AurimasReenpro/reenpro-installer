@@ -83,7 +83,7 @@ function Kpi({
   tone: string;
 }) {
   return (
-    <div className="min-h-[116px] rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm dark:shadow-none">
+    <div className="min-h-[116px] rounded-card border border-border bg-surface px-4 py-4 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] font-bold uppercase tracking-wider text-subtle">{label}</p>
         <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}><Icon size={16} /></span>
@@ -95,9 +95,9 @@ function Kpi({
 }
 
 function AttentionIcon({ tone }: { tone: DashboardAttentionTone }) {
-  if (tone === 'critical') return <CircleAlert size={16} className="text-red-600 dark:text-red-400" />;
-  if (tone === 'warning') return <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />;
-  return <CircleCheck size={16} className="text-blue-600 dark:text-blue-400" />;
+  if (tone === 'critical') return <CircleAlert size={16} className="text-danger" />;
+  if (tone === 'warning') return <AlertTriangle size={16} className="text-warning" />;
+  return <CircleCheck size={16} className="text-info" />;
 }
 
 function AttentionRow({ item }: { item: DashboardAttentionItem }) {
@@ -183,11 +183,11 @@ function DashboardSkeleton() {
     <div className="space-y-5 animate-pulse">
       <div className="h-16 w-72 rounded-lg bg-surface-2" />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {[0, 1, 2, 3].map((key) => <div key={key} className="h-[116px] rounded-2xl bg-surface-2" />)}
+        {[0, 1, 2, 3].map((key) => <div key={key} className="h-[116px] rounded-card bg-surface-2" />)}
       </div>
       <div className="grid gap-5 xl:grid-cols-12">
-        <div className="h-[420px] rounded-2xl bg-surface-2 xl:col-span-7" />
-        <div className="h-[420px] rounded-2xl bg-surface-2 xl:col-span-5" />
+        <div className="h-[420px] rounded-card bg-surface-2 xl:col-span-7" />
+        <div className="h-[420px] rounded-card bg-surface-2 xl:col-span-5" />
       </div>
     </div>
   );
@@ -279,7 +279,7 @@ export default function Dashboard() {
         <button
           onClick={() => { void createBlankSite(); }}
           disabled={isCreating}
-          className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-[13px] font-semibold text-on-accent shadow-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-10 items-center gap-2 rounded-card bg-accent px-4 text-[13px] font-semibold text-on-accent shadow-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           {isCreating ? 'Kuriama...' : 'Naujas objektas'}
@@ -294,7 +294,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
+        <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
           <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
             <div>
               <h2 className="text-[15px] font-extrabold tracking-tight text-text">Šiandienos darbai</h2>
@@ -313,7 +313,7 @@ export default function Dashboard() {
           )}
         </section>
 
-        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
+        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
           <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
             <div>
               <h2 className="text-[15px] font-extrabold tracking-tight text-text">Objektai žemėlapyje</h2>
@@ -322,8 +322,8 @@ export default function Dashboard() {
             <MapPin size={17} className="text-primary dark:text-primary-ink" />
           </div>
           <div className="min-h-[350px] flex-1 p-3">
-            <div className="h-full min-h-[350px] overflow-hidden rounded-xl">
-              <Suspense fallback={<div className="flex h-full min-h-[350px] items-center justify-center rounded-xl bg-surface-2 text-[13px] text-muted"><Loader2 size={18} className="mr-2 animate-spin" /> Kraunamas žemėlapis</div>}>
+            <div className="h-full min-h-[350px] overflow-hidden rounded-card">
+              <Suspense fallback={<div className="flex h-full min-h-[350px] items-center justify-center rounded-card bg-surface-2 text-[13px] text-muted"><Loader2 size={18} className="mr-2 animate-spin" /> Kraunamas žemėlapis</div>}>
                 <SiteMap sites={mapSites} baseCoords={mapBaseCoords} />
               </Suspense>
             </div>
@@ -332,7 +332,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
+        <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-7">
           <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
             <div>
               <h2 className="text-[15px] font-extrabold tracking-tight text-text">Reikia dėmesio</h2>
@@ -341,7 +341,7 @@ export default function Dashboard() {
             <span className="text-[12px] font-bold tabular-nums text-muted">{attention.length}</span>
           </div>
           {attention.length === 0 ? (
-            <div className="flex items-center gap-2 px-4 py-12 text-[13px] text-emerald-700 dark:text-emerald-300"><CircleCheck size={17} /> Šiuo metu dėmesio reikalaujančių signalų nėra.</div>
+            <div className="flex items-center gap-2 px-4 py-12 text-[13px] text-success"><CircleCheck size={17} /> Šiuo metu dėmesio reikalaujančių signalų nėra.</div>
           ) : (
             <div className="divide-y divide-border">
               {attention.slice(0, 8).map((item) => <AttentionRow key={item.id} item={item} />)}
@@ -349,7 +349,7 @@ export default function Dashboard() {
           )}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
+        <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
           <div className="border-b border-border px-4 py-3.5">
             <h2 className="text-[15px] font-extrabold tracking-tight text-text">Payroll ir dokumentacija</h2>
             <p className="mt-0.5 text-[12px] text-muted">Kontroliniai dienos uždarymo signalai</p>
@@ -361,14 +361,14 @@ export default function Dashboard() {
               value={data.payrollStatus === 'locked' ? 'Užrakintas' : data.payrollStatus === 'review' ? 'Peržiūroje' : data.payrollStatus === 'open' ? 'Atviras' : 'Nėra'}
               href="/admin/payroll"
             />
-            <SummaryRow icon={AlertTriangle} label="Payroll įspėjimai" value={String(data.payrollWarningCount)} href="/admin/payroll" tone={data.payrollWarningCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'} />
-            <SummaryRow icon={FileWarning} label="Trūksta PDF ataskaitos" value={String(data.completedMissingPdfCount)} href="/admin/sites" tone={data.completedMissingPdfCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'} />
+            <SummaryRow icon={AlertTriangle} label="Payroll įspėjimai" value={String(data.payrollWarningCount)} href="/admin/payroll" tone={data.payrollWarningCount > 0 ? 'text-warning' : 'text-success'} />
+            <SummaryRow icon={FileWarning} label="Trūksta PDF ataskaitos" value={String(data.completedMissingPdfCount)} href="/admin/sites" tone={data.completedMissingPdfCount > 0 ? 'text-warning' : 'text-success'} />
             <SummaryRow icon={FileText} label="Šiandien užbaigti objektai" value={String(data.completedTodayCount)} href="/admin/reports" />
           </div>
         </section>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none">
+      <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3.5">
           <div>
             <h2 className="text-[15px] font-extrabold tracking-tight text-text">Veiklos žurnalas</h2>

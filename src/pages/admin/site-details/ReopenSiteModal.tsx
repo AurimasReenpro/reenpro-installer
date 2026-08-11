@@ -69,7 +69,7 @@ export default function ReopenSiteModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 bg-gray-900/20 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-surface/20 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => { if (!reopenMutation.isPending) onClose(); }}
         >
           <motion.div
@@ -96,7 +96,7 @@ export default function ReopenSiteModal({
               <select
                 value={revisitCategory}
                 onChange={(e) => setRevisitCategory(e.target.value)}
-                className="w-full bg-surface-2 border-0 rounded-xl px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none appearance-none"
+                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none appearance-none"
               >
                 {REVISIT_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -111,13 +111,13 @@ export default function ReopenSiteModal({
                 onChange={(e) => setRevisitNotes(e.target.value)}
                 rows={3}
                 placeholder="Trumpai aprašykite, kodėl objektas atidaromas iš naujo…"
-                className="w-full bg-surface-2 border-0 rounded-xl px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none resize-none"
+                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none resize-none"
               />
 
               <button
                 type="submit"
                 disabled={reopenMutation.isPending}
-                className="w-full rounded-xl py-3.5 font-semibold bg-primary text-white mt-6 flex items-center justify-center gap-2 hover:bg-primary transition-colors disabled:opacity-60"
+                className="w-full rounded-card py-3.5 font-semibold bg-primary text-white mt-6 flex items-center justify-center gap-2 hover:bg-primary transition-colors disabled:opacity-60"
               >
                 {reopenMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                 Atidaryti objektą

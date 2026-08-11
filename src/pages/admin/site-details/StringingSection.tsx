@@ -31,7 +31,7 @@ export default function StringingSection({
   return (
     <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-[16px] font-bold text-text dark:text-gray-100 flex items-center gap-2">
+        <h2 className="text-[16px] font-bold text-text flex items-center gap-2">
           <Network size={18} className="text-primary" />
           String parametrų lentelė
         </h2>
@@ -105,12 +105,12 @@ export default function StringingSection({
                         <td className="p-2"><input value={row.orientation} onChange={(e) => setLocalStringRows(r => (r ?? stringRows ?? []).map((rw, idx) => idx === i ? { ...rw, orientation: e.target.value } : rw))} className="w-full h-8 px-2 bg-surface-2 dark:bg-surface-2 border border-border/50 dark:border-white/10 rounded text-[13px] outline-none focus:border-primary" /></td>
                         <td className="p-2"><input value={row.angle} onChange={(e) => setLocalStringRows(r => (r ?? stringRows ?? []).map((rw, idx) => idx === i ? { ...rw, angle: e.target.value } : rw))} className="w-full h-8 px-2 bg-surface-2 dark:bg-surface-2 border border-border/50 dark:border-white/10 rounded text-[13px] outline-none focus:border-primary" /></td>
                         <td className="p-2 text-center">
-                          <button onClick={() => setLocalStringRows(r => (r ?? stringRows ?? []).filter((_, idx) => idx !== i))} className="text-subtle hover:text-red-500 transition-colors"><X size={16}/></button>
+                          <button onClick={() => setLocalStringRows(r => (r ?? stringRows ?? []).filter((_, idx) => idx !== i))} className="text-subtle hover:text-danger transition-colors"><X size={16}/></button>
                         </td>
                       </>
                     ) : (
                       <>
-                        <td className="py-3 px-4 font-semibold text-text dark:text-gray-100 text-[13px]">{row.name}</td>
+                        <td className="py-3 px-4 font-semibold text-text text-[13px]">{row.name}</td>
                         <td className="py-3 px-4 text-muted dark:text-subtle text-[13px]">{row.modules}</td>
                         <td className="py-3 px-4 text-muted dark:text-subtle text-[13px]">{row.power}</td>
                         <td className="py-3 px-4 text-muted dark:text-subtle text-[13px]">

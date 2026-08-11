@@ -10,7 +10,7 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   in_progress: { label: 'Vykdomas', className: 'bg-[#ECFDF5] text-[#10B981]' },
   paused:      { label: 'Sustabdytas', className: 'bg-[#FFFBEB] text-[#F59E0B]' },
   completed:   { label: 'Baigtas', className: 'bg-[#F3F4F6] text-[#6B7280]' },
-  archived:    { label: 'Archyvuotas', className: 'bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-500' },
+  archived:    { label: 'Archyvuotas', className: 'bg-surface-2 text-subtle dark:bg-white/5' },
   pending:     { label: 'Laukia', className: 'bg-[#F0F9FF] text-[#0284C7]' },
 };
 
@@ -49,10 +49,10 @@ export default function SiteDetailsHeader({
         )}
       </div>
 
-      <div className="bg-surface rounded-2xl border border-border shadow-sm p-6">
+      <div className="bg-surface rounded-card border border-border shadow-sm p-6">
         <div className="flex items-start justify-between gap-6 flex-col md:flex-row">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="w-14 h-14 rounded-2xl bg-surface-2 dark:bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-14 h-14 rounded-card bg-surface-2 dark:bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Building2 size={26} className="text-primary" />
             </div>
             <div className="min-w-0">
@@ -70,7 +70,7 @@ export default function SiteDetailsHeader({
                   {site.code}
                 </span>
                 {isSiteDraft(site) && (
-                  <span className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider self-center">
+                  <span className="bg-warning-bg text-warning text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider self-center">
                     Juodraštis
                   </span>
                 )}
@@ -79,7 +79,7 @@ export default function SiteDetailsHeader({
                     {status.label}
                   </span>
                 )}
-                <span className="bg-emerald-50 text-emerald-600 rounded-full px-3 py-1 text-xs font-medium">
+                <span className="bg-success-bg text-success rounded-full px-3 py-1 text-xs font-medium">
                   {team?.name || 'Nepriskirta'}
                 </span>
                 <span className="bg-primary-fixed text-primary rounded-full px-3 py-1 text-xs font-medium">

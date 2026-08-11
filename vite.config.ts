@@ -16,8 +16,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
       manifest: {
-        name: 'Reenpro Installer',
-        short_name: 'Reenpro',
+        name: 'Reenpro montuotojas',
+        short_name: 'Montuotojas',
         description: 'UAB Reenpro montuotojų lauko programėlė',
         theme_color: '#09090b',
         background_color: '#09090b',

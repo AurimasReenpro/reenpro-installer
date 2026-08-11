@@ -56,7 +56,7 @@ export default function TechDataModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 dark:border-white/10 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Cpu size={18} className="text-primary" />
-            <h3 className="text-[16px] font-bold text-text dark:text-gray-100">Redaguoti techninius duomenis</h3>
+            <h3 className="text-[16px] font-bold text-text">Redaguoti techninius duomenis</h3>
           </div>
           <button
             onClick={onClose}
@@ -78,7 +78,7 @@ export default function TechDataModal({
                 value={techForm.kwp}
                 onChange={e => setTechForm(f => ({ ...f, kwp: e.target.value }))}
                 placeholder="Pvz.: 10.5"
-                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
             <div>
@@ -90,7 +90,7 @@ export default function TechDataModal({
                 value={techForm.kwh}
                 onChange={e => setTechForm(f => ({ ...f, kwh: e.target.value }))}
                 placeholder="Pvz.: 15"
-                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function TechDataModal({
             <select
               value={techForm.system_type}
               onChange={e => setTechForm(f => ({ ...f, system_type: e.target.value }))}
-              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
             >
               <option value="PV">Saulės elektrinė (PV)</option>
               <option value="PV+BESS">Saulės elektrinė + Baterija (PV+BESS)</option>
@@ -115,7 +115,7 @@ export default function TechDataModal({
               type="datetime-local"
               value={techForm.scheduled_start}
               onChange={e => setTechForm(f => ({ ...f, scheduled_start: e.target.value }))}
-              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -124,7 +124,7 @@ export default function TechDataModal({
             <select
               value={techForm.roof_type}
               onChange={e => setTechForm(f => ({ ...f, roof_type: e.target.value }))}
-              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
             >
               <option value="">-- Pasirinkti --</option>
               {ROOF_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -138,7 +138,7 @@ export default function TechDataModal({
               value={techForm.roof_material}
               onChange={e => setTechForm(f => ({ ...f, roof_material: e.target.value }))}
               placeholder="Įvesti arba pasirinkti..."
-              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <div className="flex flex-wrap gap-1.5 mt-2">
               {['Bitumas', 'Čerpės', 'Trapecinė skarda', 'Klasikinė / Falcai', 'Šiferis', 'Netaikoma'].map(opt => (
@@ -163,7 +163,7 @@ export default function TechDataModal({
             <select
               value={techForm.roof_angle}
               onChange={e => setTechForm(f => ({ ...f, roof_angle: e.target.value }))}
-              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+              className="w-full h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
             >
               <option value="">-- Pasirinkti --</option>
               {ROOF_ANGLES.map(opt => <option key={opt} value={opt}>{opt}</option>)}

@@ -42,7 +42,7 @@ export default function TimeEntriesCard({ siteId }: { siteId: string }) {
 
   if (isLoading) {
     return (
-      <div className="bg-surface border border-border rounded-2xl p-6 flex justify-center">
+      <div className="bg-surface border border-border rounded-card p-6 flex justify-center">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />
       </div>
     );
@@ -50,7 +50,7 @@ export default function TimeEntriesCard({ siteId }: { siteId: string }) {
   if (entries.length === 0) return null;
 
   return (
-    <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+    <div className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden">
       <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
         <Clock size={18} className="text-primary" />
         <h3 className="font-semibold text-[15px] text-text">Laiko įrašai</h3>
@@ -68,7 +68,7 @@ export default function TimeEntriesCard({ siteId }: { siteId: string }) {
                 <p className="text-[13px] font-semibold text-text truncate">
                   {e.installer?.full_name ?? 'Nežinomas'}
                   {e.corrected_at && (
-                    <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-100 dark:bg-white/10 px-1.5 py-0.5 rounded" title={e.correction_reason ?? ''}>
+                    <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-subtle bg-surface-2 dark:bg-white/10 px-1.5 py-0.5 rounded" title={e.correction_reason ?? ''}>
                       Koreguota
                     </span>
                   )}
@@ -80,7 +80,7 @@ export default function TimeEntriesCard({ siteId }: { siteId: string }) {
                   {e.duration_minutes != null && ` · ${Math.round(e.duration_minutes / 6) / 10} val.`}
                 </p>
                 {(e.review_reason ?? staleReason) && (e.needs_review || open) && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">{e.review_reason ?? staleReason}</p>
+                  <p className="text-[11px] text-warning mt-0.5">{e.review_reason ?? staleReason}</p>
                 )}
               </div>
 
@@ -125,9 +125,9 @@ export default function TimeEntriesCard({ siteId }: { siteId: string }) {
 
 function Badge({ tone, children }: { tone: 'amber' | 'red' | 'emerald'; children: React.ReactNode }) {
   const cls = {
-    amber: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
-    red: 'bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/20',
-    emerald: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20',
+    amber: 'bg-warning-bg text-warning border-warning',
+    red: 'bg-danger/10 text-danger border-danger',
+    emerald: 'bg-success-bg text-success border-success',
   }[tone];
   return <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${cls}`}>{children}</span>;
 }
@@ -174,12 +174,12 @@ function TimeCorrectionModal({ mode, onClose, onSaved }: { mode: ModalMode; onCl
     },
   });
 
-  const inputCls = 'w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30';
+  const inputCls = 'w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(ev) => { if (ev.target === ev.currentTarget && !save.isPending) onClose(); }}>
-      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-[17px] font-extrabold text-text">
             {mode.kind === 'close' ? 'Uždaryti laiką' : 'Koreguoti laiką'}
@@ -200,23 +200,23 @@ function TimeCorrectionModal({ mode, onClose, onSaved }: { mode: ModalMode; onCl
           <label className="block">
             <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-subtle">Pabaiga</span>
             <input type="datetime-local" value={endedAt} onChange={(ev) => setEndedAt(ev.target.value)} className={inputCls} />
-            {!orderValid && endedAt && <p className="text-[11px] text-red-500 mt-1">Pabaiga turi būti po pradžios.</p>}
+            {!orderValid && endedAt && <p className="text-[11px] text-danger mt-1">Pabaiga turi būti po pradžios.</p>}
           </label>
           <label className="block">
             <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-subtle">Korekcijos priežastis</span>
             <textarea value={reason} onChange={(ev) => setReason(ev.target.value)} rows={2}
               placeholder="Pvz.: montuotojas pamiršo sustabdyti laikmatį."
-              className="w-full p-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+              className="w-full p-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
           </label>
         </div>
 
         <div className="mt-5 flex gap-3">
           <button onClick={onClose} disabled={save.isPending}
-            className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60 cursor-pointer">
+            className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60 cursor-pointer">
             Atšaukti
           </button>
           <button onClick={() => save.mutate()} disabled={save.isPending || !canSubmit}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer">
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer">
             {save.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
             {mode.kind === 'close' ? 'Uždaryti laiką' : 'Koreguoti laiką'}
           </button>

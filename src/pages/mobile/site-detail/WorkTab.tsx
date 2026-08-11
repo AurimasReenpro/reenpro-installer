@@ -170,7 +170,7 @@ function PhotoPickerButton({
       <button
         type="button"
         onClick={() => setShowPicker(true)}
-        className="flex items-center gap-2 h-[44px] px-4 rounded-xl bg-primary-fixed active:opacity-90 transition-opacity cursor-pointer border border-primary/15"
+        className="flex items-center gap-2 h-[44px] px-4 rounded-card bg-primary-fixed active:opacity-90 transition-opacity cursor-pointer border border-primary/15"
       >
         <Camera className="text-primary-ink w-5 h-5" />
         <span className="text-primary-ink font-semibold text-[13px]">Įkelti nuotrauką</span>
@@ -187,19 +187,19 @@ function PhotoPickerButton({
                 picker privileges (multi-select). The sheet closes on the input's onChange. */}
             <label
               htmlFor={cameraId}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md cursor-pointer"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-card bg-primary text-white font-semibold text-base active:scale-95 transition-all shadow-md cursor-pointer"
             >
               <Camera className="w-5 h-5 shrink-0" /> Fotografuoti
             </label>
             <label
               htmlFor={galleryId}
-              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-xl bg-primary-fixed text-primary-ink font-semibold text-base active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-4 w-full h-[58px] px-5 rounded-card bg-primary-fixed text-primary-ink font-semibold text-base active:scale-95 transition-all cursor-pointer"
             >
               <Image className="w-5 h-5 shrink-0" /> Pasirinkti iš galerijos
             </label>
             <button
               onClick={() => setShowPicker(false)}
-              className="flex items-center justify-center w-full h-[50px] rounded-xl bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all mt-1"
+              className="flex items-center justify-center w-full h-[50px] rounded-card bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all mt-1"
             >
               <X className="w-4 h-4 mr-2" /> Atšaukti
             </button>
@@ -363,7 +363,7 @@ function ChecklistItemCard({
   };
 
   return (
-    <div className={`bg-surface rounded-2xl mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
+    <div className={`bg-surface rounded-card mb-3 overflow-hidden shadow-sm border transition-shadow ${cfg.borderCls} ${isExpanded ? 'shadow-md' : ''}`}>
 
       {/* ── Collapsed header (always visible) ── */}
       <button
@@ -408,7 +408,7 @@ function ChecklistItemCard({
                     key={s}
                     onClick={() => { if (!readOnly) handleStatusTap(s); }}
                     disabled={readOnly}
-                    className={`h-[52px] rounded-xl font-bold text-[13px] border-2 flex items-center justify-center gap-1.5 transition-all ${readOnly ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'} ${isActive ? sc.btnActiveCls : sc.btnInactiveCls}`}
+                    className={`h-[52px] rounded-card font-bold text-[13px] border-2 flex items-center justify-center gap-1.5 transition-all ${readOnly ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'} ${isActive ? sc.btnActiveCls : sc.btnInactiveCls}`}
                   >
                     <sc.Icon size={15} />
                     {sc.label}
@@ -430,7 +430,7 @@ function ChecklistItemCard({
               readOnly={readOnly}
               placeholder="Pridėkite pastabą arba pastebėjimą..."
               rows={2}
-              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
+              className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-card text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors read-only:opacity-70"
             />
             {commentChanged && !readOnly && (
               <button
@@ -568,7 +568,7 @@ function AddExtraWorkSheet({
             onChange={(e) => setName(e.target.value)}
             placeholder="Pvz.: Papildoma kabelių trasa..."
             autoFocus
-            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[14px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
+            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-card text-[14px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
           />
         </div>
 
@@ -582,7 +582,7 @@ function AddExtraWorkSheet({
             onChange={(e) => setComment(e.target.value)}
             placeholder="Aprašykite atliktą darbą..."
             rows={3}
-            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
+            className="w-full px-3 py-2.5 bg-surface-2 border border-border rounded-card text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none transition-colors"
           />
         </div>
 
@@ -619,13 +619,13 @@ function AddExtraWorkSheet({
             <div className="flex gap-2">
               <label
                 htmlFor={cameraId}
-                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-primary text-white font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-card bg-primary text-white font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
               >
                 <Camera className="w-4 h-4" /> Fotografuoti
               </label>
               <label
                 htmlFor={galleryId}
-                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-xl bg-primary-fixed text-primary-ink font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-card bg-primary-fixed text-primary-ink font-semibold text-[13px] active:scale-95 transition-all cursor-pointer"
               >
                 <Image className="w-4 h-4" /> Galerija
               </label>
@@ -638,14 +638,14 @@ function AddExtraWorkSheet({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="flex-1 h-[50px] rounded-xl bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+            className="flex-1 h-[50px] rounded-card bg-surface-2 text-text font-semibold text-sm active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
           >
             Atšaukti
           </button>
           <button
             onClick={() => { void handleSave(); }}
             disabled={isSaving || !name.trim()}
-            className="flex-1 h-[50px] rounded-xl bg-primary text-white font-semibold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+            className="flex-1 h-[50px] rounded-card bg-primary text-white font-semibold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             Išsaugoti
@@ -688,7 +688,7 @@ function ExtraMaterialsSection({
         {materials.length > 0 && (
           <div className="space-y-2">
             {materials.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 bg-surface-2 rounded-xl px-3 py-2.5 border border-border">
+              <div key={m.id} className="flex items-center gap-2 bg-surface-2 rounded-card px-3 py-2.5 border border-border">
                 <span className="flex-1 text-[13px] font-semibold text-text truncate">{m.name}</span>
                 <span className="text-[13px] text-muted font-medium whitespace-nowrap">
                   {m.quantity} {m.unit}
@@ -718,25 +718,25 @@ function ExtraMaterialsSection({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Medžiaga"
-            className="flex-1 min-w-0 px-3 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="flex-1 min-w-0 px-3 h-[44px] bg-surface-2 border border-border rounded-card text-[13px] text-text placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={qty}
             onChange={(e) => setQty(e.target.value.replace(/[^0-9.]/g, ''))}
             inputMode="decimal"
             placeholder="Kiekis"
-            className="w-[64px] px-2 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[64px] px-2 h-[44px] bg-surface-2 border border-border rounded-card text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <input
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
             placeholder="vnt."
-            className="w-[60px] px-2 h-[44px] bg-surface-2 border border-border rounded-xl text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="w-[60px] px-2 h-[44px] bg-surface-2 border border-border rounded-card text-[13px] text-text text-center placeholder:text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
           <button
             onClick={handleAdd}
             disabled={!name.trim()}
-            className="w-[44px] h-[44px] shrink-0 rounded-xl bg-primary text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+            className="w-[44px] h-[44px] shrink-0 rounded-card bg-primary text-white flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
             title="Pridėti medžiagą"
           >
             <Plus size={20} />
@@ -903,7 +903,7 @@ export default function WorkTab({
             <button
               onClick={() => setShowAddWork(true)}
               disabled={!siteChecklistId}
-              className="w-full h-[48px] rounded-xl border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-surface active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              className="w-full h-[48px] rounded-card border-2 border-dashed border-primary/40 text-primary font-semibold text-[14px] flex items-center justify-center gap-2 bg-surface active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
               <Plus size={18} /> Pridėti papildomą darbą
             </button>

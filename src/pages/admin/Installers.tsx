@@ -104,17 +104,17 @@ function formatDateTime(dateStr: string | null) {
 }
 
 function statusChipClass(status: InstallerEmploymentStatus) {
-  if (status === 'inactive') return 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:border-white/10';
-  if (status === 'invited') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/20';
-  if (status === 'suspended') return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/20';
-  if (status === 'archived') return 'bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10';
+  if (status === 'inactive') return 'bg-surface-2 text-muted border-border dark:bg-white/10 dark:border-white/10';
+  if (status === 'invited') return 'bg-warning-bg text-warning border-warning';
+  if (status === 'suspended') return 'bg-danger/10 text-danger border-danger';
+  if (status === 'archived') return 'bg-surface-2 text-subtle border-border dark:bg-white/5 dark:border-white/10';
   return 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-ink';
 }
 
 function teamStatusChipClass(status: string) {
-  if (status === 'archived') return 'bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10';
-  if (status === 'inactive') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/20';
-  return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/20';
+  if (status === 'archived') return 'bg-surface-2 text-subtle border-border dark:bg-white/5 dark:border-white/10';
+  if (status === 'inactive') return 'bg-warning-bg text-warning border-warning';
+  return 'bg-success-bg text-success border-success';
 }
 
 function roleLabel(role: string | null) {
@@ -133,13 +133,13 @@ function warningLabel(warning: InstallerRow['warnings'][number]) {
 
 function KpiCard({ title, value, hint, icon }: { title: string; value: string; hint?: string; icon: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none px-4 py-3 flex items-center justify-between gap-3">
+    <div className="rounded-card border border-border bg-surface shadow-sm dark:shadow-none px-4 py-3 flex items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-wide text-subtle truncate">{title}</p>
         <p className="text-[22px] font-extrabold text-text leading-tight mt-1">{value}</p>
         {hint ? <p className="text-[12px] text-subtle mt-0.5 truncate">{hint}</p> : null}
       </div>
-      <div className="w-10 h-10 rounded-xl bg-surface-2 text-primary flex items-center justify-center shrink-0">
+      <div className="w-10 h-10 rounded-card bg-surface-2 text-primary flex items-center justify-center shrink-0">
         {icon}
       </div>
     </div>
@@ -151,10 +151,10 @@ function LoadingSkeleton() {
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="h-24 rounded-2xl bg-surface-2 animate-pulse" />
+          <div key={index} className="h-24 rounded-card bg-surface-2 animate-pulse" />
         ))}
       </div>
-      <div className="h-80 rounded-2xl bg-surface-2 animate-pulse" />
+      <div className="h-80 rounded-card bg-surface-2 animate-pulse" />
     </div>
   );
 }
@@ -180,13 +180,13 @@ function InstallerActionsMenu({
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
-  const item = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer text-left';
+  const item = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-text hover:bg-surface-2 dark:hover:bg-[#27272a] transition-colors cursor-pointer text-left';
 
   return (
     <div className="relative inline-block text-left">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-subtle hover:bg-surface-2 dark:hover:bg-white/10 transition-colors cursor-pointer"
         title="Veiksmai"
       >
         <MoreVertical size={16} />
@@ -194,32 +194,32 @@ function InstallerActionsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div className="absolute right-0 top-9 z-20 w-56 bg-surface dark:bg-[#18181b] rounded-xl shadow-lg border border-zinc-200 dark:border-white/10 py-1 overflow-hidden">
+          <div className="absolute right-0 top-9 z-20 w-56 bg-surface dark:bg-[#18181b] rounded-card shadow-lg border border-border dark:border-white/10 py-1 overflow-hidden">
             <button onClick={() => { close(); onView(); }} className={item}>
-              <Eye size={15} className="text-zinc-400" /> Žiūrėti profilį
+              <Eye size={15} className="text-subtle" /> Žiūrėti profilį
             </button>
             <button onClick={() => { close(); onEdit(); }} className={item}>
-              <Edit3 size={15} className="text-zinc-400" /> Redaguoti
+              <Edit3 size={15} className="text-subtle" /> Redaguoti
             </button>
             <button onClick={() => { close(); onAssignTeam(); }} className={item}>
-              <Users size={15} className="text-zinc-400" /> Priskirti komandai
+              <Users size={15} className="text-subtle" /> Priskirti komandai
             </button>
             <button onClick={() => { close(); onChangeStatus(); }} className={item}>
-              <Activity size={15} className="text-zinc-400" /> Keisti statusą
+              <Activity size={15} className="text-subtle" /> Keisti statusą
             </button>
-            <div className="my-1 border-t border-zinc-100 dark:border-white/5" />
+            <div className="my-1 border-t border-border dark:border-white/5" />
             {status === 'active' || status === 'invited' ? (
               <button onClick={() => { close(); onDeactivate(); }} className={item}>
-                <ShieldAlert size={15} className="text-amber-500" /> Deaktyvuoti
+                <ShieldAlert size={15} className="text-warning" /> Deaktyvuoti
               </button>
             ) : (
               <button onClick={() => { close(); onReactivate(); }} className={item}>
-                <CheckCircle2 size={15} className="text-emerald-500" /> Aktyvuoti
+                <CheckCircle2 size={15} className="text-success" /> Aktyvuoti
               </button>
             )}
             {status !== 'archived' && (
               <button onClick={() => { close(); onArchive(); }} className={item}>
-                <Archive size={15} className="text-amber-500" /> Archyvuoti
+                <Archive size={15} className="text-warning" /> Archyvuoti
               </button>
             )}
           </div>
@@ -507,7 +507,7 @@ export default function Installers() {
         {activeTab === 'installers' ? (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="rounded-xl bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="rounded-card bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus size={18} />
             Pridėti montuotoją
@@ -515,7 +515,7 @@ export default function Installers() {
         ) : (
           <button
             onClick={() => { setIsCreateTeamOpen(true); setTimeout(() => createTeamInputRef.current?.focus(), 50); }}
-            className="rounded-xl bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="rounded-card bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus size={18} />
             Sukurti komandą
@@ -569,7 +569,7 @@ export default function Installers() {
                   <KpiCard title="Reikia dėmesio" value={`${kpis.needsAttention}`} icon={<AlertTriangle size={18} />} />
                 </div>
 
-                <div className="rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none overflow-hidden flex-1 min-h-0 flex flex-col">
+                <div className="rounded-card border border-border bg-surface shadow-sm dark:shadow-none overflow-hidden flex-1 min-h-0 flex flex-col">
                   <div className="p-4 border-b border-border space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_160px_180px_160px] gap-2">
                       <label className="relative block">
@@ -578,32 +578,32 @@ export default function Installers() {
                           value={search}
                           onChange={(event) => setSearch(event.target.value)}
                           placeholder="Ieškoti pagal vardą, kontaktus ar komandą..."
-                          className="w-full h-10 pl-9 pr-3 rounded-xl bg-surface-2 border border-transparent dark:border-white/10 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-full h-10 pl-9 pr-3 rounded-card bg-surface-2 border border-transparent dark:border-white/10 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </label>
-                      <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'all' | InstallerStatus)} className="h-10 rounded-xl bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
+                      <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'all' | InstallerStatus)} className="h-10 rounded-card bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
                         {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </select>
-                      <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} className="h-10 rounded-xl bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
+                      <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} className="h-10 rounded-card bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
                         <option value="all">Visos komandos</option>
                         <option value="none">Be komandos</option>
                         {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
                       </select>
-                      <select value={workRoleFilter} onChange={(event) => setWorkRoleFilter(event.target.value)} className="h-10 rounded-xl bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
+                      <select value={workRoleFilter} onChange={(event) => setWorkRoleFilter(event.target.value)} className="h-10 rounded-card bg-surface-2 border border-transparent dark:border-white/10 px-3 text-[14px] text-text">
                         <option value="all">Visos pareigos</option>
                         {INSTALLER_WORK_ROLE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-card bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
                         <input type="checkbox" checked={onlyWithoutTeam} onChange={(event) => setOnlyWithoutTeam(event.target.checked)} />
                         Tik be komandos
                       </label>
-                      <label className="inline-flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-card bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
                         <input type="checkbox" checked={onlyWorkingNow} onChange={(event) => setOnlyWorkingNow(event.target.checked)} />
                         Tik dirba dabar
                       </label>
-                      <label className="inline-flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-card bg-surface-2 px-3 py-2 text-[13px] font-semibold text-muted cursor-pointer">
                         <input type="checkbox" checked={onlyAttention} onChange={(event) => setOnlyAttention(event.target.checked)} />
                         Tik su problemomis
                       </label>
@@ -654,7 +654,7 @@ export default function Installers() {
                                     {row.statusLabel}
                                   </span>
                                   {row.warnings.length > 0 ? (
-                                    <span className="text-[11px] text-amber-600 dark:text-amber-300 truncate" title={row.warnings.map(warningLabel).join(', ')}>
+                                    <span className="text-[11px] text-warning truncate" title={row.warnings.map(warningLabel).join(', ')}>
                                       {row.warnings.length} perspėj.
                                     </span>
                                   ) : null}
@@ -667,7 +667,7 @@ export default function Installers() {
                                 {row.isWorkingNow ? (
                                   <div className="min-w-0">
                                     <p className="text-[13px] font-semibold text-text truncate" title={row.activeSiteName ?? undefined}>{row.activeSiteName ?? '—'}</p>
-                                    <p className="text-[12px] text-emerald-600 dark:text-emerald-300 font-semibold tabular-nums">
+                                    <p className="text-[12px] text-success font-semibold tabular-nums">
                                       {formatWeeklyHours(row.activeElapsedMinutes)} · nuo {formatDateTime(row.activeStartedAt)}
                                     </p>
                                   </div>
@@ -745,7 +745,7 @@ export default function Installers() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.97, y: -6 }}
                   transition={{ type: 'spring', bounce: 0.25, duration: 0.35 }}
-                  className="bg-surface rounded-2xl border border-border shadow-sm dark:shadow-none p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+                  className="bg-surface rounded-card border border-border shadow-sm dark:shadow-none p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
                 >
                   <input
                     ref={createTeamInputRef}
@@ -758,12 +758,12 @@ export default function Installers() {
                     }}
                     placeholder="Komandos pavadinimas..."
                     disabled={createTeamMutation.isPending}
-                    className="flex-1 h-[40px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
+                    className="flex-1 h-[40px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
                   />
                   <button
                     onClick={handleCreateTeam}
                     disabled={createTeamMutation.isPending}
-                    className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
+                    className="h-[40px] px-4 font-medium text-[14px] rounded-card bg-primary text-white hover:bg-primary transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
                   >
                     {createTeamMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : null}
                     Sukurti
@@ -771,7 +771,7 @@ export default function Installers() {
                   <button
                     onClick={() => { setIsCreateTeamOpen(false); setNewTeamName(''); }}
                     disabled={createTeamMutation.isPending}
-                    className="h-[40px] px-4 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
+                    className="h-[40px] px-4 font-medium text-[14px] rounded-card border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
                   >
                     Atšaukti
                   </button>
@@ -782,11 +782,11 @@ export default function Installers() {
             {isLoading ? (
               <LoadingSkeleton />
             ) : teams.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3 rounded-2xl border border-border bg-surface">
-                <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center">
+              <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3 rounded-card border border-border bg-surface">
+                <div className="w-16 h-16 rounded-card bg-surface-2 flex items-center justify-center">
                   <UsersRound size={28} className="text-subtle dark:text-muted" />
                 </div>
-                <p className="text-text dark:text-gray-100 font-bold text-[16px]">Komandų dar nėra.</p>
+                <p className="text-text font-bold text-[16px]">Komandų dar nėra.</p>
               </div>
             ) : (
               <>
@@ -794,7 +794,7 @@ export default function Installers() {
                   <select
                     value={teamStatusFilter}
                     onChange={(event) => setTeamStatusFilter(event.target.value as TeamStatusFilter)}
-                    className="h-10 rounded-xl bg-surface border border-border px-3 text-[14px] text-text"
+                    className="h-10 rounded-card bg-surface border border-border px-3 text-[14px] text-text"
                   >
                     {teamStatusOptions.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -810,15 +810,15 @@ export default function Installers() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.96 }}
                       transition={{ duration: 0.2 }}
-                      className={`bg-surface rounded-2xl border border-border shadow-sm dark:shadow-none p-5 flex flex-col gap-4 ${team.isArchived ? 'opacity-65' : ''}`}
+                      className={`bg-surface rounded-card border border-border shadow-sm dark:shadow-none p-5 flex flex-col gap-4 ${team.isArchived ? 'opacity-65' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm shrink-0">
+                          <div className="w-9 h-9 rounded-card bg-primary flex items-center justify-center shadow-sm shrink-0">
                             <UsersRound size={16} className="text-white" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[15px] font-bold text-text dark:text-gray-100 leading-tight truncate">{team.name}</p>
+                            <p className="text-[15px] font-bold text-text leading-tight truncate">{team.name}</p>
                             <p className="text-[12px] text-subtle dark:text-subtle">{team.memberCount} nariai</p>
                             {team.roleSummaryLabel ? (
                               <p className="text-[11px] text-subtle dark:text-subtle truncate" title={team.roleSummaryLabel}>
@@ -832,7 +832,7 @@ export default function Installers() {
                             {team.statusLabel}
                           </span>
                           {team.warnings.includes('no_members') ? (
-                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/20">
+                            <span className="rounded-full border border-warning bg-warning-bg px-2.5 py-1 text-[11px] font-bold text-warning">
                               Be narių
                             </span>
                           ) : null}
@@ -842,15 +842,15 @@ export default function Installers() {
                       <div className="flex flex-wrap gap-1.5">
                         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                           team.hasElectrician
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-300'
-                            : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300'
+                            ? 'border-success bg-success-bg text-success'
+                            : 'border-warning bg-warning-bg text-warning'
                         }`}>
                           {team.hasElectrician ? 'Yra elektrikas' : 'Nėra elektriko'}
                         </span>
                         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                           team.hasSiteManager
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-300'
-                            : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300'
+                            ? 'border-success bg-success-bg text-success'
+                            : 'border-warning bg-warning-bg text-warning'
                         }`}>
                           {team.hasSiteManager ? 'Yra darbų vadovas' : 'Nėra darbų vadovo'}
                         </span>
@@ -863,11 +863,11 @@ export default function Installers() {
                       ) : null}
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-surface-2 px-3 py-2">
+                        <div className="rounded-card bg-surface-2 px-3 py-2">
                           <p className="text-[11px] font-bold uppercase tracking-wide text-subtle">Šiandien</p>
                           <p className="text-[18px] font-extrabold text-text">{team.todayAssignedSitesCount ?? '—'}</p>
                         </div>
-                        <div className="rounded-xl bg-surface-2 px-3 py-2">
+                        <div className="rounded-card bg-surface-2 px-3 py-2">
                           <p className="text-[11px] font-bold uppercase tracking-wide text-subtle">Šią savaitę</p>
                           <p className="text-[18px] font-extrabold text-text">{team.thisWeekPlannedSitesCount ?? '—'}</p>
                         </div>
@@ -884,12 +884,12 @@ export default function Installers() {
                               <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/30 text-primary dark:text-primary-ink flex items-center justify-center text-[9px] font-bold shrink-0">
                                 {getInitials(member.name)}
                               </div>
-                              <span className="text-[13px] text-text dark:text-gray-200 font-medium truncate">
+                              <span className="text-[13px] text-text font-medium truncate">
                                 {member.name} · {member.workRoleLabel}
                               </span>
                               <div className="ml-auto flex shrink-0 items-center gap-1">
                                 {member.isWorkingNow ? (
-                                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                  <span className="rounded-full bg-success-bg px-2 py-0.5 text-[10px] font-bold text-success">
                                     Dirba
                                   </span>
                                 ) : null}
@@ -926,13 +926,13 @@ export default function Installers() {
                     </motion.div>
                   ))}
                   {filteredTeamCards.length === 0 ? (
-                    <div className="rounded-2xl border border-border bg-surface p-8 text-center text-[14px] text-subtle lg:col-span-2 xl:col-span-3">
+                    <div className="rounded-card border border-border bg-surface p-8 text-center text-[14px] text-subtle lg:col-span-2 xl:col-span-3">
                       Komandų pagal pasirinktą statusą nėra.
                     </div>
                   ) : null}
                 </div>
 
-                <div className="rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none p-5">
+                <div className="rounded-card border border-border bg-surface shadow-sm dark:shadow-none p-5">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div>
                       <h3 className="text-[16px] font-extrabold text-text">Nepriskirti montuotojai</h3>
@@ -947,7 +947,7 @@ export default function Installers() {
                       {unassignedRows.map((row) => (
                         <div
                           key={row.id}
-                          className="rounded-xl border border-border bg-surface-2 px-3 py-2"
+                          className="rounded-card border border-border bg-surface-2 px-3 py-2"
                         >
                           <span className="block text-[13px] font-bold text-text">{row.name}</span>
                           <span className="block text-[12px] text-subtle">{row.workRoleLabel}</span>
@@ -998,7 +998,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">
                 {selectedAssignTeam ? `Pridėti narį į ${selectedAssignTeam.name}` : 'Priskirti komandai'}
@@ -1013,7 +1013,7 @@ export default function Installers() {
                     value={assigningInstallerId ?? ''}
                     onChange={(event) => setAssigningInstallerId(event.target.value || null)}
                     disabled={assignTeamMutation.isPending}
-                    className="h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                    className="h-11 w-full rounded-card border border-border bg-surface-2 px-3 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
                   >
                     <option value="">Pasirinkite montuotoją</option>
                     {assignableRows.map((row) => (
@@ -1029,7 +1029,7 @@ export default function Installers() {
                     value={assigningTeamId ?? ''}
                     onChange={(event) => setAssigningTeamId(event.target.value || null)}
                     disabled={assignTeamMutation.isPending}
-                    className="h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                    className="h-11 w-full rounded-card border border-border bg-surface-2 px-3 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
                   >
                     <option value="">Pasirinkite komandą</option>
                     {operationalTeams.map((team) => (
@@ -1046,7 +1046,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => { setAssigningTeamId(null); setAssigningInstallerId(null); }}
                   disabled={assignTeamMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1054,7 +1054,7 @@ export default function Installers() {
                   type="button"
                   onClick={submitAssignMember}
                   disabled={assignTeamMutation.isPending || !assigningInstallerId || !assigningTeamId}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {assignTeamMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Priskirti
@@ -1079,7 +1079,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">Pašalinti iš komandos?</h3>
               <p className="mt-2 text-[14px] text-muted">
@@ -1090,7 +1090,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => setRemovingInstaller(null)}
                   disabled={removeTeamMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1098,7 +1098,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => removeTeamMutation.mutate(removingInstaller.id)}
                   disabled={removeTeamMutation.isPending}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {removeTeamMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Pašalinti
@@ -1123,7 +1123,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">Archyvuoti komandą?</h3>
               <p className="mt-2 text-[14px] text-muted">
@@ -1136,7 +1136,7 @@ export default function Installers() {
                   onChange={(event) => setArchiveReason(event.target.value)}
                   disabled={archiveTeamMutation.isPending}
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-border bg-surface-2 px-3 py-2 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                  className="w-full resize-none rounded-card border border-border bg-surface-2 px-3 py-2 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
                   placeholder="Neprivaloma"
                 />
               </label>
@@ -1145,7 +1145,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => setArchivingTeam(null)}
                   disabled={archiveTeamMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1153,7 +1153,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => archiveTeamMutation.mutate({ teamId: archivingTeam.id, reason: archiveReason.trim() || undefined })}
                   disabled={archiveTeamMutation.isPending}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {archiveTeamMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Archyvuoti
@@ -1178,7 +1178,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">Aktyvuoti komandą?</h3>
               <p className="mt-2 text-[14px] text-muted">
@@ -1189,7 +1189,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => setReactivatingTeam(null)}
                   disabled={reactivateTeamMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1197,7 +1197,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => reactivateTeamMutation.mutate(reactivatingTeam.id)}
                   disabled={reactivateTeamMutation.isPending}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {reactivateTeamMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Aktyvuoti
@@ -1222,7 +1222,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">Deaktyvuoti montuotoją?</h3>
               <p className="mt-2 text-[14px] text-muted">
@@ -1235,7 +1235,7 @@ export default function Installers() {
                   onChange={(event) => setDeactivationReason(event.target.value)}
                   disabled={deactivateMutation.isPending}
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-border bg-surface-2 px-3 py-2 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                  className="w-full resize-none rounded-card border border-border bg-surface-2 px-3 py-2 text-[14px] text-text outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
                   placeholder="Neprivaloma"
                 />
               </label>
@@ -1244,7 +1244,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => setDeactivatingInstaller(null)}
                   disabled={deactivateMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1252,7 +1252,7 @@ export default function Installers() {
                   type="button"
                   onClick={submitDeactivation}
                   disabled={deactivateMutation.isPending}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {deactivateMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Deaktyvuoti
@@ -1277,7 +1277,7 @@ export default function Installers() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+              className="w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-2xl"
             >
               <h3 className="text-[18px] font-extrabold text-text">Aktyvuoti montuotoją?</h3>
               <p className="mt-2 text-[14px] text-muted">
@@ -1288,7 +1288,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => setReactivatingInstaller(null)}
                   disabled={reactivateMutation.isPending}
-                  className="h-11 flex-1 rounded-xl border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
+                  className="h-11 flex-1 rounded-card border border-border text-[14px] font-semibold text-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
                 >
                   Atšaukti
                 </button>
@@ -1296,7 +1296,7 @@ export default function Installers() {
                   type="button"
                   onClick={() => reactivateMutation.mutate(reactivatingInstaller.id, { onSuccess: () => setReactivatingInstaller(null) })}
                   disabled={reactivateMutation.isPending}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-card bg-primary text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {reactivateMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
                   Aktyvuoti

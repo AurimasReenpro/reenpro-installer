@@ -44,7 +44,7 @@ const initialFilters: LaborAnalyticsFilters = {
 };
 
 const controlCls =
-  'h-10 rounded-xl border border-border bg-surface px-3 text-[13px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60';
+  'h-10 rounded-card border border-border bg-surface px-3 text-[13px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60';
 const thCls = 'px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-subtle whitespace-nowrap';
 const tdMuted = 'px-4 py-3 text-[13px] text-muted';
 
@@ -65,13 +65,13 @@ function Kpi({
 }) {
   const tones = {
     primary: 'text-primary bg-primary-fixed dark:bg-primary/15',
-    emerald: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-500/15 dark:text-emerald-300',
-    amber: 'text-amber-700 bg-amber-50 dark:bg-amber-500/15 dark:text-amber-300',
-    blue: 'text-blue-700 bg-blue-50 dark:bg-blue-500/15 dark:text-blue-300',
+    emerald: 'text-success bg-success-bg',
+    amber: 'text-warning bg-warning-bg',
+    blue: 'text-info bg-info-bg',
   };
 
   return (
-    <div className="flex min-h-[112px] flex-col justify-between rounded-2xl border border-border bg-surface p-4 shadow-sm dark:shadow-none">
+    <div className="flex min-h-[112px] flex-col justify-between rounded-card border border-border bg-surface p-4 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] font-bold uppercase tracking-wider text-subtle">{label}</p>
         <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tones[tone]}`}>
@@ -133,7 +133,7 @@ export default function Reports() {
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-5">
       <header className="flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed text-primary dark:bg-primary/15 dark:text-primary-ink">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-card bg-primary-fixed text-primary dark:bg-primary/15 dark:text-primary-ink">
           <BarChart3 size={20} />
         </span>
         <div className="min-w-0">
@@ -142,9 +142,9 @@ export default function Reports() {
         </div>
       </header>
 
-      <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface p-3 shadow-sm dark:shadow-none">
+      <section className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-surface p-3 shadow-sm dark:shadow-none">
         <CalendarRange size={16} className="ml-1 text-subtle" />
-        <div className="inline-flex h-10 items-center rounded-xl bg-surface-2 p-1 text-[12px] font-semibold">
+        <div className="inline-flex h-10 items-center rounded-card bg-surface-2 p-1 text-[12px] font-semibold">
           <button
             type="button"
             onClick={() => update('period_mode', 'all_time')}
@@ -241,7 +241,7 @@ export default function Reports() {
             <Kpi icon={AlertTriangle} label="Anomalijos" value={String(kpis.anomaly_count)} tone="amber" />
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none">
+          <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none">
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <Layers3 size={16} className="text-primary dark:text-primary-ink" />
               <h2 className="text-[14px] font-bold text-text">Modulių našumas</h2>
@@ -271,7 +271,7 @@ export default function Reports() {
                       <td className="px-4 py-3 text-[13px] font-bold tabular-nums text-primary dark:text-primary-ink">{fmt(row.avg_h_per_module, 3)}</td>
                       <td className={`${tdMuted} tabular-nums`}>{fmt(row.median_h_per_module, 3)}</td>
                       <td className={`${tdMuted} tabular-nums`}>{fmt(row.avg_h_per_kwp)}</td>
-                      <td className="px-4 py-3 text-[13px] tabular-nums text-amber-700 dark:text-amber-300">{row.anomaly_count}</td>
+                      <td className="px-4 py-3 text-[13px] tabular-nums text-warning">{row.anomaly_count}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -279,7 +279,7 @@ export default function Reports() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm dark:shadow-none">
+          <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none">
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <Wrench size={16} className="text-primary dark:text-primary-ink" />
               <h2 className="text-[14px] font-bold text-text">Objektų darbo analizė</h2>
@@ -301,7 +301,7 @@ export default function Reports() {
                       </td>
                     </tr>
                   ) : visibleSites.map((site) => (
-                    <tr key={site.site_id} className={`${site.is_anomaly ? 'bg-amber-50/70 dark:bg-amber-500/10' : ''} hover:bg-surface-2/50`}>
+                    <tr key={site.site_id} className={`${site.is_anomaly ? 'bg-warning-bg/70' : ''} hover:bg-surface-2/50`}>
                       <td className="px-4 py-3">
                         <p className="text-[13px] font-semibold text-text">{site.site_code}</p>
                         <p className="max-w-[150px] truncate text-[11px] text-subtle">{site.client_name}</p>
@@ -310,7 +310,7 @@ export default function Reports() {
                       <td className={`${tdMuted} tabular-nums`}>{fmt(site.kwp, 1)}</td>
                       <td className={`${tdMuted} max-w-[170px] truncate`}>{site.module_model ?? site.module_type ?? '-'}</td>
                       <td className={`${tdMuted} tabular-nums`}>{fmt(site.module_count, 0)}</td>
-                      <td className="px-4 py-3">{site.has_bess ? <BatteryCharging size={16} className="text-emerald-600 dark:text-emerald-300" /> : <span className="text-subtle">-</span>}</td>
+                      <td className="px-4 py-3">{site.has_bess ? <BatteryCharging size={16} className="text-success" /> : <span className="text-subtle">-</span>}</td>
                       <td className={`${tdMuted} tabular-nums`}>{fmt(site.optimizer_count, 0)}</td>
                       <td className={`${tdMuted} tabular-nums`}>{fmt(site.total_installer_hours, 1)}</td>
                       <td className="px-4 py-3 text-[13px] font-bold tabular-nums text-primary dark:text-primary-ink">{fmt(site.h_per_kwp)}</td>
@@ -318,7 +318,7 @@ export default function Reports() {
                       <td className={`${tdMuted} tabular-nums`}>{site.installer_count}</td>
                       <td className="px-4 py-3">
                         {site.is_anomaly ? (
-                          <span title={anomalyLabel(site.anomaly_reasons)} className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                          <span title={anomalyLabel(site.anomaly_reasons)} className="inline-flex items-center gap-1 text-[11px] font-bold text-warning">
                             <AlertTriangle size={13} />
                             {site.anomaly_reasons.length}
                           </span>

@@ -36,10 +36,10 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none backdrop-blur-md overflow-hidden">
+    <div className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none backdrop-blur-md overflow-hidden">
       {/* Card header */}
       <div className="px-7 py-5 border-b border-border flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-primary-fixed dark:bg-primary/30 flex items-center justify-center text-primary dark:text-primary-ink flex-shrink-0 mt-0.5">
+        <div className="w-10 h-10 rounded-card bg-primary-fixed dark:bg-primary/30 flex items-center justify-center text-primary dark:text-primary-ink flex-shrink-0 mt-0.5">
           {icon}
         </div>
         <div>
@@ -83,7 +83,7 @@ function Field({
 }
 
 function inputClass(hasIcon = false) {
-  return `w-full h-[40px] bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
+  return `w-full h-[40px] bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
 }
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
@@ -274,7 +274,7 @@ export default function Settings() {
           form="settings-form"
           type="submit"
           disabled={saveMutation.isPending}
-          className="h-[40px] px-6 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary active:scale-[0.98] transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="h-[40px] px-6 font-medium text-[14px] rounded-card bg-primary text-white hover:bg-primary active:scale-[0.98] transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {saveMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -404,7 +404,7 @@ export default function Settings() {
             </div>
 
             {/* Helper tip */}
-            <div className="col-span-2 bg-surface-2 rounded-xl border border-border p-3.5 flex gap-2.5">
+            <div className="col-span-2 bg-surface-2 rounded-card border border-border p-3.5 flex gap-2.5">
               <Info size={15} className="text-primary dark:text-primary-ink mt-0.5 flex-shrink-0" />
               <p className="text-[12px] text-muted">
                 Koordinates galite rasti{' '}
@@ -437,7 +437,7 @@ export default function Settings() {
                 Įmonės logotipas
               </label>
               <div
-                className="border-2 border-dashed border-border/50 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-[#f9f6ff] dark:hover:bg-surface-2 transition-all min-h-[160px] group"
+                className="border-2 border-dashed border-border/50 dark:border-white/10 rounded-card p-6 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-[#f9f6ff] dark:hover:bg-surface-2 transition-all min-h-[160px] group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {logoUploading ? (
@@ -450,7 +450,7 @@ export default function Settings() {
                   />
                 ) : (
                   <>
-                    <div className="w-14 h-14 rounded-2xl bg-primary-fixed dark:bg-primary/30 flex items-center justify-center group-hover:bg-[#dfc7ff] dark:group-hover:bg-primary/50 transition-colors">
+                    <div className="w-14 h-14 rounded-card bg-primary-fixed dark:bg-primary/30 flex items-center justify-center group-hover:bg-[#dfc7ff] dark:group-hover:bg-primary/50 transition-colors">
                       <Image size={24} className="text-primary dark:text-primary-ink" />
                     </div>
                     <div className="text-center">

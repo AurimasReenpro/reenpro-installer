@@ -114,7 +114,7 @@ export default function AddInstallerModal({
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
             onClick={(e) => e.stopPropagation()}
-            className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl"
+            className="flex w-full max-w-md flex-col overflow-hidden rounded-card bg-surface shadow-2xl"
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
@@ -125,7 +125,7 @@ export default function AddInstallerModal({
                 type="button"
                 onClick={onClose}
                 disabled={mutation.isPending}
-                className="text-subtle hover:text-muted dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+                className="text-subtle hover:text-muted dark:hover:text-subtle transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -148,10 +148,10 @@ export default function AddInstallerModal({
                     disabled={mutation.isPending}
                     {...register('firstName')}
                     placeholder="Jonas"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-xl px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.firstName && (
-                    <span className="text-red-500 text-xs mt-0.5">
+                    <span className="text-danger text-xs mt-0.5">
                       {errors.firstName.message}
                     </span>
                   )}
@@ -166,10 +166,10 @@ export default function AddInstallerModal({
                     disabled={mutation.isPending}
                     {...register('lastName')}
                     placeholder="Jonaitis"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-xl px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.lastName && (
-                    <span className="text-red-500 text-xs mt-0.5">
+                    <span className="text-danger text-xs mt-0.5">
                       {errors.lastName.message}
                     </span>
                   )}
@@ -185,10 +185,10 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('email')}
                   placeholder="jonas.jonaitis@imone.lt"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-xl px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.email && (
-                  <span className="text-red-500 text-xs mt-0.5">
+                  <span className="text-danger text-xs mt-0.5">
                     {errors.email.message}
                   </span>
                 )}
@@ -203,10 +203,10 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('phone')}
                   placeholder="+37060000000"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-xl px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.phone && (
-                  <span className="text-red-500 text-xs mt-0.5">
+                  <span className="text-danger text-xs mt-0.5">
                     {errors.phone.message}
                   </span>
                 )}
@@ -221,10 +221,10 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('password')}
                   placeholder="••••••"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-xl px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.password && (
-                  <span className="text-red-500 text-xs mt-0.5">
+                  <span className="text-danger text-xs mt-0.5">
                     {errors.password.message}
                   </span>
                 )}
@@ -236,14 +236,14 @@ export default function AddInstallerModal({
                   type="button"
                   onClick={onClose}
                   disabled={mutation.isPending}
-                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-medium text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] disabled:opacity-60 cursor-pointer dark:text-subtle dark:hover:bg-surface-2"
+                  className="flex-1 rounded-card border border-border py-3 text-[14px] font-medium text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] disabled:opacity-60 cursor-pointer dark:text-subtle dark:hover:bg-surface-2"
                 >
                   Atšaukti
                 </button>
                 <button
                   type="submit"
                   disabled={mutation.isPending}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-75 cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-card bg-primary py-3 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-75 cursor-pointer"
                 >
                   {mutation.isPending ? (
                     <>

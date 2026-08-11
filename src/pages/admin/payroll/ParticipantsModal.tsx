@@ -66,30 +66,30 @@ export default function ParticipantsModal({
       <motion.div
         initial={{ scale: 0.96, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0 }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.3 }}
-        className="bg-surface rounded-[20px] shadow-2xl w-full max-w-md border border-zinc-100 dark:border-white/10 flex flex-col max-h-[85vh]"
+        className="bg-surface rounded-[20px] shadow-2xl w-full max-w-md border border-border dark:border-white/10 flex flex-col max-h-[85vh]"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10 shrink-0">
           <div className="min-w-0">
-            <h2 className="font-bold text-[16px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <h2 className="font-bold text-[16px] text-text flex items-center gap-2">
               <Users size={17} className="text-primary dark:text-primary-ink" /> Keisti dalyvius
             </h2>
-            <p className="text-[12px] text-zinc-400 mt-0.5 truncate">
+            <p className="text-[12px] text-subtle mt-0.5 truncate">
               {snapshot.site?.code} · {snapshot.site?.client_name}
             </p>
           </div>
-          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0">
-            <X size={18} className="text-zinc-400" />
+          <button onClick={onClose} disabled={save.isPending} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0">
+            <X size={18} className="text-subtle" />
           </button>
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto">
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">
               Montuotojai ({selected.size} pasirinkta)
             </label>
-            <div className="rounded-xl border border-zinc-200 dark:border-white/10 divide-y divide-zinc-100 dark:divide-white/5 max-h-56 overflow-y-auto">
+            <div className="rounded-card border border-border dark:border-white/10 divide-y divide-border dark:divide-white/5 max-h-56 overflow-y-auto">
               {installers.length === 0 ? (
-                <p className="text-[13px] text-zinc-400 px-3 py-3">Montuotojų nėra.</p>
+                <p className="text-[13px] text-subtle px-3 py-3">Montuotojų nėra.</p>
               ) : installers.map((u) => {
                 const on = selected.has(u.id);
                 return (
@@ -97,14 +97,14 @@ export default function ParticipantsModal({
                     key={u.id}
                     type="button"
                     onClick={() => toggle(u.id)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
                   >
-                    <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${on ? 'bg-primary border-primary' : 'border-zinc-300 dark:border-white/20'}`}>
+                    <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${on ? 'bg-primary border-primary' : 'border-border dark:border-white/20'}`}>
                       {on && <Check size={13} className="text-white" />}
                     </span>
-                    <span className="text-[14px] text-zinc-800 dark:text-zinc-200 truncate">
+                    <span className="text-[14px] text-text truncate">
                       {u.full_name ?? 'Be vardo'}
-                      {u.role === 'admin' && <span className="ml-1.5 text-[10px] text-zinc-400">(admin)</span>}
+                      {u.role === 'admin' && <span className="ml-1.5 text-[10px] text-subtle">(admin)</span>}
                     </span>
                   </button>
                 );
@@ -113,25 +113,25 @@ export default function ParticipantsModal({
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">Priežastis (privaloma)</label>
+            <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Priežastis (privaloma)</label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
               placeholder="Kodėl keičiami dalyviai…"
-              className="w-full p-3 bg-zinc-50 dark:bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-y"
+              className="w-full p-3 bg-surface-2 dark:bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-y"
             />
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-zinc-100 dark:border-white/10 shrink-0">
-          <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 font-medium text-[14px] hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">
+        <div className="flex gap-3 px-6 py-4 border-t border-border dark:border-white/10 shrink-0">
+          <button onClick={onClose} disabled={save.isPending} className="flex-1 h-[42px] rounded-card border border-border dark:border-white/10 text-muted font-medium text-[14px] hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50">
             Atšaukti
           </button>
           <button
             onClick={() => save.mutate()}
             disabled={save.isPending || !canSubmit}
-            className="flex-1 h-[42px] rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 h-[42px] rounded-card bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-default cursor-pointer flex items-center justify-center gap-2"
           >
             {save.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
             Išsaugoti

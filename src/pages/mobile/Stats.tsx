@@ -119,7 +119,7 @@ export default function Stats() {
           value={month}
           max={currentMonth()}
           onChange={(e) => handleMonthChange(e.target.value)}
-          className="h-[40px] px-3 bg-surface border border-border rounded-xl text-[14px] text-text font-medium focus:outline-none focus:border-primary shadow-card"
+          className="h-[40px] px-3 bg-surface border border-border rounded-card text-[14px] text-text font-medium focus:outline-none focus:border-primary shadow-card"
         />
       </div>
 

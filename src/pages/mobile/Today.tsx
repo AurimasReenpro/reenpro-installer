@@ -92,7 +92,7 @@ export default function Today() {
       </div>
 
       {/* iOS segmented control */}
-      <div className="mx-4 mt-5 mb-4 flex rounded-xl bg-surface-2 p-1">
+      <div className="mx-4 mt-5 mb-4 flex rounded-card bg-surface-2 p-1">
         <button
           onClick={() => setActiveTab('active')}
           className={`flex-1 py-2 text-[14px] font-semibold rounded-md transition-colors ${

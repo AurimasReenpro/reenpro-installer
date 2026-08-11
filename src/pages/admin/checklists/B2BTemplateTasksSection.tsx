@@ -29,7 +29,7 @@ export default function B2BTemplateTasksSection({
       </div>
 
       {groups.map((group) => (
-        <div key={group.categoryId ?? 'unassigned'} className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
+        <div key={group.categoryId ?? 'unassigned'} className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden">
           <div className="px-5 py-3.5 bg-surface-2 border-b border-border flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h4 className="text-[13px] font-bold text-text truncate">{group.label}</h4>

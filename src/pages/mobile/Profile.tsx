@@ -42,7 +42,7 @@ export default function Profile() {
       {/* Appearance — Light / Dark / System */}
       <div className="bg-surface rounded-[20px] p-4 shadow-card border border-border">
         <p className="text-xs font-semibold text-subtle uppercase tracking-wider mb-3">Išvaizda</p>
-        <div className="flex items-center gap-1 bg-surface-2 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-surface-2 rounded-card p-1">
           {THEME_OPTIONS.map(({ value, label, Icon }) => (
             <button
               key={value}

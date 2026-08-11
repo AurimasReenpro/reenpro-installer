@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useBranding } from '../../hooks/useBranding';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
+import reenproLogo from '../../assets/reenpro-baltas.svg';
 import { supabase } from '../../lib/supabase';
 import { useTheme, type ThemePreference } from '../../hooks/useTheme';
 import { motion } from 'framer-motion';
@@ -16,7 +17,6 @@ import {
   Coins,
   BarChart3,
   Upload,
-  Sun,
   LogOut,
   Search,
   MapPin,
@@ -171,11 +171,11 @@ export default function AdminLayout() {
   }, []);
 
   const navItems = [
-    { name: 'Dashboard', path: '/admin', icon: 'dashboard', end: true },
+    { name: 'Suvestinė', path: '/admin', icon: 'dashboard', end: true },
     { name: 'Objektai', path: '/admin/sites', icon: 'dataset', end: false },
     { name: 'Tvarkaraštis', path: '/admin/schedule', icon: 'schedule', end: false },
     { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false },
-    { name: 'Checklist\'ai', path: '/admin/checklists', icon: 'fact_check', end: false },
+    { name: 'Kontroliniai sąrašai', path: '/admin/checklists', icon: 'fact_check', end: false },
     { name: 'Įrangos katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
     { name: 'Atlyginimai', path: '/admin/payroll', icon: 'payments', end: false },
     { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false },
@@ -217,17 +217,18 @@ export default function AdminLayout() {
       <aside className="w-[240px] bg-nav border-r border-nav-border flex-shrink-0 flex flex-col justify-between py-6 h-full z-20">
         <div>
           {/* Logo */}
-          <div className="px-6 mb-8 flex items-center min-h-[48px]">
+          {/* Dizaino sistema: baltas logotipas, 160 px plotis, 24 px paraštės,
+              ant #1d033a fono. Logotipas pats neša prekės ženklą, todėl šalia
+              jo ember brūkšnio nėra — tik programėlės vardas po juo. */}
+          <div className="px-6 mb-8">
             {logoUrl ? (
-              <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-10 w-auto max-w-[180px] object-contain" />
+              <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-8 w-auto max-w-[160px] object-contain" />
             ) : (
-              <>
-                <Sun className="text-accent w-6 h-6 flex-shrink-0" fill="currentColor" />
-                <span className="text-nav-ink font-extrabold text-[18px] tracking-tight truncate ml-2">
-                  {companyName || 'InstallerApp'}
-                </span>
-              </>
+              <img src={reenproLogo} alt="Reenpro" className="w-[160px] h-auto" />
             )}
+            <p className="mt-2 text-[11px] font-medium uppercase tracking-[.14em] text-nav-muted">
+              Montuotojas
+            </p>
           </div>
           {/* Nav Items */}
           <nav className="px-3 flex flex-col gap-1">
@@ -252,7 +253,7 @@ export default function AdminLayout() {
                         }
                       })();
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium rounded-xl transition-colors ${item.className || ''} text-nav-muted hover:bg-nav-hover hover:text-nav-ink cursor-pointer text-left`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium rounded-card transition-colors ${item.className || ''} text-nav-muted hover:bg-nav-hover hover:text-nav-ink cursor-pointer text-left`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.name}</span>
@@ -274,7 +275,7 @@ export default function AdminLayout() {
                   to={item.path}
                   end={item.end}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-xl transition-all ${item.className || ''} ${
+                    `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-card transition-all ${item.className || ''} ${
                       isActive
                         ? 'bg-nav-hover text-nav-ink font-semibold'
                         : 'text-nav-muted font-medium hover:bg-nav-hover hover:text-nav-ink'
@@ -299,7 +300,7 @@ export default function AdminLayout() {
             to={settingsItem.path}
             end={settingsItem.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-xl transition-all ${
+              `flex items-center gap-3 px-3 py-2.5 text-[14px] rounded-card transition-all ${
                 isActive
                   ? 'bg-nav-hover text-nav-ink font-semibold'
                   : 'text-nav-muted font-medium hover:bg-nav-hover hover:text-nav-ink'
@@ -319,7 +320,7 @@ export default function AdminLayout() {
             <p className="text-[11px] font-bold text-nav-muted uppercase tracking-wider mb-1.5 ml-1">
               Išvaizda
             </p>
-            <div className="flex items-center gap-1 bg-nav-hover rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-nav-hover rounded-card p-1">
               {themeOptions.map(({ value, label, Icon }) => (
                 <button
                   key={value}
@@ -362,7 +363,7 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Top Bar */}
         <header className="h-[60px] bg-surface/80 backdrop-blur-xl flex items-center justify-between px-6 flex-shrink-0 z-10 border-b border-border">
-          <h2 className="text-[20px] font-extrabold tracking-tight text-text flex-shrink-0">Dashboard</h2>
+          <h2 className="text-[20px] font-extrabold tracking-tight text-text flex-shrink-0">Suvestinė</h2>
 
           {/* Global Spotlight search */}
           <div className="relative w-full max-w-md hidden md:block mx-4" ref={searchRef}>
@@ -372,11 +373,11 @@ export default function AdminLayout() {
               value={globalSearch}
               onChange={(e) => setGlobalSearch(e.target.value)}
               placeholder="Ieškoti objektų pagal pavadinimą, adresą ar ID..."
-              className="bg-surface-2 border border-border text-text placeholder-subtle rounded-xl pl-10 pr-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="bg-surface-2 border border-border text-text placeholder-subtle rounded-card pl-10 pr-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
 
             {globalSearch.trim().length > 1 && (
-              <div className="absolute top-full mt-2 w-full bg-surface rounded-2xl shadow-xl border border-border overflow-hidden z-50">
+              <div className="absolute top-full mt-2 w-full bg-surface rounded-card shadow-xl border border-border overflow-hidden z-50">
                 {searching ? (
                   <div className="px-4 py-6 text-center text-sm text-muted">Ieškoma…</div>
                 ) : searchResults.length === 0 ? (
@@ -427,7 +428,7 @@ export default function AdminLayout() {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-surface border border-border shadow-xl rounded-2xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 bg-surface border border-border shadow-xl rounded-card z-50 overflow-hidden">
                 <div className="flex items-center justify-between p-4 border-b border-border">
                   <span className="text-sm font-bold text-text">Pranešimai</span>
                   {notifications.length > 0 && (
@@ -451,9 +452,9 @@ export default function AdminLayout() {
                       <li key={`${n.id}-${i}`} className="flex items-start gap-3 p-4 hover:bg-surface-2 transition-colors">
                         <span className="mt-0.5 shrink-0">
                           {n.type === 'success' ? (
-                            <CheckCircle size={16} className="text-emerald-500" />
+                            <CheckCircle size={16} className="text-success" />
                           ) : (
-                            <PlayCircle size={16} className="text-blue-500" />
+                            <PlayCircle size={16} className="text-info" />
                           )}
                         </span>
                         <div className="min-w-0">

@@ -91,7 +91,7 @@ export default function EquipmentTab({
     <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-[16px] font-bold text-text dark:text-gray-100 flex items-center gap-2">
+        <h2 className="text-[16px] font-bold text-text flex items-center gap-2">
           <Package size={18} className="text-primary" />
           Komplektacija / Įranga
         </h2>
@@ -131,7 +131,7 @@ export default function EquipmentTab({
 
       {/* Info callout */}
       {!editing && (
-        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-text dark:text-gray-100">
+        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-text">
           <Info size={15} className="text-[#2563EB] flex-shrink-0 mt-0.5" />
           <span>
             <span className="font-semibold">Kategorija</span> automatiškai nustatoma pagal objekto tipą. Galima laisvai pridėti bet kokių papildomų komponentų.
@@ -190,7 +190,7 @@ export default function EquipmentTab({
                       <select
                         value={row.model}
                         onChange={(e) => updateRow(i, 'model', e.target.value)}
-                        className="w-full h-[38px] pl-3 pr-8 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
+                        className="w-full h-[38px] pl-3 pr-8 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer"
                       >
                         <option value="">— Pasirinkite —</option>
                         {(catalogByCategory[row.category] ?? []).map(c => (
@@ -210,9 +210,9 @@ export default function EquipmentTab({
                         placeholder="Pvz.: Huawei SUN2000 10kW"
                         onBlur={(e) => { if (e.target.value.trim()) updateRow(i, 'model', e.target.value.trim()); }}
                         onKeyDown={(e) => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) updateRow(i, 'model', v); } }}
-                        className="flex-1 h-[38px] px-3 bg-surface border-2 border-primary rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none"
+                        className="flex-1 h-[38px] px-3 bg-surface border-2 border-primary rounded-[8px] text-[13px] text-text focus:outline-none"
                       />
-                      <button onClick={() => updateRow(i, 'model', '')} className="h-[38px] px-2 text-subtle dark:text-subtle hover:text-red-500 transition-colors cursor-pointer">
+                      <button onClick={() => updateRow(i, 'model', '')} className="h-[38px] px-2 text-subtle dark:text-subtle hover:text-danger transition-colors cursor-pointer">
                         <X size={14} />
                       </button>
                     </div>
@@ -222,7 +222,7 @@ export default function EquipmentTab({
                       value={row.model}
                       onChange={(e) => updateRow(i, 'model', e.target.value)}
                       placeholder="Modelis / specifikacija"
-                      className="w-full h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      className="w-full h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
                   )}
                 </div>
@@ -233,7 +233,7 @@ export default function EquipmentTab({
                   min={1}
                   value={row.quantity}
                   onChange={(e) => updateRow(i, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-[38px] px-1 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-bold text-text dark:text-gray-100 focus:outline-none focus:border-primary text-center"
+                  className="h-[38px] px-1 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-bold text-text focus:outline-none focus:border-primary text-center"
                 />
 
                 {/* Unit */}
@@ -254,13 +254,13 @@ export default function EquipmentTab({
                   value={row.notes}
                   onChange={(e) => updateRow(i, 'notes', e.target.value)}
                   placeholder="Pastabos..."
-                  className="h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text dark:text-gray-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="h-[38px] px-3 bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
 
                 {/* Remove */}
                 <button
                   onClick={() => setRows(r => r.filter((_, idx) => idx !== i))}
-                  className="w-8 h-8 flex items-center justify-center text-subtle hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer rounded-[8px]"
+                  className="w-8 h-8 flex items-center justify-center text-subtle hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer rounded-[8px]"
                 >
                   <X size={15} />
                 </button>
@@ -284,7 +284,7 @@ export default function EquipmentTab({
                       className={`w-[120px] h-[36px] px-3 border rounded-[8px] text-[13px] font-semibold focus:outline-none ${
                         isDerived
                           ? 'bg-surface-2 border-border text-muted cursor-not-allowed'
-                          : 'bg-surface border-border dark:border-white/10 text-text dark:text-gray-100 focus:border-primary focus:ring-1 focus:ring-primary/20'
+                          : 'bg-surface border-border dark:border-white/10 text-text focus:border-primary focus:ring-1 focus:ring-primary/20'
                       }`}
                     />
                     {isDerived && battMatch?.capacity_kwh != null && (

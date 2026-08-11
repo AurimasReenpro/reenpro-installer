@@ -126,7 +126,7 @@ export default function BlueprintsTab({ siteId, categories }: BlueprintsTabProps
       {/* New category button */}
       <button
         onClick={() => { setCategoryName(''); setShowCategoryModal(true); }}
-        className="w-full h-12 rounded-2xl bg-primary text-white flex items-center justify-center gap-2 font-semibold text-sm shadow-sm active:scale-[0.99] transition-transform"
+        className="w-full h-12 rounded-card bg-primary text-white flex items-center justify-center gap-2 font-semibold text-sm shadow-sm active:scale-[0.99] transition-transform"
       >
         <Plus className="w-5 h-5" />
         Nauja kategorija
@@ -155,7 +155,7 @@ export default function BlueprintsTab({ siteId, categories }: BlueprintsTabProps
 
               <div className="p-3">
                 {file && isPreviewable(file.name) ? (
-                  <div className="group relative rounded-xl overflow-hidden border border-border bg-surface-2">
+                  <div className="group relative rounded-card overflow-hidden border border-border bg-surface-2">
                     {isPdf(file.name) ? (
                       <PdfPagePreview
                         url={file.url}
@@ -171,14 +171,14 @@ export default function BlueprintsTab({ siteId, categories }: BlueprintsTabProps
                         onClick={() => isPdf(file.name)
                           ? setLightboxPdf({ url: file.url, page: pageByCategory[category] ?? 1 })
                           : setLightboxUrl(file.url)}
-                        className="w-11 h-11 rounded-xl bg-white/90 text-primary flex items-center justify-center shadow-md active:scale-95 transition-all"
+                        className="w-11 h-11 rounded-card bg-white/90 text-primary flex items-center justify-center shadow-md active:scale-95 transition-all"
                         title="Padidinti"
                       >
                         <ZoomIn className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => setAnnotatingFile({ name: file.name, url: file.url, page: pageByCategory[category] ?? 1 })}
-                        className="h-11 px-4 rounded-xl bg-primary text-white flex items-center justify-center gap-2 font-semibold text-sm shadow-md active:scale-95 transition-all"
+                        className="h-11 px-4 rounded-card bg-primary text-white flex items-center justify-center gap-2 font-semibold text-sm shadow-md active:scale-95 transition-all"
                         title="Žymėti"
                       >
                         <Pencil className="w-4 h-4" />
@@ -190,7 +190,7 @@ export default function BlueprintsTab({ siteId, categories }: BlueprintsTabProps
                   <button
                     onClick={() => !busy && pickBlueprint(category)}
                     disabled={busy}
-                    className="w-full rounded-xl border-2 border-dashed border-border bg-surface-2 flex flex-col items-center justify-center gap-2 py-10 px-4 text-center active:bg-surface transition-colors disabled:opacity-70"
+                    className="w-full rounded-card border-2 border-dashed border-border bg-surface-2 flex flex-col items-center justify-center gap-2 py-10 px-4 text-center active:bg-surface transition-colors disabled:opacity-70"
                   >
                     {busy ? (
                       <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -256,20 +256,20 @@ export default function BlueprintsTab({ siteId, categories }: BlueprintsTabProps
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
                 placeholder="Pvz.: Vizualizacija"
                 autoFocus
-                className="w-full h-12 px-3 bg-surface-2 border border-border rounded-xl text-[15px] text-text focus:outline-none focus:border-primary"
+                className="w-full h-12 px-3 bg-surface-2 border border-border rounded-card text-[15px] text-text focus:outline-none focus:border-primary"
               />
             </div>
             <div className="px-5 pb-5 flex gap-3">
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="flex-1 h-12 font-semibold text-sm rounded-xl border border-border text-text active:bg-surface-2 transition-colors"
+                className="flex-1 h-12 font-semibold text-sm rounded-card border border-border text-text active:bg-surface-2 transition-colors"
               >
                 Atšaukti
               </button>
               <button
                 onClick={handleAddCategory}
                 disabled={!categoryName.trim() || addCategoryMutation.isPending}
-                className="flex-1 h-12 font-semibold text-sm rounded-xl bg-primary text-white flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform"
+                className="flex-1 h-12 font-semibold text-sm rounded-card bg-primary text-white flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform"
               >
                 {addCategoryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Pridėti

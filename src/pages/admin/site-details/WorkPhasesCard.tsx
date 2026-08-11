@@ -107,7 +107,7 @@ export default function WorkPhasesCard({ siteId, siteType }: { siteId: string; s
   };
 
   return (
-    <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+    <div className="bg-surface rounded-card border border-border shadow-sm p-5">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="font-semibold text-text text-[15px]">Darbų etapai</h3>
         {/* B2B phases come from SELECTED work categories (selector below), never
@@ -125,7 +125,7 @@ export default function WorkPhasesCard({ siteId, siteType }: { siteId: string; s
       </div>
 
       {isLoading ? (
-        <div className="h-20 rounded-xl bg-surface-2 animate-pulse" />
+        <div className="h-20 rounded-card bg-surface-2 animate-pulse" />
       ) : summary.length === 0 ? (
         <p className="text-[13px] text-subtle">Šiam B2B objektui darbų etapai dar nesukurti.</p>
       ) : (
@@ -135,7 +135,7 @@ export default function WorkPhasesCard({ siteId, siteType }: { siteId: string; s
             const draft = getDraft(phase);
             const canDelete = canHardDeletePhase(phase.entryCount);
             return (
-              <div key={phaseId ?? phase.label} className="rounded-xl border border-border bg-surface-2 p-3">
+              <div key={phaseId ?? phase.label} className="rounded-card border border-border bg-surface-2 p-3">
                 <div className="flex items-start gap-2">
                   <GripVertical className="mt-2 h-4 w-4 shrink-0 text-subtle" />
                   <div className="min-w-0 flex-1 space-y-2">

@@ -92,7 +92,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
       <div className="lg:col-span-2 space-y-5">
-        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+        <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="font-semibold text-text text-[15px]">Kliento informacija</h3>
             {!editingClient ? (
@@ -132,7 +132,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   value={clientForm.client_name}
                   onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
                   disabled={saveClientMutation.isPending}
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
               </div>
               <div>
@@ -143,7 +143,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Vardas Pavardė"
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -155,7 +155,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                     onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="+370 600 00000"
-                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                   />
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                     onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="vardas@imone.lt"
-                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -178,7 +178,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Pvz.: Vilniaus g. 1, Vilnius"
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
                 />
                 <p className="text-[12px] text-subtle italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
               </div>
@@ -194,7 +194,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
           )}
         </div>
 
-        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+        <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="font-semibold text-text text-[15px]">Techniniai duomenys</h3>
             <button
@@ -222,7 +222,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
       </div>
 
       <div className="lg:col-span-1 space-y-5">
-        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+        <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-text text-[15px] flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
@@ -241,7 +241,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
             value={siteType}
             onChange={(e) => setSiteType(e.target.value as SiteType)}
             disabled={saveSiteTypeMutation.isPending}
-            className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+            className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
           >
             {SITE_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -252,7 +252,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
           </p>
         </div>
 
-        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+        <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-text text-[15px]">Pastabos / komentarai</h3>
             <button
@@ -269,7 +269,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
             onChange={(e) => setLocalNotes(e.target.value)}
             placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
             rows={8}
-            className="w-full min-h-[180px] p-3.5 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+            className="w-full min-h-[180px] p-3.5 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
           />
         </div>
       </div>

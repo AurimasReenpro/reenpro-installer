@@ -94,7 +94,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   in_progress: { label: 'Vyksta',      color: 'text-[#10B981] bg-[#ECFDF5]' },
   paused:      { label: 'Pristabdyta', color: 'text-[#F59E0B] bg-[#FFFBEB]' },
   pending:     { label: 'Planuojama',  color: 'text-[#6B7280] bg-[#F3F4F6]' },
-  archived:    { label: 'Archyvuota',  color: 'text-zinc-500 bg-zinc-100' },
+  archived:    { label: 'Archyvuota',  color: 'text-subtle bg-surface-2' },
 };
 
 function SitePopup({ site }: { site: MapSite }) {

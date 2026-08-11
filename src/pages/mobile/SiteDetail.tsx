@@ -147,7 +147,7 @@ export default function SiteDetail() {
 
       {/* Completed → read-only notice */}
       {isReadOnly && (
-        <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-warning-bg border border-warning/30 px-3 py-2.5">
+        <div className="mx-4 mt-3 flex items-center gap-2 rounded-card bg-warning-bg border border-warning/30 px-3 py-2.5">
           <Lock size={14} className="text-warning shrink-0" />
           <span className="text-[13px] font-medium text-warning">Projektas užbaigtas arba archyvuotas. Redagavimas negalimas.</span>
         </div>

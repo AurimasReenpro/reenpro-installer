@@ -76,7 +76,7 @@ export default function CreateSiteModal({
       <div className="bg-surface dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-md border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10">
           <div className="min-w-0">
-            <h2 className="font-bold text-[16px] text-text dark:text-zinc-100 flex items-center gap-2">
+            <h2 className="font-bold text-[16px] text-text flex items-center gap-2">
               <ClipboardList size={17} className="text-primary" />
               Naujas objektas
             </h2>
@@ -105,7 +105,7 @@ export default function CreateSiteModal({
                 setB2bError(false);
               }}
               disabled={isCreating}
-              className="w-full h-[44px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60"
+              className="w-full h-[44px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60"
             >
               {SITE_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -132,7 +132,7 @@ export default function CreateSiteModal({
                         type="button"
                         onClick={() => toggleB2B(category.id)}
                         disabled={isCreating}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-60 ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-card border text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-60 ${
                           selected
                             ? 'bg-primary/10 border-primary text-primary dark:text-primary-ink'
                             : 'bg-surface-2 border-border text-muted hover:border-primary/40'
@@ -146,7 +146,7 @@ export default function CreateSiteModal({
                 </div>
               )}
               {b2bError && (
-                <p className="text-[12px] text-red-500 mt-1.5 font-medium">Pasirinkite bent vieną B2B darbą.</p>
+                <p className="text-[12px] text-danger mt-1.5 font-medium">Pasirinkite bent vieną B2B darbą.</p>
               )}
               <p className="text-[12px] text-subtle mt-1.5">
                 Pasirinkti darbai sukurs objekto etapus, checklist užduotis ir bus naudojami laiko fiksavimui.
@@ -161,7 +161,7 @@ export default function CreateSiteModal({
                 value={selectedChecklistCategory}
                 onChange={(event) => setChecklistCategory(event.target.value)}
                 disabled={isCreating || isLoading || groups.length === 0}
-                className="w-full h-[44px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60"
+                className="w-full h-[44px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60"
               >
                 <option value="">Be checklist šablono</option>
                 {groups.map((group) => (
@@ -185,14 +185,14 @@ export default function CreateSiteModal({
               type="button"
               onClick={onClose}
               disabled={isCreating}
-              className="flex-1 h-[42px] rounded-xl border border-border text-muted dark:text-subtle font-medium text-[14px] hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
+              className="flex-1 h-[42px] rounded-card border border-border text-muted dark:text-subtle font-medium text-[14px] hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
             >
               Atšaukti
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="flex-1 h-[42px] rounded-xl bg-primary text-white font-medium text-[14px] hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              className="flex-1 h-[42px] rounded-card bg-primary text-white font-medium text-[14px] hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
             >
               {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
               Sukurti

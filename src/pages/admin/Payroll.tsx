@@ -143,7 +143,7 @@ export default function Payroll() {
     if (ok) lock.mutate();
   };
 
-  const selectCls = 'h-[40px] rounded-xl border border-border bg-surface px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer';
+  const selectCls = 'h-[40px] rounded-card border border-border bg-surface px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
@@ -159,7 +159,7 @@ export default function Payroll() {
           <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${STATUS_CHIP[status].cls}`}>
             {isLocked && <Lock size={11} />} {STATUS_CHIP[status].label}
           </span>
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
+          <div className="flex items-center gap-1 rounded-card border border-border bg-surface p-1">
             <button onClick={() => shiftMonth(-1)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer" title="Ankstesnis mėnuo">
               <ChevronLeft size={16} />
             </button>
@@ -191,7 +191,7 @@ export default function Payroll() {
           <button
             onClick={() => recalc.mutate()} disabled={recalc.isPending || isLocked || rateCards.length === 0}
             title={isLocked ? 'Periodas užrakintas' : rateCards.length === 0 ? 'Pirma sukurkite tarifų kortelę' : undefined}
-            className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-surface px-4 text-[14px] font-medium text-text transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
+            className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-card border border-border bg-surface px-4 text-[14px] font-medium text-text transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
           >
             {recalc.isPending ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Perskaičiuoti
           </button>
@@ -199,13 +199,13 @@ export default function Payroll() {
             <button
               onClick={() => void handleLock()} disabled={lock.isPending || !periodId || snapshots.length === 0}
               title={!periodId || snapshots.length === 0 ? 'Pirma perskaičiuokite periodą' : undefined}
-              className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
+              className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-card bg-primary px-4 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
             >
               {lock.isPending ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />} Užrakinti periodą
             </button>
           )}
           <button disabled title="Bus įgyvendinta vėliau"
-            className="hidden h-[40px] items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-surface px-4 text-[14px] font-medium text-subtle opacity-50 cursor-not-allowed sm:flex">
+            className="hidden h-[40px] items-center gap-2 whitespace-nowrap rounded-card border border-border bg-surface px-4 text-[14px] font-medium text-subtle opacity-50 cursor-not-allowed sm:flex">
             <Download size={15} /> Eksportuoti XLSX
           </button>
         </div>
@@ -213,7 +213,7 @@ export default function Payroll() {
 
       {/* ── Locked banner ── */}
       {isLocked && (
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2/70 px-4 py-3">
+        <div className="flex items-start gap-3 rounded-card border border-border bg-surface-2/70 px-4 py-3">
           <Lock size={18} className="mt-0.5 shrink-0 text-muted" />
           <div>
             <p className="text-[13px] font-semibold text-text">Periodas užrakintas.</p>
@@ -223,13 +223,13 @@ export default function Payroll() {
       )}
 
       {/* ── Tabs ── */}
-      <div className="flex items-center gap-1 border-b border-zinc-200 dark:border-white/10">
+      <div className="flex items-center gap-1 border-b border-border dark:border-white/10">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`relative flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium transition-colors cursor-pointer ${active ? 'text-primary dark:text-primary-ink' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'}`}>
+              className={`relative flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium transition-colors cursor-pointer ${active ? 'text-primary dark:text-primary-ink' : 'text-subtle hover:text-text dark:hover:text-subtle'}`}>
               <Icon size={16} /> {t.label}
               {active && <motion.div layoutId="payroll-tab" className="absolute left-0 right-0 -bottom-px h-0.5 bg-primary dark:bg-primary" />}
             </button>
@@ -247,7 +247,7 @@ export default function Payroll() {
               icon={<Coins size={22} />}
               title="Įrašų nerasta."
               message="Šis mėnuo dar neperskaičiuotas. Pasirinkite tarifų kortelę ir paspauskite „Perskaičiuoti“."
-              className="rounded-2xl border border-border bg-surface"
+              className="rounded-card border border-border bg-surface"
             />
           ) : tab === 'objektai' ? (
             <ObjektaiTab periodId={periodId!} year={year} month={month} rateCardId={rateCardId} rateCards={rateCards} snapshots={snapshots} installers={installers} isLocked={isLocked} teamFilter={teamFilter} installerFilter={installerFilter} onChanged={invalidatePayroll} />
