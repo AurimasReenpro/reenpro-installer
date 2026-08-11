@@ -8,6 +8,38 @@ export interface ReportInstaller {
   full_name: string | null;
 }
 
+export type SiteWorkPhaseTimeRollup = {
+  site_id: string | null;
+  site_code: string | null;
+  client_name: string | null;
+  site_type: 'b2c' | 'b2b' | 'service' | null;
+  kwp: number | null;
+  work_phase_id: string | null;
+  work_phase_code: string | null;
+  work_phase_label: string | null;
+  work_phase_sort_order: number | null;
+  work_phase_is_active: boolean | null;
+  entry_count: number | null;
+  open_entry_count: number | null;
+  total_hours: number | null;
+  hours_per_kwp: number | null;
+};
+
+export type SiteChecklistPhaseStatusRollup = {
+  site_id: string | null;
+  site_type: 'b2c' | 'b2b' | 'service' | null;
+  kwp: number | null;
+  work_phase_id: string | null;
+  work_phase_code: string | null;
+  work_phase_label: string | null;
+  work_phase_sort_order: number | null;
+  checklist_item_count: number | null;
+  completed_item_count: number | null;
+  missing_photo_item_count: number | null;
+  total_logged_hours: number | null;
+  logged_hours_per_kwp: number | null;
+};
+
 function localMonthBounds(year: number, month: number) {
   return {
     start: new Date(year, month - 1, 1).toISOString(),
@@ -58,6 +90,27 @@ export async function getReportInstallers(): Promise<ReportInstaller[]> {
     .select('id, full_name')
     .in('role', ['installer', 'admin'])
     .order('full_name', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getSiteWorkPhaseTimeRollup(): Promise<SiteWorkPhaseTimeRollup[]> {
+  const { data, error } = await supabase
+    .from('site_work_phase_time_v')
+    .select('*')
+    .order('site_code', { ascending: true })
+    .order('work_phase_sort_order', { ascending: true, nullsFirst: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getSiteChecklistPhaseStatusRollup(): Promise<SiteChecklistPhaseStatusRollup[]> {
+  const { data, error } = await supabase
+    .from('site_checklist_phase_status_v')
+    .select('*')
+    .order('work_phase_sort_order', { ascending: true, nullsFirst: false });
+
   if (error) throw error;
   return data ?? [];
 }

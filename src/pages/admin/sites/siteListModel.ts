@@ -1,6 +1,7 @@
 import { parseEquipmentDetails, isBatteryCategory } from '../../../types/equipment.types';
 import type { EquipmentItem } from '../../../types/equipment.types';
 import type { RawSiteListItem } from '../../../api/sites';
+import type { SiteType } from '../../../lib/siteTypes';
 
 // ── Warnings ──────────────────────────────────────────────────────────────────
 export type SiteWarning = 'no_team' | 'late' | 'no_address' | 'no_time' | 'checklist_fail' | 'long_work';
@@ -126,6 +127,7 @@ export interface SiteListRow {
   status: string | null;
   scheduled_start: string | null;
   system_type: string | null;
+  site_type: SiteType;
   kwp: number | null;
   team_id: string | null;
   teamName: string | null;
@@ -152,6 +154,7 @@ export function buildSiteRow(item: RawSiteListItem, nowMs: number): SiteListRow 
     status: item.status,
     scheduled_start: item.scheduled_start,
     system_type: item.system_type,
+    site_type: item.site_type,
     kwp: item.kwp,
     team_id: item.team_id,
     teamName: item.team?.name ?? null,

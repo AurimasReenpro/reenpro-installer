@@ -125,7 +125,19 @@ export default function ChecklistItemRow({
   siteId,
   installerPhotos = [],
 }: {
-  item: { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean; is_extra?: boolean };
+  item: {
+    id: string;
+    question_text: string;
+    category: string | null;
+    phase: string | null;
+    status: ItemStatus;
+    photo_url: string | null;
+    comment: string | null;
+    is_required: boolean;
+    is_extra?: boolean;
+    requires_photo?: boolean | null;
+    min_photo_count?: number | null;
+  };
   siteId: string;
   /** Photos from the `photos` table whose storage_path maps to this item (durable record). */
   installerPhotos?: InstallerPhoto[];
@@ -153,6 +165,11 @@ export default function ChecklistItemRow({
           {item.is_extra && (
             <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20 align-middle">
               PAPILDOMAS DARBAS
+            </span>
+          )}
+          {item.requires_photo && (
+            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FFFBEB] text-[#D97706] border border-[#D97706]/20 align-middle">
+              Reikia nuotraukos{item.min_photo_count && item.min_photo_count > 1 ? ` ${item.min_photo_count}` : ''}
             </span>
           )}
         </span>

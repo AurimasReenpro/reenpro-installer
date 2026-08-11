@@ -74,6 +74,7 @@ export function useExtraWorks(
       installer_id: profileId!,
       storage_path: filePath,
       section_name: 'Papildomi darbai',
+      site_checklist_item_id: itemId,
     });
     if (dbErr) {
       void supabase.storage.from('site-photos').remove([filePath]);

@@ -3,20 +3,53 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Loader2, Plus, ClipboardList, ListChecks, AlertTriangle, Package, X } from 'lucide-react';
+import { Loader2, Plus, ClipboardList, ListChecks, AlertTriangle, Package, X, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
-import { getSiteChecklistSession, assignChecklistToSite, getSiteInstallerPhotos } from '../../../api/sites';
+import {
+  getSiteChecklistSession,
+  assignChecklistToSite,
+  getSiteInstallerPhotos,
+  getChecklistTemplateGroupsForSiteType,
+} from '../../../api/sites';
+import { normalizeSiteType, siteTypeLabel, type SiteType } from '../../../lib/siteTypes';
+import {
+  deleteSiteWorkPhase,
+  getSitePhaseTimeSummary,
+  getSiteWorkPhases,
+  updateSiteWorkPhase,
+} from '../../../api/workPhases';
+import {
+  buildChecklistWorkCardSummaries,
+} from '../../../lib/checklistTemplatePhases';
+import { canHardDeletePhase } from '../../../lib/workPhases';
 import ChecklistItemRow from './ChecklistItemRow';
 import type { ItemStatus } from './types';
 
-export default function ChecklistTab({ siteId }: { siteId: string }) {
+type ChecklistRowItem = {
+  id: string;
+  question_text: string;
+  category: string | null;
+  phase: string | null;
+  status: ItemStatus;
+  photo_url: string | null;
+  comment: string | null;
+  is_required: boolean;
+  is_extra?: boolean;
+  requires_photo?: boolean | null;
+  min_photo_count?: number | null;
+  work_phase_id?: string | null;
+};
+
+export default function ChecklistTab({ siteId, siteType }: { siteId: string; siteType?: SiteType | null }) {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState('');
+  const normalizedSiteType = normalizeSiteType(siteType);
 
   // ── Add custom item state ────────────────────────────────────────────────
   const [showAddItem,    setShowAddItem]    = useState(false);
   const [newItemText,    setNewItemText]    = useState('');
   const [newItemRequired, setNewItemRequired] = useState(true);
+  const [phaseDrafts, setPhaseDrafts] = useState<Record<string, { label: string; sort_order: string; is_active: boolean }>>({});
 
   // Fetch checklist session
   const { data: session, isLoading } = useQuery({
@@ -33,7 +66,7 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
     enabled: !!siteId,
   });
   const photosForItem = (itemId: string) =>
-    (installerPhotos ?? []).filter(p => p.storage_path.includes(`/${itemId}/`));
+    (installerPhotos ?? []).filter(p => p.site_checklist_item_id === itemId || p.storage_path.includes(`/${itemId}/`));
 
   // Installer-logged extra materials for this site. Shares the SAME query key +
   // select as the Equipment tab's billing query so React Query serves both tabs
@@ -52,18 +85,61 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
     enabled: !!siteId,
   });
 
-  // Fetch categories for assignment dropdown
-  const { data: categories } = useQuery({
-    queryKey: ['checklist_categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('checklist_categories')
-        .select('*')
-        .order('name', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
+  // Fetch matching checklist template groups for assignment dropdown.
+  const { data: checklistGroups } = useQuery({
+    queryKey: ['checklist_template_groups', normalizedSiteType],
+    queryFn: () => getChecklistTemplateGroupsForSiteType(normalizedSiteType),
     enabled: !session,
+  });
+
+  const { data: workPhases = [] } = useQuery({
+    queryKey: ['site_work_phases', siteId, 'checklist'],
+    queryFn: () => getSiteWorkPhases(siteId),
+    enabled: normalizedSiteType === 'b2b',
+  });
+
+  const { data: phaseTimeSummary = [] } = useQuery({
+    queryKey: ['site_phase_time_summary', siteId],
+    queryFn: () => getSitePhaseTimeSummary(siteId),
+    enabled: normalizedSiteType === 'b2b',
+  });
+
+  const invalidatePhaseData = () => {
+    void queryClient.invalidateQueries({ queryKey: ['site_work_phases', siteId, 'checklist'] });
+    void queryClient.invalidateQueries({ queryKey: ['site_work_phases', siteId] });
+    void queryClient.invalidateQueries({ queryKey: ['site_phase_time_summary', siteId] });
+  };
+
+  const savePhaseMutation = useMutation({
+    mutationFn: (phaseId: string) => {
+      const draft = phaseDrafts[phaseId];
+      if (!draft) return Promise.resolve();
+      return updateSiteWorkPhase(phaseId, {
+        label: draft.label.trim(),
+        sort_order: Number(draft.sort_order) || 0,
+        is_active: draft.is_active,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Darbas išsaugotas.');
+      invalidatePhaseData();
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Nepavyko išsaugoti darbo.'),
+  });
+
+  const deletePhaseMutation = useMutation({
+    mutationFn: deleteSiteWorkPhase,
+    onSuccess: () => {
+      toast.success('Darbas ištrintas.');
+      invalidatePhaseData();
+    },
+    onError: (err: unknown) => {
+      if (err instanceof Error && err.message === 'PHASE_HAS_TIME_ENTRIES') {
+        toast.error('Darbas turi laiko įrašų. Jį galima tik deaktyvuoti.');
+        return;
+      }
+      toast.error(err instanceof Error ? err.message : 'Nepavyko ištrinti darbo.');
+    },
   });
 
   const assignMutation = useMutation({
@@ -86,6 +162,8 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
           site_checklist_id: session.id,
           question_text:     newItemText.trim(),
           is_required:       newItemRequired,
+          requires_photo:    newItemRequired,
+          min_photo_count:   newItemRequired ? 1 : 0,
           status:            'pending',
           category:          'Papildomi darbai',
           phase:             null,
@@ -113,15 +191,166 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
   }
 
   // ── No session: show assignment UI ───────────────────────────────────────
+  const items = session?.items ?? [];
+  const b2bWorkCards = normalizedSiteType === 'b2b'
+    ? buildChecklistWorkCardSummaries(items, workPhases, installerPhotos ?? [], phaseTimeSummary)
+    : [];
+
+  const getPhaseDraft = (card: (typeof b2bWorkCards)[number]) => {
+    const phaseId = card.phaseId ?? '';
+    return phaseDrafts[phaseId] ?? {
+      label: card.label,
+      sort_order: String(card.sortOrder === Number.MAX_SAFE_INTEGER ? 0 : card.sortOrder),
+      is_active: card.isActive,
+    };
+  };
+
+  const updatePhaseDraft = (
+    card: (typeof b2bWorkCards)[number],
+    patch: Partial<{ label: string; sort_order: string; is_active: boolean }>,
+  ) => {
+    if (!card.phaseId) return;
+    setPhaseDrafts((current) => ({
+      ...current,
+      [card.phaseId!]: {
+        ...getPhaseDraft(card),
+        ...patch,
+      },
+    }));
+  };
+
+  const renderB2BWorkCards = () => {
+    if (normalizedSiteType !== 'b2b') return null;
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[15px] font-bold text-text dark:text-gray-100">Darbai</h3>
+          <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{b2bWorkCards.length}</span>
+        </div>
+
+        {b2bWorkCards.length === 0 ? (
+          <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-5">
+            <p className="text-[13px] text-subtle dark:text-subtle">Šiam objektui darbų etapai nesukurti.</p>
+          </div>
+        ) : b2bWorkCards.map((card) => {
+          const draft = getPhaseDraft(card);
+          const canEditPhase = !!card.phaseId;
+          const canDeletePhase = canEditPhase && canHardDeletePhase(card.entryCount);
+
+          return (
+            <div key={card.phaseId ?? 'unassigned'} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 bg-surface-2/70 border-b border-border/20 dark:border-white/10 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  {canEditPhase ? (
+                    <div className="flex-1 grid grid-cols-[minmax(0,1fr)_88px] gap-2">
+                      <input
+                        value={draft.label}
+                        onChange={(event) => updatePhaseDraft(card, { label: event.target.value })}
+                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text dark:text-gray-100 focus:outline-none focus:border-primary"
+                        aria-label="Darbo pavadinimas"
+                      />
+                      <input
+                        type="number"
+                        value={draft.sort_order}
+                        onChange={(event) => updatePhaseDraft(card, { sort_order: event.target.value })}
+                        className="h-[36px] px-3 bg-surface dark:bg-surface border border-border dark:border-white/10 rounded-[8px] text-[13px] font-semibold text-text dark:text-gray-100 focus:outline-none focus:border-primary"
+                        aria-label="Eilė"
+                      />
+                    </div>
+                  ) : (
+                    <h4 className="text-[14px] font-bold text-text dark:text-gray-100">{card.label}</h4>
+                  )}
+
+                  {canEditPhase && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => savePhaseMutation.mutate(card.phaseId!)}
+                        disabled={savePhaseMutation.isPending || !draft.label.trim()}
+                        title="Išsaugoti"
+                        className="w-9 h-9 rounded-[8px] bg-surface dark:bg-surface border border-border/40 dark:border-white/10 text-primary hover:border-primary/40 transition-colors disabled:opacity-50 flex items-center justify-center cursor-pointer"
+                      >
+                        {savePhaseMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deletePhaseMutation.mutate(card.phaseId!)}
+                        disabled={!canDeletePhase || deletePhaseMutation.isPending}
+                        title={canDeletePhase ? 'Ištrinti' : 'Negalima ištrinti, nes yra laiko įrašų'}
+                        className="w-9 h-9 rounded-[8px] bg-surface dark:bg-surface border border-border/40 dark:border-white/10 text-[#DC2626] hover:border-[#DC2626]/40 transition-colors disabled:opacity-40 flex items-center justify-center cursor-pointer"
+                      >
+                        {deletePhaseMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[6px] border ${card.isActive ? 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20' : 'bg-surface dark:bg-surface text-subtle dark:text-subtle border-border/50 dark:border-white/10'}`}>
+                      {card.isActive ? 'Aktyvus' : 'Neaktyvus'}
+                    </span>
+                    {canEditPhase && (
+                      <label className="flex items-center gap-2 text-[12px] font-semibold text-subtle dark:text-subtle cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={draft.is_active}
+                          onChange={(event) => updatePhaseDraft(card, { is_active: event.target.checked })}
+                          className="w-4 h-4 accent-primary cursor-pointer"
+                        />
+                        Aktyvus
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap text-[12px] font-semibold text-subtle dark:text-subtle">
+                    <span>Valandos: {card.totalHours.toFixed(1)} h</span>
+                    {card.openEntryCount > 0 && <span>{card.openEntryCount} aktyvu</span>}
+                    <span>Atlikta: {card.completedCount}/{card.totalCount}</span>
+                    {card.missingPhotoCount > 0 && <span className="text-[#DC2626]">Trūksta nuotraukų: {card.missingPhotoCount}</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider">Užduotys</h4>
+                  <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{card.items.length}</span>
+                </div>
+                {card.items.length > 0 ? (
+                  <div className="space-y-2">
+                    {card.items.map(item => (
+                      <ChecklistItemRow
+                        key={item.id}
+                        item={item as ChecklistRowItem}
+                        siteId={siteId}
+                        installerPhotos={photosForItem(item.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-subtle dark:text-subtle italic">Užduočių nėra.</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (!session) {
     return (
+      <div className="space-y-5">
+      {renderB2BWorkCards()}
       <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm p-8 flex flex-col items-center gap-5">
         <div className="w-16 h-16 rounded-[16px] bg-surface-2 dark:bg-surface-2 flex items-center justify-center border border-border/30 dark:border-white/10">
           <ClipboardList size={32} className="text-subtle" />
         </div>
         <div className="text-center">
           <p className="font-bold text-[16px] text-text dark:text-gray-100 mb-1">Checklist nepriskirtas</p>
-          <p className="text-[13px] text-subtle dark:text-subtle">Priskirk šablono kategoriją, kad sukurtum šio objekto QC sesiją.</p>
+          <p className="text-[13px] text-subtle dark:text-subtle">Priskirk {siteTypeLabel(normalizedSiteType)} checklist šabloną, kad sukurtum šio objekto QC sesiją.</p>
         </div>
         <div className="w-full max-w-sm flex gap-2">
           <select
@@ -129,9 +358,9 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
             onChange={e => setSelectedCategory(e.target.value)}
             className="flex-1 h-[44px] px-3 bg-surface-2 dark:bg-surface-2 border border-border dark:border-white/10 rounded-[8px] text-[14px] text-text dark:text-gray-100 focus:outline-none focus:border-primary"
           >
-            <option value="">-- Pasirinkti kategoriją --</option>
-            {categories?.map(cat => (
-              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            <option value="">-- Pasirinkti šabloną --</option>
+            {checklistGroups?.map(group => (
+              <option key={group.category} value={group.category}>{group.label} ({group.itemCount})</option>
             ))}
           </select>
           <button
@@ -144,11 +373,11 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
           </button>
         </div>
       </div>
+      </div>
     );
   }
 
   // ── Session exists: show QC dashboard ────────────────────────────────────
-  const items = session.items ?? [];
   const total = items.length;
   const passed = items.filter(i => i.status === 'pass').length;
   const failed = items.filter(i => i.status === 'fail').length;
@@ -163,7 +392,6 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
     acc[key].push(item);
     return acc;
   }, {});
-
   const SESSION_STATUS: Record<'pending' | 'in_progress' | 'completed', { label: string; className: string }> = {
     pending:     { label: 'Laukia',      className: 'bg-surface-2 dark:bg-surface-2 text-subtle dark:text-subtle border-border/50 dark:border-white/10' },
     in_progress: { label: 'Vykdoma',     className: 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]/20' },
@@ -237,24 +465,26 @@ export default function ChecklistTab({ siteId }: { siteId: string }) {
       </div>
 
       {/* Grouped items */}
-      {Object.entries(grouped).map(([category, groupItems]) => {
-        const groupPassed = groupItems.filter(i => i.status === 'pass').length;
-        const groupTotal = groupItems.length;
-        return (
-          <div key={category} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
-            {/* Group header */}
-            <div className="px-5 py-3.5 bg-surface-2/70 border-b border-border/20 dark:border-white/10 flex items-center justify-between">
-              <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider">{category}</h4>
-              <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{groupPassed}/{groupTotal}</span>
+      {normalizedSiteType === 'b2b'
+        ? renderB2BWorkCards()
+        : Object.entries(grouped).map(([category, groupItems]) => {
+          const groupPassed = groupItems.filter(i => i.status === 'pass').length;
+          const groupTotal = groupItems.length;
+          return (
+            <div key={category} className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
+              {/* Group header */}
+              <div className="px-5 py-3.5 bg-surface-2/70 border-b border-border/20 dark:border-white/10 flex items-center justify-between">
+                <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider">{category}</h4>
+                <span className="text-[12px] font-semibold text-subtle dark:text-subtle">{groupPassed}/{groupTotal}</span>
+              </div>
+              <div className="p-4 space-y-2">
+                {groupItems.map(item => (
+                  <ChecklistItemRow key={item.id} item={item as ChecklistRowItem} siteId={siteId} installerPhotos={photosForItem(item.id)} />
+                ))}
+              </div>
             </div>
-            <div className="p-4 space-y-2">
-              {groupItems.map(item => (
-                <ChecklistItemRow key={item.id} item={item as { id: string; question_text: string; category: string | null; phase: string | null; status: ItemStatus; photo_url: string | null; comment: string | null; is_required: boolean; is_extra?: boolean }} siteId={siteId} installerPhotos={photosForItem(item.id)} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
       {/* Installer-logged extra materials */}
       {extraMaterials && extraMaterials.length > 0 && (

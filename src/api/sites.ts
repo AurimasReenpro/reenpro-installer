@@ -4,6 +4,15 @@ import type { Database } from '../types/database.types';
 import type { EquipmentItem } from '../types/equipment.types';
 import { isBatteryCategory } from '../types/equipment.types';
 import { INSTALLER_VISIBLE_SITE_STATUS_FILTER } from '../lib/siteStatus';
+import {
+  buildSiteTypeUpdate,
+  groupChecklistTemplatesForSiteType,
+  normalizeChecklistCategory,
+  normalizeSiteType,
+  type ChecklistTemplateGroup,
+  type SiteType,
+} from '../lib/siteTypes';
+import { normalizePhotoRequirement } from '../lib/checklistTemplatePhases';
 
 // ── Nominatim geocoding ───────────────────────────────────────────────────────
 interface NominatimResult { lat: string; lon: string; }
@@ -132,7 +141,13 @@ export async function updateSiteDetails(
 }
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
-const BUCKET = 'site_files';
+/**
+ * Canonical storage bucket for admin site files, blueprints and annotation
+ * attachments. Single source of truth — never hardcode the bucket name
+ * (underscore spelling; a stray hyphen variant once broke delete-safety).
+ */
+export const SITE_FILES_BUCKET = 'site_files';
+const BUCKET = SITE_FILES_BUCKET;
 
 export async function uploadSiteFile(siteId: string, file: File): Promise<void> {
   const path = `${siteId}/${file.name}`;
@@ -349,10 +364,11 @@ export async function deleteSiteFile(siteId: string, fileName: string): Promise<
 export type InstallerSite = Pick<
   Database['public']['Tables']['sites']['Row'],
   'id' | 'code' | 'status' | 'client_name' | 'address' | 'scheduled_start' | 'actual_start' | 'kwp' | 'kwh'
+  | 'site_type'
 >;
 
 const INSTALLER_SITE_COLUMNS =
-  'id, code, status, client_name, address, scheduled_start, actual_start, kwp, kwh';
+  'id, code, status, client_name, address, scheduled_start, actual_start, kwp, kwh, site_type';
 
 export async function getInstallerSites(
   installerId: string,
@@ -408,40 +424,154 @@ export async function getSiteChecklistSession(siteId: string): Promise<SiteCheck
   return data;
 }
 
+export async function getChecklistTemplateGroupsForSiteType(
+  siteType: SiteType,
+): Promise<ChecklistTemplateGroup[]> {
+  const { data, error } = await supabase
+    .from('checklist_templates')
+    .select('id, category, phase, requires_photo')
+    .order('phase', { ascending: true })
+    .order('name', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return groupChecklistTemplatesForSiteType(data ?? [], siteType);
+}
+
+type ChecklistTemplatePhaseRow = Database['public']['Tables']['checklist_template_work_phases']['Row'];
+type ChecklistTemplateRow = Database['public']['Tables']['checklist_templates']['Row'];
+
+async function getChecklistTemplateWorkPhasesForCategory(
+  category: string,
+  options: { activeOnly?: boolean } = {},
+): Promise<ChecklistTemplatePhaseRow[]> {
+  let query = supabase
+    .from('checklist_template_work_phases')
+    .select('*')
+    .ilike('category', category)
+    .order('sort_order', { ascending: true })
+    .order('label', { ascending: true });
+
+  if (options.activeOnly) query = query.eq('is_active', true);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+async function getSiteType(siteId: string): Promise<SiteType> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select('site_type')
+    .eq('id', siteId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return normalizeSiteType(data?.site_type);
+}
+
+async function createSiteWorkPhasesFromTemplate(
+  siteId: string,
+  category: string,
+): Promise<Map<string, string>> {
+  const templatePhases = await getChecklistTemplateWorkPhasesForCategory(category, { activeOnly: true });
+  if (templatePhases.length === 0) return new Map();
+
+  const { error: upsertError } = await supabase
+    .from('site_work_phases')
+    .upsert(
+      templatePhases.map((phase) => ({
+        site_id: siteId,
+        code: phase.code,
+        label: phase.label,
+        sort_order: phase.sort_order,
+        is_active: true,
+      })),
+      { onConflict: 'site_id,code', ignoreDuplicates: true },
+    );
+
+  if (upsertError) throw new Error(upsertError.message);
+
+  const { data: sitePhases, error: phasesError } = await supabase
+    .from('site_work_phases')
+    .select('id, code')
+    .eq('site_id', siteId)
+    .in('code', templatePhases.map((phase) => phase.code));
+
+  if (phasesError) throw new Error(phasesError.message);
+
+  const sitePhaseIdByCode = new Map((sitePhases ?? []).map((phase) => [phase.code, phase.id]));
+  return new Map(
+    templatePhases
+      .map((phase) => [phase.id, sitePhaseIdByCode.get(phase.code)] as const)
+      .filter((entry): entry is readonly [string, string] => !!entry[1]),
+  );
+}
+
 /** Assign a checklist template category to a site that has no session yet. */
 export async function assignChecklistToSite(
   siteId: string,
   category: string,
 ): Promise<void> {
-  // Fetch all template items for this category
+  const requestedCategory = category.trim();
+  if (!requestedCategory) throw new Error('Pasirinkite checklist šabloną.');
+
+  const { data: existing, error: existingErr } = await supabase
+    .from('site_checklists')
+    .select('id')
+    .eq('site_id', siteId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingErr) throw new Error(existingErr.message);
+  if (existing) return;
+
+  const siteType = await getSiteType(siteId);
+
+  // Fetch all template items for this category.
   const { data: templates, error: tplErr } = await supabase
     .from('checklist_templates')
     .select('*')
-    .eq('category', category)
     .order('phase', { ascending: true })
     .order('name', { ascending: true });
 
   if (tplErr) throw new Error(tplErr.message);
+  const matchingTemplates = (templates ?? []).filter(
+    (template) => normalizeChecklistCategory(template.category) === normalizeChecklistCategory(requestedCategory),
+  );
+  if (matchingTemplates.length === 0) throw new Error('Šablonų kategorijoje nėra elementų.');
   if (!templates || templates.length === 0) throw new Error('Šablonų kategorijoje nėra elementų.');
+
+  const workPhaseIdByTemplatePhaseId =
+    siteType === 'b2b'
+      ? await createSiteWorkPhasesFromTemplate(siteId, requestedCategory)
+      : new Map<string, string>();
 
   // Create the session
   const { data: session, error: sessionErr } = await supabase
     .from('site_checklists')
-    .insert({ site_id: siteId, status: 'pending' })
+    .insert({ site_id: siteId, status: 'pending', template_id: matchingTemplates[0]?.id ?? null })
     .select()
     .single();
 
   if (sessionErr) throw new Error(sessionErr.message);
 
   // Snapshot items
-  const items = templates.map(t => ({
-    site_checklist_id: session.id,
-    question_text: t.name,
-    category: t.category ?? null,
-    phase: t.phase ?? null,
-    is_required: t.requires_photo ?? false,
-    status: 'pending' as const,
-  }));
+  const items = matchingTemplates.map((t: ChecklistTemplateRow) => {
+    const photoRequirement = normalizePhotoRequirement(t.requires_photo, t.min_photo_count);
+    return {
+      site_checklist_id: session.id,
+      question_text: t.name,
+      category: t.category ?? null,
+      phase: t.phase ?? null,
+      is_required: t.is_required ?? true,
+      requires_photo: photoRequirement.requiresPhoto,
+      min_photo_count: photoRequirement.minPhotoCount,
+      work_phase_id: t.template_work_phase_id
+        ? workPhaseIdByTemplatePhaseId.get(t.template_work_phase_id) ?? null
+        : null,
+      status: 'pending' as const,
+    };
+  });
 
   const { error: itemsErr } = await supabase
     .from('site_checklist_items')
@@ -458,6 +588,7 @@ export interface InstallerPhoto {
   signedUrl: string;
   created_at: string;
   section_name: string | null;
+  site_checklist_item_id: string | null;
 }
 
 /**
@@ -467,7 +598,7 @@ export interface InstallerPhoto {
 export async function getSiteInstallerPhotos(siteId: string): Promise<InstallerPhoto[]> {
   const { data, error } = await supabase
     .from('photos')
-    .select('id, storage_path, created_at, section_name')
+    .select('id, storage_path, created_at, section_name, site_checklist_item_id')
     .eq('site_id', siteId)
     .order('created_at', { ascending: false });
 
@@ -487,6 +618,7 @@ export async function getSiteInstallerPhotos(siteId: string): Promise<InstallerP
     signedUrl: signed?.[i]?.signedUrl ?? '',
     created_at: p.created_at ?? '',
     section_name: p.section_name ?? null,
+    site_checklist_item_id: p.site_checklist_item_id ?? null,
   }));
 }
 
@@ -519,6 +651,15 @@ export async function updateClientInfo(
 }
 
 // ── Update technical data ──────────────────────────────────────────────────────
+export async function updateSiteType(id: string, siteType: SiteType): Promise<void> {
+  const { error } = await supabase
+    .from('sites')
+    .update(buildSiteTypeUpdate(siteType))
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function updateTechData(
   id: string,
   data: {
@@ -562,6 +703,7 @@ export interface RawSiteListItem {
   actual_start: string | null;
   actual_end: string | null;
   system_type: string | null;
+  site_type: SiteType;
   kwp: number | null;
   kwh: number | null;
   equipment_details: unknown;
@@ -584,7 +726,7 @@ export async function getSitesList(): Promise<RawSiteListItem[]> {
     .from('sites')
     .select(
       'id, code, client_name, address, status, scheduled_start, actual_start, actual_end, ' +
-        'system_type, kwp, kwh, equipment_details, team_id, created_at, ' +
+        'system_type, site_type, kwp, kwh, equipment_details, team_id, created_at, ' +
         'team:teams(name), ' +
         'site_checklists(id, site_checklist_items(status)), ' +
         'time_entries(duration_minutes, start_time, end_time, installer_id), ' +
@@ -637,10 +779,12 @@ export async function getSiteDeletionBlockers(siteId: string): Promise<SiteDelet
     (n, c) => n + ((c.site_checklist_items as { id: string }[] | null)?.length ?? 0),
     0,
   );
-  // Storage files (site-files bucket, prefixed by site id).
+  // Storage files (SITE_FILES_BUCKET, prefixed by site id). A previous hyphen
+  // spelling here pointed at a nonexistent bucket and silently returned 0,
+  // so files never blocked deletion — always use the canonical constant.
   let files = 0;
   try {
-    const { data: list } = await supabase.storage.from('site-files').list(siteId, { limit: 1 });
+    const { data: list } = await supabase.storage.from(SITE_FILES_BUCKET).list(siteId, { limit: 1 });
     files = list?.length ?? 0;
   } catch { /* bucket optional */ }
 

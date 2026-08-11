@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { startWork, pauseWork, completeWork, resumeWork, QcFailedError } from '../api/timeTracking';
+import {
+  startTimeEntry,
+  pauseWork,
+  completeWork,
+  QcFailedError,
+  WorkPhaseRequiredError,
+  WorkPhaseUnavailableError,
+} from '../api/timeTracking';
 import { getCurrentPositionWithTimeout } from '../lib/geolocation';
 import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +20,7 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
 
-  const handleCheckIn = async () => {
+  const handleCheckIn = async (workPhaseId?: string | null) => {
     if (!profileId || !siteId) return;
     
     setIsCheckingIn(true);
@@ -24,7 +31,7 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
       } catch (geoError) {
         console.warn('Check-in geolocation warning:', geoError);
       }
-      await startWork(siteId, pos?.lat, pos?.lng);
+      await startTimeEntry(siteId, profileId, workPhaseId, pos?.lat, pos?.lng);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
@@ -36,13 +43,15 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
     } catch (error) {
       console.error('Check-in error:', error);
       Sentry.captureException(error, { extra: { context: 'Check-in error:' } });
-      toast.error('Klaida pradedant darbą.');
+      if (error instanceof WorkPhaseRequiredError) toast.error('Pasirinkite atliekamą darbą.');
+      else if (error instanceof WorkPhaseUnavailableError) toast.error('Šiam objektui darbų etapai nesukurti arba pasirinktas etapas neaktyvus.');
+      else toast.error('Klaida pradedant darbą.');
     } finally {
       setIsCheckingIn(false);
     }
   };
 
-  const handleResume = async () => {
+  const handleResume = async (workPhaseId?: string | null) => {
     if (!profileId || !siteId || isActionPending) return;
     setIsActionPending(true);
     try {
@@ -52,7 +61,7 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
       } catch (geoError) {
         console.warn('Resume geolocation warning:', geoError);
       }
-      await resumeWork(siteId, pos?.lat, pos?.lng);
+      await startTimeEntry(siteId, profileId, workPhaseId, pos?.lat, pos?.lng);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-today'] });
       void queryClient.invalidateQueries({ queryKey: ['my-sites-all'] });
@@ -64,7 +73,9 @@ export function useSiteTimeTracking(siteId: string, _site: SiteDetailData | unde
     } catch (error) {
       console.error('Resume error:', error);
       Sentry.captureException(error, { extra: { context: 'Resume error:' } });
-      toast.error('Klaida pratęsiant darbą.');
+      if (error instanceof WorkPhaseRequiredError) toast.error('Pasirinkite atliekamą darbą.');
+      else if (error instanceof WorkPhaseUnavailableError) toast.error('Šiam objektui darbų etapai nesukurti arba pasirinktas etapas neaktyvus.');
+      else toast.error('Klaida pratęsiant darbą.');
     } finally {
       setIsActionPending(false);
     }

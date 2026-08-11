@@ -12,7 +12,7 @@ function site(p: Partial<RawSiteListItem>): RawSiteListItem {
   return {
     id: 'id', code: 'OBJ-1', client_name: 'Klientas', address: 'Vilniaus g. 1', status: 'pending',
     scheduled_start: null, actual_start: null, actual_end: null, system_type: 'PV', kwp: null, kwh: null,
-    equipment_details: null, team_id: 'team-1', created_at: '2026-06-01T00:00:00Z',
+    site_type: 'b2c', equipment_details: null, team_id: 'team-1', created_at: '2026-06-01T00:00:00Z',
     team: { name: 'Komanda A' },
     site_checklists: [], time_entries: [], photos: [], site_assignments: [],
     ...p, // explicit values (incl. null) override the defaults

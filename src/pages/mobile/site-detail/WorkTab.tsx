@@ -14,6 +14,13 @@ import {
 } from 'lucide-react';
 import ImageLightbox from '../../../components/shared/ImageLightbox';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import {
+  canCompleteChecklistItemWithPhotos,
+  groupChecklistItemsByWorkPhase,
+  photosForChecklistItem,
+  requiredPhotoCount,
+} from '../../../lib/checklistTemplatePhases';
+import type { WorkPhase } from '../../../lib/workPhases';
 
 // ── Pending (locally-stored) photo thumbnails ────────────────────────────────
 // Renders blobs queued in the IndexedDB outbox with a "Laikoma telefone" badge.
@@ -315,13 +322,14 @@ function ChecklistItemCard({
 
   // All photos linked to THIS task (durable `photos` rows are the source of
   // truth; the legacy single `photo_url` column is only a fallback).
-  const linkedPhotos = (photos ?? []).filter((p) => p.storage_path.includes(`/${item.id}/`));
+  const linkedPhotos = photosForChecklistItem(item.id, photos ?? []);
   // Strictly the durable `photos` rows. The legacy `photo_url` mirror is ignored:
   // it can stay stale after photos are deleted (e.g. from the Foto tab, which
   // uses the gallery id and never clears it), which previously left a ghost
   // camera icon in the header + a broken-image placeholder box in the body.
   const hasPhoto   = linkedPhotos.length > 0 || pendingPhotos.length > 0;
   const hasComment = !!item.comment?.trim();
+  const neededPhotoCount = requiredPhotoCount(item);
 
   // Local comment — initialised from DB value at mount.
   // After a successful save the query refetches, but localComment already equals
@@ -344,6 +352,13 @@ function ChecklistItemCard({
   const handleStatusTap = (tapped: ChecklistItemStatus) => {
     // Tapping the active status a second time resets to 'pending'
     const next: ChecklistItemStatus = tapped === currentStatus ? 'pending' : tapped;
+    if (
+      next === 'pass'
+      && !canCompleteChecklistItemWithPhotos(item, photos ?? [], pendingPhotos.length)
+    ) {
+      toast.error('Įkelkite nuotrauką prieš pažymėdami atlikta.');
+      return;
+    }
     onSetStatus(item.id, next);
   };
 
@@ -366,7 +381,7 @@ function ChecklistItemCard({
         {/* Right side: indicators + status badge + chevron */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {hasComment && <MessageSquare size={12} className="text-primary opacity-70" />}
-          {hasPhoto   && <Camera size={12} className="text-primary opacity-70" />}
+          {(hasPhoto || neededPhotoCount > 0) && <Camera size={12} className={hasPhoto ? 'text-primary opacity-70' : 'text-danger opacity-80'} />}
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${cfg.badgeCls}`}>
             {cfg.label}
           </span>
@@ -432,7 +447,8 @@ function ChecklistItemCard({
           {/* 3 ▸ Photo area */}
           <div>
             <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
-              Nuotrauka{item.is_required && <span className="text-danger ml-0.5">*</span>}
+              Nuotrauka{neededPhotoCount > 0 && <span className="text-danger ml-0.5">*</span>}
+              {neededPhotoCount > 1 && <span className="normal-case tracking-normal text-subtle ml-1">(min. {neededPhotoCount})</span>}
             </label>
 
             <div className="space-y-3">
@@ -743,6 +759,9 @@ interface WorkTabProps {
   compressingCheckId: string | null;
   uploadingCheckId: string | null;
   readOnly?: boolean;
+  siteType?: string | null;
+  workPhases?: WorkPhase[];
+  currentWorkPhaseId?: string | null;
   onSetStatus: (itemId: string, status: ChecklistItemStatus) => void;
   onSaveComment: (itemId: string, comment: string) => Promise<void>;
   onUploadPhoto: (e: React.ChangeEvent<HTMLInputElement>, checkId: string) => void;
@@ -760,6 +779,9 @@ export default function WorkTab({
   compressingCheckId,
   uploadingCheckId,
   readOnly = false,
+  siteType,
+  workPhases = [],
+  currentWorkPhaseId = null,
   onSetStatus,
   onSaveComment,
   onUploadPhoto,
@@ -804,6 +826,10 @@ export default function WorkTab({
   // Items with phase=null get their own section at the bottom — this covers both
   // admin-added items and installer-created extras (is_extra=true, phase=null).
   const customItems = checklists?.filter((c) => !KNOWN_PHASES.has(c.phase ?? '')) ?? [];
+  const isB2BChecklist = siteType === 'b2b';
+  const b2bPhaseGroups = isB2BChecklist
+    ? groupChecklistItemsByWorkPhase(checklists ?? [], workPhases, currentWorkPhaseId)
+    : [];
 
   const sharedProps: Omit<ItemCardProps, 'item' | 'isExpanded' | 'onToggleExpand' | 'pendingPhotos'> = {
     photos,
@@ -817,11 +843,42 @@ export default function WorkTab({
     onDeletePending: handleDeletePending,
   };
 
+  const renderChecklistItem = (item: SiteChecklist) => (
+    <ChecklistItemCard
+      key={item.id}
+      item={item}
+      isExpanded={expandedId === item.id}
+      onToggleExpand={() => toggleItem(item.id)}
+      pendingPhotos={pendingForItem(item.id)}
+      {...sharedProps}
+      {...(item.is_extra
+        ? {
+            onRequestDelete: () =>
+              setDeleteTarget({ type: 'work', id: item.id, name: item.question_text }),
+            isDeleting: deletingWorkId === item.id,
+          }
+        : {})}
+    />
+  );
+
   return (
     <div className="px-4 pb-[120px] pt-4">
 
+      {isB2BChecklist && b2bPhaseGroups.map((group) => {
+        const completed = group.items.filter((item) => item.status === 'pass').length;
+        return (
+          <div key={group.phaseId ?? 'unassigned'} className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-text font-bold text-[15px]">{group.label}</h3>
+              <span className="text-[11px] font-bold text-subtle">{completed}/{group.items.length}</span>
+            </div>
+            {group.items.map(renderChecklistItem)}
+          </div>
+        );
+      })}
+
       {/* ── Standard phase sections ── */}
-      {['pre', 'during', 'post'].map((phaseCode) => {
+      {!isB2BChecklist && ['pre', 'during', 'post'].map((phaseCode) => {
         const phaseItems = checklists?.filter((c) => c.phase === phaseCode) ?? [];
         if (phaseItems.length === 0) return null;
 
@@ -830,40 +887,15 @@ export default function WorkTab({
             <h3 className="text-text font-bold text-[15px] mb-3">
               {PHASE_TITLES[phaseCode] ?? phaseCode}
             </h3>
-            {phaseItems.map((item) => (
-              <ChecklistItemCard
-                key={item.id}
-                item={item}
-                isExpanded={expandedId === item.id}
-                onToggleExpand={() => toggleItem(item.id)}
-                pendingPhotos={pendingForItem(item.id)}
-                {...sharedProps}
-              />
-            ))}
+            {phaseItems.map(renderChecklistItem)}
           </div>
         );
       })}
 
       {/* ── Custom / additional tasks (admin-added + installer extras, phase = null) ── */}
-      <div className="mb-6">
+      {!isB2BChecklist && <div className="mb-6">
         <h3 className="text-text font-bold text-[15px] mb-3">Papildomi darbai</h3>
-        {customItems.map((item) => (
-          <ChecklistItemCard
-            key={item.id}
-            item={item}
-            isExpanded={expandedId === item.id}
-            onToggleExpand={() => toggleItem(item.id)}
-            pendingPhotos={pendingForItem(item.id)}
-            {...sharedProps}
-            {...(item.is_extra
-              ? {
-                  onRequestDelete: () =>
-                    setDeleteTarget({ type: 'work', id: item.id, name: item.question_text }),
-                  isDeleting: deletingWorkId === item.id,
-                }
-              : {})}
-          />
-        ))}
+        {customItems.map(renderChecklistItem)}
 
         {/* + Pridėti papildomą darbą (secondary outline) */}
         {!readOnly && (
@@ -882,7 +914,7 @@ export default function WorkTab({
             )}
           </>
         )}
-      </div>
+      </div>}
 
       {/* ── Extra materials ── */}
       <ExtraMaterialsSection

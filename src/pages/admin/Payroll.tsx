@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import { getTeams } from '../../api/installers';
+import { AdminEmptyState, AdminPanelSkeleton } from '../../components/admin/AdminStates';
 import {
   getPayrollRateCards, getPayrollPeriod, getPayrollSiteSnapshots, getPayrollEarnings,
   getPayrollInstallers, getLockedRateCardIds,
@@ -83,7 +84,7 @@ export default function Payroll() {
     void queryClient.invalidateQueries({ queryKey: ['payroll-period', year, month] });
     // periodId-independent: on the FIRST recalc the period didn't exist yet, so
     // `periodId` is still null in this closure. Match by key prefix so the
-    // snapshots/earnings queries refetch as soon as the new period resolves —
+    // snapshots/earnings queries refetch as soon as the new period resolves.
     // this is what keeps the Montuotojai basket in sync with Objektai.
     void queryClient.invalidateQueries({
       predicate: (q) => q.queryKey[0] === 'payroll-site-snapshots' || q.queryKey[0] === 'payroll-earnings',
@@ -106,9 +107,9 @@ export default function Payroll() {
     onSuccess: (s) => {
       const msg = `Perskaičiuota: ${s.processed_sites} objekt., ${s.auto_earnings_created} montuotojų įrašų, praleista ${s.skipped_sites}.`;
       if (s.snapshots_created_or_updated > 0 && s.auto_earnings_created === 0) {
-        toast.warning(msg, { description: 'Sukurta objektų, bet montuotojų įrašų nesukurta — patikrinkite dalyvius ir įkainius.' });
+        toast.warning(msg, { description: 'Sukurta objektų, bet montuotojų įrašų nesukurta. Patikrinkite dalyvius ir įkainius.' });
       } else if (s.warnings.length > 0) {
-        toast.warning(msg, { description: `${s.warnings.length} įspėjim(ai): ${s.warnings.slice(0, 3).join(' · ')}${s.warnings.length > 3 ? '…' : ''}` });
+        toast.warning(msg, { description: `${s.warnings.length} įspėjim(ai): ${s.warnings.slice(0, 3).join(', ')}${s.warnings.length > 3 ? '...' : ''}` });
       } else {
         toast.success(msg);
       }
@@ -142,28 +143,28 @@ export default function Payroll() {
     if (ok) lock.mutate();
   };
 
-  const selectCls = 'h-[40px] px-3 rounded-xl bg-surface border border-zinc-200 dark:border-white/10 text-[14px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
+  const selectCls = 'h-[40px] rounded-xl border border-border bg-surface px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-text">
             <Coins className="w-6 h-6 text-primary dark:text-primary-ink" /> Atlyginimai
           </h1>
-          <p className="text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">Atlygis pagal tarifų korteles, padalintas montuotojams.</p>
+          <p className="mt-0.5 text-[14px] text-muted">Atlygis pagal tarifų korteles, padalintas montuotojams.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${STATUS_CHIP[status].cls}`}>
             {isLocked && <Lock size={11} />} {STATUS_CHIP[status].label}
           </span>
-          <div className="flex items-center gap-1 bg-surface border border-zinc-200 dark:border-white/10 rounded-xl p-1">
-            <button onClick={() => shiftMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer" title="Ankstesnis mėnuo">
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
+            <button onClick={() => shiftMonth(-1)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer" title="Ankstesnis mėnuo">
               <ChevronLeft size={16} />
             </button>
-            <span className="min-w-[150px] text-center text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 capitalize tabular-nums">{monthName(year, month)}</span>
-            <button onClick={() => shiftMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-surface-2 transition-colors cursor-pointer" title="Kitas mėnuo">
+            <span className="min-w-[150px] text-center text-[14px] font-semibold capitalize tabular-nums text-text">{monthName(year, month)}</span>
+            <button onClick={() => shiftMonth(1)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer" title="Kitas mėnuo">
               <ChevronRight size={16} />
             </button>
           </div>
@@ -174,7 +175,7 @@ export default function Payroll() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <select value={rateCardId ?? ''} onChange={(e) => setRateCardId(e.target.value || null)} className={selectCls} title="Tarifų kortelė">
-            {rateCards.length === 0 && <option value="">— Nėra kortelių —</option>}
+            {rateCards.length === 0 && <option value="">Nėra kortelių</option>}
             {rateCards.map((c) => <option key={c.id} value={c.id}>{c.name}{c.is_active ? '' : ' (neaktyvi)'}</option>)}
           </select>
           <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} className={selectCls} title="Komanda">
@@ -190,7 +191,7 @@ export default function Payroll() {
           <button
             onClick={() => recalc.mutate()} disabled={recalc.isPending || isLocked || rateCards.length === 0}
             title={isLocked ? 'Periodas užrakintas' : rateCards.length === 0 ? 'Pirma sukurkite tarifų kortelę' : undefined}
-            className="flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-200 font-medium text-[14px] bg-surface hover:bg-zinc-50 dark:hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default"
+            className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-surface px-4 text-[14px] font-medium text-text transition-colors hover:bg-surface-2 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
           >
             {recalc.isPending ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Perskaičiuoti
           </button>
@@ -198,13 +199,13 @@ export default function Payroll() {
             <button
               onClick={() => void handleLock()} disabled={lock.isPending || !periodId || snapshots.length === 0}
               title={!periodId || snapshots.length === 0 ? 'Pirma perskaičiuokite periodą' : undefined}
-              className="flex items-center gap-2 h-[40px] px-4 rounded-xl bg-primary text-white font-medium text-[14px] hover:bg-primary transition-all cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              className="flex h-[40px] items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer disabled:cursor-default disabled:opacity-50"
             >
               {lock.isPending ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />} Užrakinti periodą
             </button>
           )}
           <button disabled title="Bus įgyvendinta vėliau"
-            className="hidden sm:flex items-center gap-2 h-[40px] px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-400 font-medium text-[14px] bg-surface cursor-not-allowed opacity-50">
+            className="hidden h-[40px] items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-surface px-4 text-[14px] font-medium text-subtle opacity-50 cursor-not-allowed sm:flex">
             <Download size={15} /> Eksportuoti XLSX
           </button>
         </div>
@@ -212,11 +213,11 @@ export default function Payroll() {
 
       {/* ── Locked banner ── */}
       {isLocked && (
-        <div className="rounded-2xl bg-zinc-100/70 dark:bg-white/5 border border-zinc-200 dark:border-white/10 px-4 py-3 flex items-start gap-3">
-          <Lock size={18} className="text-zinc-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2/70 px-4 py-3">
+          <Lock size={18} className="mt-0.5 shrink-0 text-muted" />
           <div>
-            <p className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">Periodas užrakintas.</p>
-            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">Korekcijos turi būti daromos kitame atvirame periode.</p>
+            <p className="text-[13px] font-semibold text-text">Periodas užrakintas.</p>
+            <p className="text-[12px] text-muted">Korekcijos turi būti daromos kitame atvirame periode.</p>
           </div>
         </div>
       )}
@@ -240,13 +241,14 @@ export default function Payroll() {
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
           {isTabLoading ? (
-            <div className="py-16 text-center"><Loader2 className="w-7 h-7 text-primary animate-spin inline-block" /></div>
+            <AdminPanelSkeleton className="h-72" />
           ) : !periodId && tab !== 'ikainiai' && tab !== 'montuotojai' ? (
-            <div className="bg-surface border border-zinc-100 dark:border-white/10 rounded-2xl py-16 text-center">
-              <Coins size={36} className="text-zinc-300 dark:text-zinc-600 mb-2 inline-block" />
-              <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium">Šis mėnuo dar neperskaičiuotas.</p>
-              <p className="text-[13px] text-zinc-400 mt-1">Pasirinkite tarifų kortelę ir paspauskite „Perskaičiuoti“.</p>
-            </div>
+            <AdminEmptyState
+              icon={<Coins size={22} />}
+              title="Įrašų nerasta."
+              message="Šis mėnuo dar neperskaičiuotas. Pasirinkite tarifų kortelę ir paspauskite „Perskaičiuoti“."
+              className="rounded-2xl border border-border bg-surface"
+            />
           ) : tab === 'objektai' ? (
             <ObjektaiTab periodId={periodId!} year={year} month={month} rateCardId={rateCardId} rateCards={rateCards} snapshots={snapshots} installers={installers} isLocked={isLocked} teamFilter={teamFilter} installerFilter={installerFilter} onChanged={invalidatePayroll} />
           ) : tab === 'montuotojai' ? (

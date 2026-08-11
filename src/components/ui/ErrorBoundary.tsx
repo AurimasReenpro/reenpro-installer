@@ -11,34 +11,36 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
   const isDev = import.meta.env.DEV;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f6f5fa] p-4">
-      <div className="bg-white p-8 rounded-[16px] shadow-[0_4px_20px_rgba(29,3,58,0.05)] max-w-md w-full text-center">
-        <div className="w-16 h-16 bg-[#ffdad6] rounded-full flex items-center justify-center mx-auto mb-6 text-[#ba1a1a]">
-          <AlertCircle className="w-8 h-8" />
+    <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-card">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-danger dark:bg-red-500/10 dark:text-red-300">
+          <AlertCircle className="h-8 w-8" />
         </div>
-        
-        <h1 className="text-[24px] font-bold text-[#1d033a] mb-4">Įvyko klaida</h1>
-        
-        <p className="text-[15px] text-[#4b4452] mb-8 leading-relaxed">
+
+        <h1 className="mb-4 text-[24px] font-bold text-text">Įvyko klaida</h1>
+
+        <p className="mb-8 text-[15px] leading-relaxed text-muted">
           Atsiprašome už nepatogumą. Klaida jau užfiksuota. Spustelėkite mygtuką, kad bandytumėte iš naujo.
         </p>
 
         {isDev && (
-          <div className="bg-[#fbf0ff] p-4 rounded-[8px] mb-8 text-left overflow-auto border border-primary/20">
-            <p className="text-[13px] font-mono text-primary">{error.message}</p>
+          <div className="mb-8 overflow-auto rounded-xl border border-border bg-surface-2 p-4 text-left">
+            <p className="font-mono text-[13px] text-primary">{error.message}</p>
           </div>
         )}
 
         <div className="flex flex-col gap-3">
           <button
             onClick={resetError}
-            className="w-full h-[48px] bg-primary text-white rounded-[12px] font-bold text-[15px] hover:bg-primary/80 transition-colors active:scale-[0.98]"
+            className="h-[48px] w-full rounded-xl bg-primary text-[15px] font-bold text-white transition-colors hover:opacity-90 active:scale-[0.98]"
           >
             Bandyti iš naujo
           </button>
           <button
-            onClick={() => { window.location.href = "/"; }}
-            className="w-full h-[48px] bg-white text-[#1d033a] border border-[#cdc3d4] rounded-[12px] font-bold text-[15px] hover:bg-[#f6f5fa] transition-colors active:scale-[0.98]"
+            onClick={() => {
+              window.location.href = '/';
+            }}
+            className="h-[48px] w-full rounded-xl border border-border bg-surface text-[15px] font-bold text-text transition-colors hover:bg-surface-2 active:scale-[0.98]"
           >
             Grįžti į pradžią
           </button>
@@ -50,7 +52,16 @@ const ErrorFallback = ({ error, resetError }: FallbackProps) => {
 
 export default function ErrorBoundary({ children }: { children: React.ReactNode }) {
   return (
-    <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback error={props.error instanceof Error ? props.error : new Error(String(props.error))} resetError={() => { props.resetError(); }} />}>
+    <Sentry.ErrorBoundary
+      fallback={(props) => (
+        <ErrorFallback
+          error={props.error instanceof Error ? props.error : new Error(String(props.error))}
+          resetError={() => {
+            props.resetError();
+          }}
+        />
+      )}
+    >
       {children}
     </Sentry.ErrorBoundary>
   );

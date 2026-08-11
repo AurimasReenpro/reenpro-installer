@@ -41,6 +41,7 @@ async function uploadQueued(p: QueuedPhoto): Promise<SitePhoto> {
     installer_id: p.installerId,
     storage_path: path,
     section_name: p.sectionName,
+    site_checklist_item_id: p.itemId === GALLERY_ID ? null : p.itemId,
   }).select('*').single();
   if (dbErr || !row) {
     // Roll back the orphaned object so storage stays clean, then retry later.

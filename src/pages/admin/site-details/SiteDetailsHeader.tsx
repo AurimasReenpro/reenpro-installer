@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, RotateCcw, Building2, MapPin, Sun, Battery } from 'lucide-react';
 import { isSiteDraft } from '../../../lib/siteDraft';
+import { siteTypeLabel } from '../../../lib/siteTypes';
 import { formatLocation } from './helpers';
 import ReopenSiteModal from './ReopenSiteModal';
 import type { SiteWithTeam } from './types';
@@ -83,6 +84,9 @@ export default function SiteDetailsHeader({
                 </span>
                 <span className="bg-primary-fixed text-primary rounded-full px-3 py-1 text-xs font-medium">
                   {site.system_type}
+                </span>
+                <span className="bg-surface-2 text-muted dark:text-subtle rounded-full px-3 py-1 text-xs font-medium">
+                  {siteTypeLabel(site.site_type)}
                 </span>
               </div>
             </div>

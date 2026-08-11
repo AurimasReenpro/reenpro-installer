@@ -73,6 +73,7 @@ export function usePhotoUpload(
       installer_id: profileId!,
       storage_path: filePath,
       section_name: sectionName ?? null,
+      site_checklist_item_id: itemId === GALLERY_ID ? null : itemId,
     }).select('*').single();
     if (dbErr || !row) {
       void supabase.storage.from('site-photos').remove([filePath]);

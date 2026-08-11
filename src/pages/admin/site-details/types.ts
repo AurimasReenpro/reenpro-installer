@@ -1,4 +1,5 @@
 import type { EquipmentItem } from '../../../types/equipment.types';
+import type { SiteType } from '../../../lib/siteTypes';
 
 /** Site row enriched with the joined team name, as loaded by the admin detail page. */
 export interface SiteWithTeam {
@@ -9,6 +10,7 @@ export interface SiteWithTeam {
   status: string | null;
   scheduled_start: string | null;
   system_type: string;
+  site_type: SiteType;
   team_id: string | null;
   equipment_details: EquipmentItem[] | Record<string, string> | null;
   notes: string | null;

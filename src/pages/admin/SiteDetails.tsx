@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Cpu, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle, Loader2 } from 'lucide-react';
+import { Info, Cpu, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle } from 'lucide-react';
 import { getSiteById } from '../../api/sites';
 import { parseEquipmentDetails } from '../../types/equipment.types';
 import { isSiteDraft } from '../../lib/siteDraft';
 import ImageAnnotator from '../../components/shared/ImageAnnotatorLazy';
 import ImageLightbox from '../../components/shared/ImageLightbox';
+import { AdminEmptyState, AdminPanelSkeleton } from '../../components/admin/AdminStates';
 import SiteDetailsHeader from './site-details/SiteDetailsHeader';
 import InfoTab from './site-details/InfoTab';
 import EquipmentTab from './site-details/EquipmentTab';
@@ -15,6 +16,7 @@ import BlueprintsTab from './site-details/BlueprintsTab';
 import FilesTab from './site-details/FilesTab';
 import ChecklistTab from './site-details/ChecklistTab';
 import AuditLogTab from './site-details/AuditLogTab';
+import TimeEntriesCard from './site-details/TimeEntriesCard';
 import type { SiteWithTeam, TabId } from './site-details/types';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
@@ -39,12 +41,12 @@ export default function SiteDetails() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabId>('info');
-  // Shared annotation/lightbox state — triggered by both the Blueprints and Files tabs.
+  // Shared annotation/lightbox state, triggered by both the Blueprints and Files tabs.
   const [annotatingFile, setAnnotatingFile] = useState<{ name: string; url: string; page?: number } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [lightboxPdf, setLightboxPdf] = useState<{ url: string; page: number } | null>(null);
 
-  // Single source of truth for the site — passed to children via props.
+  // Single source of truth for the site, passed to children via props.
   const { data: site, isLoading: siteLoading } = useQuery({
     queryKey: ['admin_site', id],
     queryFn: () => getSiteById(id!) as unknown as Promise<SiteWithTeam>,
@@ -55,16 +57,22 @@ export default function SiteDetails() {
 
   if (siteLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <AdminPanelSkeleton className="h-40" />
+        <AdminPanelSkeleton className="h-12" />
+        <AdminPanelSkeleton className="h-96" />
       </div>
     );
   }
 
   if (!site) {
     return (
-      <div className="flex-1 flex items-center justify-center py-32">
-        <p className="text-muted dark:text-subtle">Objektas nerastas.</p>
+      <div className="mx-auto w-full max-w-6xl">
+        <AdminEmptyState
+          title="Įrašų nerasta."
+          message="Objektas nerastas."
+          className="rounded-2xl border border-border bg-surface"
+        />
       </div>
     );
   }
@@ -152,12 +160,13 @@ export default function SiteDetails() {
 
         {activeTab === 'check' && (
           <motion.div key="check" {...TAB_MOTION}>
-            <ChecklistTab siteId={id!} />
+            <ChecklistTab siteId={id!} siteType={site.site_type} />
           </motion.div>
         )}
 
         {activeTab === 'history' && (
-          <motion.div key="history" {...TAB_MOTION}>
+          <motion.div key="history" {...TAB_MOTION} className="space-y-5">
+            <TimeEntriesCard siteId={id!} />
             <AuditLogTab siteId={id!} />
           </motion.div>
         )}

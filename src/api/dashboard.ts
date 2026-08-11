@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import { getCompanySettings, type CompanySettings } from './settings';
 import { OPERATIONAL_SITE_STATUS_FILTER } from '../lib/siteStatus';
+import { SITE_FILES_BUCKET } from './sites';
+import { FORGOTTEN_OPEN_HOURS } from '../lib/timeEntryReview';
 
 export type DashboardAttentionTone = 'critical' | 'warning' | 'info';
 
@@ -90,12 +92,86 @@ interface RawPayrollSnapshot {
   site: { code: string | null; client_name: string | null } | null;
 }
 
-const SITE_SELECT = `
+type DashboardSupabaseError = {
+  code?: string;
+  message?: string;
+  details?: unknown;
+  hint?: string | null;
+};
+
+export class DashboardLoadError extends Error {
+  section: string;
+  code: string | undefined;
+  details?: unknown;
+  hint: string | null | undefined;
+
+  constructor(section: string, error: unknown) {
+    const supabaseError = toSupabaseError(error);
+    const message = supabaseError.message ?? (error instanceof Error ? error.message : 'Nezinoma Dashboard uzklausos klaida.');
+    super(`Dashboard data source failed: ${section}: ${message}`);
+    this.name = 'DashboardLoadError';
+    this.section = section;
+    this.code = supabaseError.code;
+    this.details = supabaseError.details;
+    this.hint = supabaseError.hint;
+  }
+
+  isMissingMigration(): boolean {
+    const text = [
+      this.code,
+      this.message,
+      typeof this.details === 'string' ? this.details : JSON.stringify(this.details ?? ''),
+      this.hint ?? '',
+    ].join(' ').toLowerCase();
+
+    return this.code === '42703'
+      || this.code === '42P01'
+      || this.code === 'PGRST200'
+      || this.code === 'PGRST201'
+      || this.code === 'PGRST204'
+      || text.includes('column')
+      || text.includes('relationship')
+      || text.includes('schema cache')
+      || text.includes('does not exist');
+  }
+
+  toDevMessage(): string {
+    const message = this.message.replace(/^Dashboard data source failed: [^:]+: /, '');
+    const parts = [
+      `Saltinis: ${this.section}`,
+      this.code ? `Kodas: ${this.code}` : null,
+      `Klaida: ${message}`,
+      this.hint ? `Hint: ${this.hint}` : null,
+      this.details ? `Details: ${typeof this.details === 'string' ? this.details : JSON.stringify(this.details)}` : null,
+      this.isMissingMigration() ? 'Patikrinkite, ar pritaikytos naujausios migracijos ir perkrauta PostgREST schema.' : null,
+    ].filter(Boolean);
+    return parts.join('\n');
+  }
+}
+
+function toSupabaseError(error: unknown): DashboardSupabaseError {
+  if (error && typeof error === 'object') return error;
+  return {};
+}
+
+function throwDashboardLoadError(section: string, error: unknown): never {
+  throw new DashboardLoadError(section, error);
+}
+
+async function readCompanySettingsForDashboard(): Promise<CompanySettings | null> {
+  try {
+    return await getCompanySettings();
+  } catch (error) {
+    throwDashboardLoadError('company_settings', error);
+  }
+}
+
+export const DASHBOARD_SITE_SELECT = `
   id, code, client_name, address, status, scheduled_start, actual_start, actual_end,
   estimated_hours, latitude, longitude,
   team:teams(name),
   site_assignments(id),
-  time_entries(start_time, end_time, installer:user_profiles(full_name, avatar_url)),
+  time_entries(start_time, end_time, installer:user_profiles!time_entries_installer_id_fkey(full_name, avatar_url)),
   site_checklists(site_checklist_items(status))
 `;
 
@@ -152,7 +228,7 @@ function toWarnings(value: unknown): string[] {
 
 async function getMissingPdfSiteIds(sites: DashboardSite[]): Promise<Set<string>> {
   const results = await Promise.all(sites.map(async (site) => {
-    const { data, error } = await supabase.storage.from('site_files').list(site.id, { limit: 100 });
+    const { data, error } = await supabase.storage.from(SITE_FILES_BUCKET).list(site.id, { limit: 100 });
     if (error) return null;
     return data?.some((file) => file.name.toLowerCase().endsWith('.pdf')) ? null : site.id;
   }));
@@ -171,19 +247,19 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
   const [scheduledResult, activeResult, completedResult, activityResult, settings, periodResult] = await Promise.all([
     supabase
       .from('sites')
-      .select(SITE_SELECT)
+      .select(DASHBOARD_SITE_SELECT)
       .gte('scheduled_start', start)
       .lt('scheduled_start', end)
       .or(OPERATIONAL_SITE_STATUS_FILTER)
       .order('scheduled_start', { ascending: true }),
     supabase
       .from('sites')
-      .select(SITE_SELECT)
+      .select(DASHBOARD_SITE_SELECT)
       .in('status', ['in_progress', 'paused'])
       .order('scheduled_start', { ascending: true }),
     supabase
       .from('sites')
-      .select(SITE_SELECT)
+      .select(DASHBOARD_SITE_SELECT)
       .eq('status', 'completed')
       .gte('actual_end', start)
       .lt('actual_end', end)
@@ -193,7 +269,7 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
       .select('*')
       .order('latest_action_time', { ascending: false })
       .limit(30),
-    getCompanySettings(),
+    readCompanySettingsForDashboard(),
     supabase
       .from('payroll_periods')
       .select('id, status')
@@ -202,8 +278,15 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
       .maybeSingle(),
   ]);
 
-  for (const result of [scheduledResult, activeResult, completedResult, activityResult, periodResult]) {
-    if (result.error) throw result.error;
+  const dashboardReads = [
+    ['scheduled sites', scheduledResult],
+    ['active sites', activeResult],
+    ['completed sites', completedResult],
+    ['admin_activity_view', activityResult],
+    ['payroll_periods', periodResult],
+  ] as const;
+  for (const [section, result] of dashboardReads) {
+    if (result.error) throwDashboardLoadError(section, result.error);
   }
 
   const scheduledSites = asSites(scheduledResult.data).map(mapSite);
@@ -223,7 +306,7 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
       .select('site_id, warnings, site:sites(code, client_name)')
       .eq('period_id', periodResult.data.id)
     : { data: [] as RawPayrollSnapshot[], error: null };
-  if (payrollResult.error) throw payrollResult.error;
+  if (payrollResult.error) throwDashboardLoadError('payroll_site_snapshots', payrollResult.error);
 
   const snapshots = (payrollResult.data ?? []) as unknown as RawPayrollSnapshot[];
   const now = Date.now();
@@ -253,7 +336,17 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
   for (const site of activeSites) {
     const runningMinutes = minutesSince(site.openWorkStartedAt, now);
     const maxMinutes = Math.max((site.estimatedHours ?? 8) * 60 + 120, 600);
-    if (site.status === 'in_progress' && runningMinutes > maxMinutes) {
+    // Likely forgotten stop (>12h open) is the stronger signal — show it
+    // instead of the generic long-running warning to avoid duplicate cards.
+    if (site.status === 'in_progress' && runningMinutes > FORGOTTEN_OPEN_HOURS * 60) {
+      attention.push({
+        id: `stale-timer-${site.id}`,
+        tone: 'critical',
+        title: 'Pamirštas laikas?',
+        detail: `${site.code}: laikmatis atviras jau ${Math.floor(runningMinutes / 60)} val. Patikrinkite, ar darbas nebuvo pamirštas sustabdyti.`,
+        siteId: site.id,
+      });
+    } else if (site.status === 'in_progress' && runningMinutes > maxMinutes) {
       attention.push({
         id: `long-running-${site.id}`,
         tone: 'warning',

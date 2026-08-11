@@ -23,7 +23,9 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useCreateBlankSite } from '../../hooks/useCreateSite';
+import { AdminPageError } from '../../components/admin/AdminStates';
 import {
+  DashboardLoadError,
   getAdminOperationsDashboard,
   type DashboardAttentionItem,
   type DashboardAttentionTone,
@@ -130,11 +132,11 @@ function TodayWorkRow({ site, now }: { site: DashboardSite; now: number }) {
     cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300',
   };
   const StatusIcon = site.status === 'in_progress' ? Play : site.status === 'paused' ? Pause : CalendarDays;
-  const elapsed = site.status === 'in_progress' ? formatElapsedWorkTimer(site.openWorkStartedAt, now) : '—';
+  const elapsed = site.status === 'in_progress' ? formatElapsedWorkTimer(site.openWorkStartedAt, now) : '-';
   const startedLabel = formatStartedLabel(site.openWorkStartedAt);
   const startedTitle = formatStartedTitle(site.openWorkStartedAt);
   const teamLabel = site.teamName ?? 'Komanda nepriskirta';
-  const identity = `${site.clientName} · ${site.code}${site.address ? ` · ${site.address}` : ''}`;
+  const identity = `${site.clientName} - ${site.code}${site.address ? ` - ${site.address}` : ''}`;
 
   return (
     <Link
@@ -145,13 +147,13 @@ function TodayWorkRow({ site, now }: { site: DashboardSite; now: number }) {
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${status.cls}`} title={status.label}><StatusIcon size={13} /></span>
         <p className="min-w-0 truncate text-[13px] whitespace-nowrap" title={identity}>
           <span className="font-semibold text-text">{site.clientName}</span>
-          <span className="text-muted"> · {site.code}{site.address ? ` · ${site.address}` : ''}</span>
+          <span className="text-muted"> - {site.code}{site.address ? ` - ${site.address}` : ''}</span>
         </p>
       </div>
       <p className="min-w-0 truncate pl-8 text-[12px] text-muted sm:pl-0" title={teamLabel}>{teamLabel}</p>
       <div className="row-span-2 flex shrink-0 flex-col items-end justify-center whitespace-nowrap text-right sm:row-auto sm:flex-row sm:items-center sm:gap-1.5">
         <span className="text-[13px] font-semibold tabular-nums text-text">{elapsed}</span>
-        <span className="hidden text-[12px] text-subtle sm:inline">·</span>
+        <span className="hidden text-[12px] text-subtle sm:inline">-</span>
         <span className="text-[12px] tabular-nums text-muted" title={startedTitle}>{startedLabel}</span>
       </div>
       <ChevronRight size={16} className="hidden shrink-0 text-subtle sm:block" />
@@ -191,13 +193,20 @@ function DashboardSkeleton() {
   );
 }
 
+function formatDashboardError(error: unknown): string {
+  if (!import.meta.env.DEV) return 'DuomenÅ³ nepavyko Ä¯kelti.';
+  if (error instanceof DashboardLoadError) return error.toDevMessage();
+  if (error instanceof Error) return error.message;
+  return 'NeÅ¾inoma Dashboard duomenÅ³ klaida.';
+}
+
 export default function Dashboard() {
   const { createBlankSite, isCreating } = useCreateBlankSite();
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
   const pendingPhotos = useSyncStore((state) => state.pendingPhotos);
   const pausedMutations = useIsMutating({ predicate: (mutation) => mutation.state.isPaused });
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, error, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-operations-dashboard', format(new Date(), 'yyyy-MM-dd')],
     queryFn: () => getAdminOperationsDashboard(),
     staleTime: 30_000,
@@ -230,9 +239,12 @@ export default function Dashboard() {
 
   if (isError || !data) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-[14px] text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
-        Nepavyko įkelti operacijų duomenų. Atnaujinkite puslapį arba patikrinkite ryšį su sistema.
-      </div>
+      <AdminPageError
+        message={formatDashboardError(error)}
+        onRetry={() => {
+          void refetch();
+        }}
+      />
     );
   }
 

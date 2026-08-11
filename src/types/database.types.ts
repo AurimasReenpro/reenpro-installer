@@ -172,32 +172,128 @@ export type Database = {
         }
         Relationships: []
       }
+      b2b_work_categories: {
+        Row: {
+          id: string
+          code: string
+          label: string
+          description: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          label: string
+          description?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          label?: string
+          description?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklist_template_work_phases: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       checklist_templates: {
         Row: {
+          b2b_work_category_id: string | null
           category: string | null
           created_at: string | null
           id: string
+          is_active: boolean
+          is_required: boolean
+          min_photo_count: number
           name: string
           phase: string | null
-          requires_photo: boolean | null
+          requires_photo: boolean
+          sort_order: number
+          template_work_phase_id: string | null
         }
         Insert: {
+          b2b_work_category_id?: string | null
           category?: string | null
           created_at?: string | null
           id?: string
+          is_active?: boolean
+          is_required?: boolean
+          min_photo_count?: number
           name: string
           phase?: string | null
-          requires_photo?: boolean | null
+          requires_photo?: boolean
+          sort_order?: number
+          template_work_phase_id?: string | null
         }
         Update: {
+          b2b_work_category_id?: string | null
           category?: string | null
           created_at?: string | null
           id?: string
+          is_active?: boolean
+          is_required?: boolean
+          min_photo_count?: number
           name?: string
           phase?: string | null
-          requires_photo?: boolean | null
+          requires_photo?: boolean
+          sort_order?: number
+          template_work_phase_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_b2b_work_category_id_fkey"
+            columns: ["b2b_work_category_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_work_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_template_work_phase_id_fkey"
+            columns: ["template_work_phase_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_work_phases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photos: {
         Row: {
@@ -207,6 +303,7 @@ export type Database = {
           installer_id: string | null
           section_name: string | null
           site_id: string | null
+          site_checklist_item_id: string | null
           storage_path: string
         }
         Insert: {
@@ -216,6 +313,7 @@ export type Database = {
           installer_id?: string | null
           section_name?: string | null
           site_id?: string | null
+          site_checklist_item_id?: string | null
           storage_path: string
         }
         Update: {
@@ -225,6 +323,7 @@ export type Database = {
           installer_id?: string | null
           section_name?: string | null
           site_id?: string | null
+          site_checklist_item_id?: string | null
           storage_path?: string
         }
         Relationships: [
@@ -247,6 +346,13 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_site_checklist_item_id_fkey"
+            columns: ["site_checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "site_checklist_items"
             referencedColumns: ["id"]
           },
         ]
@@ -346,6 +452,9 @@ export type Database = {
           updated_at: string | null
           is_extra: boolean
           created_by: string | null
+          requires_photo: boolean
+          min_photo_count: number
+          work_phase_id: string | null
         }
         Insert: {
           id?: string
@@ -360,6 +469,9 @@ export type Database = {
           updated_at?: string | null
           is_extra?: boolean
           created_by?: string | null
+          requires_photo?: boolean
+          min_photo_count?: number
+          work_phase_id?: string | null
         }
         Update: {
           id?: string
@@ -374,6 +486,9 @@ export type Database = {
           updated_at?: string | null
           is_extra?: boolean
           created_by?: string | null
+          requires_photo?: boolean
+          min_photo_count?: number
+          work_phase_id?: string | null
         }
         Relationships: [
           {
@@ -381,6 +496,13 @@ export type Database = {
             columns: ["site_checklist_id"]
             isOneToOne: false
             referencedRelation: "site_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_checklist_items_work_phase_id_fkey"
+            columns: ["work_phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_work_phases"
             referencedColumns: ["id"]
           },
         ]
@@ -558,6 +680,7 @@ export type Database = {
           stringing_details: any | null
           blueprint_categories: string[] | null
           system_type: string
+          site_type: 'b2c' | 'b2b' | 'service'
           team_id: string | null
         }
         Insert: {
@@ -587,6 +710,7 @@ export type Database = {
           stringing_details?: any | null
           blueprint_categories?: string[] | null
           system_type: string
+          site_type?: 'b2c' | 'b2b' | 'service'
           team_id?: string | null
         }
         Update: {
@@ -616,6 +740,7 @@ export type Database = {
           stringing_details?: any | null
           blueprint_categories?: string[] | null
           system_type?: string
+          site_type?: 'b2c' | 'b2b' | 'service'
           team_id?: string | null
         }
         Relationships: [
@@ -624,6 +749,47 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_work_phases: {
+        Row: {
+          id: string
+          site_id: string
+          code: string
+          label: string
+          sort_order: number
+          is_active: boolean
+          b2b_work_category_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          code: string
+          label: string
+          sort_order?: number
+          is_active?: boolean
+          b2b_work_category_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          code?: string
+          label?: string
+          sort_order?: number
+          is_active?: boolean
+          b2b_work_category_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_work_phases_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
         ]
@@ -639,6 +805,17 @@ export type Database = {
           start_lat: number | null
           start_lng: number | null
           start_time: string
+          work_phase_id: string | null
+          needs_review: boolean
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          corrected_at: string | null
+          corrected_by: string | null
+          correction_reason: string | null
+          original_start_time: string | null
+          original_end_time: string | null
+          original_duration_minutes: number | null
         }
         Insert: {
           created_at?: string
@@ -650,6 +827,17 @@ export type Database = {
           start_lat?: number | null
           start_lng?: number | null
           start_time: string
+          work_phase_id?: string | null
+          needs_review?: boolean
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          original_start_time?: string | null
+          original_end_time?: string | null
+          original_duration_minutes?: number | null
         }
         Update: {
           created_at?: string
@@ -661,6 +849,17 @@ export type Database = {
           start_lat?: number | null
           start_lng?: number | null
           start_time?: string
+          work_phase_id?: string | null
+          needs_review?: boolean
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          original_start_time?: string | null
+          original_end_time?: string | null
+          original_duration_minutes?: number | null
         }
         Relationships: [
           {
@@ -675,6 +874,13 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_work_phase_id_fkey"
+            columns: ["work_phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_work_phases"
             referencedColumns: ["id"]
           },
         ]
@@ -823,6 +1029,65 @@ export type Database = {
           total_installer_hours: number
         }
         Relationships: []
+      }
+      site_checklist_phase_status_v: {
+        Row: {
+          site_id: string | null
+          site_type: 'b2c' | 'b2b' | 'service' | null
+          kwp: number | null
+          work_phase_id: string | null
+          work_phase_code: string | null
+          work_phase_label: string | null
+          work_phase_sort_order: number | null
+          checklist_item_count: number | null
+          completed_item_count: number | null
+          missing_photo_item_count: number | null
+          total_logged_hours: number | null
+          logged_hours_per_kwp: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_work_phases_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_checklist_items_work_phase_id_fkey"
+            columns: ["work_phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_work_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_work_phase_time_v: {
+        Row: {
+          site_id: string | null
+          site_code: string | null
+          client_name: string | null
+          site_type: 'b2c' | 'b2b' | 'service' | null
+          kwp: number | null
+          work_phase_id: string | null
+          work_phase_code: string | null
+          work_phase_label: string | null
+          work_phase_sort_order: number | null
+          work_phase_is_active: boolean | null
+          entry_count: number | null
+          open_entry_count: number | null
+          total_hours: number | null
+          hours_per_kwp: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_work_phases_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_compensation: {
         Row: {
@@ -1251,7 +1516,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_site: { Args: { site_id_param: string }; Returns: boolean }
       pause_work: { Args: { p_site_id: string }; Returns: undefined }
-      start_work: { Args: { p_site_id: string; p_start_lat?: number; p_start_lng?: number }; Returns: undefined }
+      start_work: { Args: { p_site_id: string; p_start_lat?: number; p_start_lng?: number; p_work_phase_id?: string }; Returns: undefined }
       recalculate_period: { Args: { p_period_id: string }; Returns: Json }
       lock_period: {
         Args: { p_period_id: string }
@@ -1331,6 +1596,24 @@ export type Database = {
           p_amount_override: number | null
           p_note: string | null
         }
+        Returns: Json
+      }
+      admin_close_time_entry: {
+        Args: { p_entry_id: string; p_ended_at: string; p_reason: string }
+        Returns: Json
+      }
+      admin_correct_time_entry: {
+        Args: {
+          p_entry_id: string
+          p_started_at: string
+          p_ended_at: string
+          p_reason: string
+          p_mark_reviewed?: boolean
+        }
+        Returns: Json
+      }
+      mark_time_entry_reviewed: {
+        Args: { p_entry_id: string; p_reason: string }
         Returns: Json
       }
       get_payroll_site_effective_rate_card: {

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Sun, Battery } from 'lucide-react';
+import { Building2, Loader2, Sun, Battery } from 'lucide-react';
 import { format } from 'date-fns';
-import { updateClientInfo, updateSiteDetails } from '../../../api/sites';
+import { updateClientInfo, updateSiteDetails, updateSiteType } from '../../../api/sites';
+import { ensureDefaultSiteWorkPhases } from '../../../api/workPhases';
+import { normalizeSiteType, siteTypeLabel, SITE_TYPE_OPTIONS, type SiteType } from '../../../lib/siteTypes';
 import TechDataModal from './TechDataModal';
 import type { SiteWithTeam } from './types';
 
@@ -32,6 +34,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
     address: '',
   });
   const [editingTech, setEditingTech] = useState(false);
+  const [siteType, setSiteType] = useState<SiteType>(() => normalizeSiteType(site.site_type));
 
   const [localNotes, setLocalNotes] = useState<string | null>(null);
   const notes = localNotes ?? site.notes ?? '';
@@ -68,6 +71,20 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
     onSuccess: () => {
       toast.success('Pastabos išsaugotos!');
       void queryClient.invalidateQueries({ queryKey: ['admin_site', siteId] });
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
+  const saveSiteTypeMutation = useMutation({
+    mutationFn: async () => {
+      await updateSiteType(siteId, siteType);
+      await ensureDefaultSiteWorkPhases(siteId, siteType);
+    },
+    onSuccess: () => {
+      toast.success('Objekto tipas išsaugotas!');
+      void queryClient.invalidateQueries({ queryKey: ['admin_site', siteId] });
+      void queryClient.invalidateQueries({ queryKey: ['admin_sites_list'] });
+      void queryClient.invalidateQueries({ queryKey: ['site_phase_time_summary', siteId] });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -205,6 +222,36 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
       </div>
 
       <div className="lg:col-span-1 space-y-5">
+        <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="font-semibold text-text text-[15px] flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" />
+              Objekto tipas
+            </h3>
+            <button
+              onClick={() => saveSiteTypeMutation.mutate()}
+              disabled={saveSiteTypeMutation.isPending || siteType === normalizeSiteType(site.site_type)}
+              className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            >
+              {saveSiteTypeMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Išsaugoti
+            </button>
+          </div>
+          <select
+            value={siteType}
+            onChange={(e) => setSiteType(e.target.value as SiteType)}
+            disabled={saveSiteTypeMutation.isPending}
+            className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-xl text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+          >
+            {SITE_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <p className="text-[12px] text-subtle mt-2">
+            Dabartinis tipas: <span className="font-semibold text-muted">{siteTypeLabel(site.site_type)}</span>. Pakeitus tipą esamas checklist nebus trinamas ar perrašomas.
+          </p>
+        </div>
+
         <div className="bg-surface rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-text text-[15px]">Pastabos / komentarai</h3>

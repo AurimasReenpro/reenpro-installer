@@ -45,7 +45,7 @@ export default function SiteCard({ site, onStartWork }: SiteCardProps) {
   const hasBattery = site.kwh != null;
 
   const handleClick = () => {
-    if (site.status === 'pending' && onStartWork) onStartWork();
+    if (site.status === 'pending' && site.site_type !== 'b2b' && onStartWork) onStartWork();
     else void navigate(`/m/sites/${site.id}`);
   };
 

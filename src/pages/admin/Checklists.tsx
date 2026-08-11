@@ -4,16 +4,24 @@ import { supabase } from '../../lib/supabase';
 import * as Sentry from "@sentry/react";
 import { toast } from 'sonner';
 import ConfirmModal from '../../components/ui/ConfirmModal';
-import { FolderCog, RefreshCw, Plus, Camera, Edit2, Trash2, X } from 'lucide-react';
+import { FolderCog, RefreshCw, Plus, Trash2, X } from 'lucide-react';
+import { checklistCategoryMatchesFilter, normalizeChecklistCategory, REQUIRED_CHECKLIST_CATEGORY_TABS } from '../../lib/siteTypes';
+import {
+  createB2BWorkCategory,
+  deactivateB2BWorkCategory,
+  getB2BWorkCategories,
+  updateB2BWorkCategory,
+} from '../../api/b2bWorkCategories';
+import {
+  groupChecklistTemplateTasksByB2BWorkCategory,
+  type ChecklistTemplateTask,
+} from '../../lib/checklistTemplateTasks';
+import B2BWorkCategoriesSection from './checklists/B2BWorkCategoriesSection';
+import B2BTemplateTasksSection from './checklists/B2BTemplateTasksSection';
+import SimpleChecklistTasksSection from './checklists/SimpleChecklistTasksSection';
 
-type ChecklistTemplate = {
-  id: string;
-  name: string;
-  phase: 'pre' | 'during' | 'post';
-  requires_photo: boolean;
-  category: string;
-};
-
+// Template task rows share the lib model so every section renders identically.
+type ChecklistTemplate = ChecklistTemplateTask;
 
 export default function Checklists() {
   const queryClient = useQueryClient();
@@ -34,6 +42,12 @@ export default function Checklists() {
     name: '',
     phase: 'pre' as 'pre' | 'during' | 'post',
     requires_photo: false,
+    min_photo_count: 0,
+    is_required: true,
+    is_active: true,
+    sort_order: 0,
+    template_work_phase_id: '',
+    b2b_work_category_id: '',
     category: '',
   });
 
@@ -56,12 +70,64 @@ export default function Checklists() {
       const { data, error } = await supabase
         .from('checklist_templates')
         .select('*')
-        .order('phase', { ascending: false })
+        .eq('is_active', true)
+        .order('category', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('phase', { ascending: true })
         .order('name', { ascending: true });
       
       if (error) throw error;
       return data as ChecklistTemplate[];
     }
+  });
+
+  const { data: b2bWorkCategories = [] } = useQuery({
+    queryKey: ['b2b_work_categories'],
+    queryFn: getB2BWorkCategories,
+  });
+
+  const addWorkCategoryMutation = useMutation({
+    mutationFn: async (label: string) => {
+      const nextOrder = Math.max(0, ...b2bWorkCategories.map((category) => category.sort_order)) + 10;
+      await createB2BWorkCategory({
+        label,
+        sort_order: nextOrder,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['b2b_work_categories'] });
+    },
+    onError: (err) => {
+      console.error('Add B2B work category error:', err);
+      Sentry.captureException(err, { extra: { context: 'Add B2B work category' } });
+      toast.error('Nepavyko pridėti darbo.');
+    },
+  });
+
+  const updateWorkCategoryMutation = useMutation({
+    mutationFn: async ({ categoryId, update }: { categoryId: string; update: { label?: string; sort_order?: number; is_active?: boolean } }) => {
+      await updateB2BWorkCategory(categoryId, update);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['b2b_work_categories'] });
+    },
+    onError: (err) => {
+      console.error('Update B2B work category error:', err);
+      Sentry.captureException(err, { extra: { context: 'Update B2B work category' } });
+      toast.error('Nepavyko išsaugoti darbo.');
+    },
+  });
+
+  const deactivateWorkCategoryMutation = useMutation({
+    mutationFn: deactivateB2BWorkCategory,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['b2b_work_categories'] });
+    },
+    onError: (err) => {
+      console.error('Deactivate B2B work category error:', err);
+      Sentry.captureException(err, { extra: { context: 'Deactivate B2B work category' } });
+      toast.error('Nepavyko deaktyvuoti darbo.');
+    },
   });
 
   const saveMutation = useMutation({
@@ -89,11 +155,11 @@ export default function Checklists() {
     }
   });
 
-  const deleteMutation = useMutation({
+  const deactivateTemplateMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('checklist_templates')
-        .delete()
+        .update({ is_active: false })
         .eq('id', id);
       if (error) throw error;
     },
@@ -101,8 +167,8 @@ export default function Checklists() {
       void queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
     },
     onError: (err) => {
-      console.error("Delete error:", err); Sentry.captureException(err, { extra: { context: "Delete error:" } });
-      toast.error("Nepavyko ištrinti šablono.");
+      console.error("Deactivate template error:", err); Sentry.captureException(err, { extra: { context: "Deactivate template error:" } });
+      toast.error("Nepavyko deaktyvuoti šablono.");
     }
   });
 
@@ -135,13 +201,19 @@ export default function Checklists() {
     }
   });
 
-  const handleOpenModal = (item?: ChecklistTemplate) => {
+  const handleOpenModal = (item?: ChecklistTemplate, b2bWorkCategoryId?: string | null) => {
     if (item) {
       setEditingItem(item);
       setFormData({
         name: item.name,
         phase: item.phase,
         requires_photo: item.requires_photo,
+        min_photo_count: item.min_photo_count ?? (item.requires_photo ? 1 : 0),
+        is_required: item.is_required ?? true,
+        is_active: item.is_active ?? true,
+        sort_order: item.sort_order ?? 0,
+        template_work_phase_id: item.template_work_phase_id ?? '',
+        b2b_work_category_id: item.b2b_work_category_id ?? '',
         category: item.category || '',
       });
     } else {
@@ -150,7 +222,24 @@ export default function Checklists() {
         name: '',
         phase: 'pre',
         requires_photo: false,
-        category: categories && categories.length > 0 ? categories[0]?.name || '' : '',
+        min_photo_count: 0,
+        is_required: true,
+        is_active: true,
+        sort_order: (() => {
+          const matching = (templates ?? []).filter((template) => (
+            b2bWorkCategoryId !== undefined
+              ? template.b2b_work_category_id === b2bWorkCategoryId
+              : checklistCategoryMatchesFilter(template.category, activeCategory)
+          ));
+          return Math.max(0, ...matching.map((template) => template.sort_order ?? 0)) + 10;
+        })(),
+        template_work_phase_id: '',
+        b2b_work_category_id: b2bWorkCategoryId ?? '',
+        category: b2bWorkCategoryId !== undefined
+          ? 'B2B'
+          : activeCategory !== 'Visi'
+            ? activeCategory
+            : categories && categories.length > 0 ? categories[0]?.name || '' : '',
       });
     }
     setIsModalOpen(true);
@@ -167,7 +256,15 @@ export default function Checklists() {
       toast.warning('Prašome įvesti pavadinimą.');
       return;
     }
-    saveMutation.mutate(formData);
+    const isB2B = normalizeChecklistCategory(formData.category) === 'b2b';
+    saveMutation.mutate({
+      ...formData,
+      min_photo_count: formData.requires_photo ? Math.max(1, formData.min_photo_count) : 0,
+      sort_order: Number(formData.sort_order) || 0,
+      is_active: true,
+      template_work_phase_id: formData.template_work_phase_id || null,
+      b2b_work_category_id: isB2B ? formData.b2b_work_category_id || null : null,
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -188,7 +285,20 @@ export default function Checklists() {
     toast.info('Ši funkcija bus pajungta vėliau, kartu su naujų objektų generavimo logika.');
   };
 
-  const activeTabs = ['Visi', ...(categories?.map(c => c.name) || [])];
+  const activeTabs = [
+    'Visi',
+    ...new Set([
+      ...REQUIRED_CHECKLIST_CATEGORY_TABS,
+      ...(categories?.map(c => c.name) || []),
+    ]),
+  ];
+
+  const showB2BWorkPhases = activeCategory === 'B2B' || normalizeChecklistCategory(activeCategory) === 'b2b';
+  const b2bTaskGroups = showB2BWorkPhases
+    ? groupChecklistTemplateTasksByB2BWorkCategory(templates ?? [], b2bWorkCategories)
+    : [];
+  const visibleTemplates = (templates ?? []).filter((item) => checklistCategoryMatchesFilter(item.category, activeCategory));
+  const formCategoryIsB2B = normalizeChecklistCategory(formData.category) === 'b2b';
 
   return (
     <div className="space-y-6">
@@ -196,7 +306,7 @@ export default function Checklists() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight text-text">Checklist'ų šablonai</h2>
-          <p className="text-[14px] text-muted">Valdykite pre ir post darbų užduotis</p>
+          <p className="text-[14px] text-muted">Valdykite šablonų užduotis</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
@@ -218,7 +328,7 @@ export default function Checklists() {
             className="h-[40px] px-4 font-medium text-[14px] rounded-xl bg-primary text-white hover:bg-primary transition-all shadow-sm flex items-center gap-2"
           >
             <Plus size={18} />
-            Pridėti naują punktą
+            Pridėti užduotį
           </button>
         </div>
       </div>
@@ -240,85 +350,37 @@ export default function Checklists() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-surface border border-border rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-surface-2">
-                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Pavadinimas</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Fazė</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider">Kategorija</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider text-center">Nuotrauka</th>
-                <th className="py-3 px-6 text-[11px] font-bold text-subtle uppercase tracking-wider text-right">Veiksmai</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-subtle">Kraunama...</td>
-                </tr>
-              ) : templates && templates.length > 0 ? (
-                templates
-                  .filter((item) => activeCategory === 'Visi' || item.category === activeCategory)
-                  .map((item) => (
-                  <tr key={item.id} className="hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors group">
-                    <td className="py-4 px-6 text-[14px] font-medium text-text">{item.name}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border ${
-                        item.phase === 'pre'
-                          ? 'bg-[#ecdcff] dark:bg-primary/30 text-primary dark:text-primary-ink border-primary/20 dark:border-primary/20'
-                          : item.phase === 'during'
-                          ? 'bg-[#EFF6FF] dark:bg-blue-900/30 text-[#2563EB] dark:text-blue-300 border-[#2563EB]/20 dark:border-blue-500/20'
-                          : 'bg-[#ffdad6] dark:bg-red-900/30 text-[#ba1a1a] dark:text-red-300 border-[#ba1a1a]/20 dark:border-red-500/20'
-                      }`}>
-                        {item.phase}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="bg-surface-2 text-muted dark:text-subtle px-2.5 py-1 rounded-[6px] text-[12px] font-bold uppercase tracking-wide border border-border">
-                        {item.category || '-'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {item.requires_photo ? (
-                        <span className="bg-[#ECFDF5] dark:bg-emerald-900/30 rounded-full p-1 border border-[#10B981]/20 dark:border-emerald-500/20 inline-flex items-center justify-center">
-                          <Camera className="text-[#10B981] dark:text-emerald-400 w-4 h-4" />
-                        </span>
-                      ) : (
-                        <span className="text-subtle dark:text-muted text-[14px]">-</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenModal(item)}
-                          className="h-[30px] px-3 rounded-[6px] flex items-center gap-1.5 text-[12px] font-semibold text-primary dark:text-primary-ink bg-surface-2 hover:bg-[#ecdcff] dark:hover:bg-primary/30 border border-border hover:border-primary/20 transition-colors cursor-pointer"
-                          title="Redaguoti"
-                        >
-                          <Edit2 size={13} />
-                          Redaguoti
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center text-subtle hover:text-[#e2250a] hover:bg-[#ffdad6] dark:hover:bg-red-900/30 border border-border hover:border-[#e2250a]/20 transition-colors cursor-pointer"
-                          title="Trinti"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-subtle">Šablonų nerasta.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* "B2B darbai" = reusable work catalog only; tasks live in the section below. */}
+      {showB2BWorkPhases && (
+        <B2BWorkCategoriesSection
+          categories={b2bWorkCategories}
+          isSaving={updateWorkCategoryMutation.isPending}
+          isDeactivating={deactivateWorkCategoryMutation.isPending}
+          isAdding={addWorkCategoryMutation.isPending}
+          onSave={(categoryId, draft) => updateWorkCategoryMutation.mutate({ categoryId, update: draft })}
+          onDeactivate={(categoryId) => deactivateWorkCategoryMutation.mutate(categoryId)}
+          onAdd={(label) => addWorkCategoryMutation.mutate(label)}
+        />
+      )}
+
+      {showB2BWorkPhases && (
+        <B2BTemplateTasksSection
+          groups={b2bTaskGroups}
+          onAddTask={(categoryId) => handleOpenModal(undefined, categoryId)}
+          onEditTask={handleOpenModal}
+          onDeactivateTask={handleDelete}
+        />
+      )}
+
+      {!showB2BWorkPhases && (
+        <SimpleChecklistTasksSection
+          activeCategory={activeCategory}
+          items={visibleTemplates}
+          isLoading={isLoading}
+          onEditTask={handleOpenModal}
+          onDeactivateTask={handleDelete}
+        />
+      )}
 
       {/* Edit/Add Template Modal Overlay */}
       {isModalOpen && (
@@ -326,7 +388,7 @@ export default function Checklists() {
           <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h3 className="text-[18px] font-bold text-text">
-                {editingItem ? 'Redaguoti punktą' : 'Pridėti naują punktą'}
+                {editingItem ? 'Redaguoti užduotį' : 'Pridėti užduotį'}
               </h3>
               <button 
                 onClick={closeModal}
@@ -338,13 +400,13 @@ export default function Checklists() {
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Pavadinimas</label>
+                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Užduoties pavadinimas</label>
                 <input 
                   type="text" 
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="Šablono užduotis..."
+                  placeholder="Užduoties pavadinimas..."
                   className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
               </div>
@@ -364,11 +426,31 @@ export default function Checklists() {
               </div>
 
               <div>
+                <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Eilė</label>
+                <input
+                  type="number"
+                  value={formData.sort_order}
+                  onChange={e => setFormData({...formData, sort_order: Number(e.target.value)})}
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                />
+                <p className="mt-1 text-[11px] text-subtle">Tik rikiavimui.</p>
+              </div>
+
+              <div>
                 <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Grupė / Kategorija</label>
                 <select 
                   required
                   value={formData.category}
-                  onChange={e => setFormData({...formData, category: e.target.value})}
+                  onChange={e => setFormData({
+                    ...formData,
+                    category: e.target.value,
+                    template_work_phase_id: normalizeChecklistCategory(e.target.value) === 'b2b'
+                      ? formData.template_work_phase_id
+                      : '',
+                    b2b_work_category_id: normalizeChecklistCategory(e.target.value) === 'b2b'
+                      ? formData.b2b_work_category_id
+                      : '',
+                  })}
                   className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="">-- Pasirinkti --</option>
@@ -378,16 +460,63 @@ export default function Checklists() {
                 </select>
               </div>
 
+              {formCategoryIsB2B && (
+                <div>
+                  <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">B2B darbas</label>
+                  <select
+                    value={formData.b2b_work_category_id}
+                    onChange={e => setFormData({...formData, b2b_work_category_id: e.target.value})}
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  >
+                    <option value="">-- Nepriskirta --</option>
+                    {b2bWorkCategories
+                      .filter((category) => category.is_active || category.id === formData.b2b_work_category_id)
+                      .map((category) => (
+                      <option key={category.id} value={category.id}>{category.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_required"
+                  checked={formData.is_required}
+                  onChange={e => setFormData({...formData, is_required: e.target.checked})}
+                  className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                />
+                <label htmlFor="is_required" className="text-[14px] font-medium text-text dark:text-gray-200">Privaloma</label>
+              </div>
+
               <div className="flex items-center gap-2">
                 <input 
                   type="checkbox"
                   id="requires_photo"
                   checked={formData.requires_photo}
-                  onChange={e => setFormData({...formData, requires_photo: e.target.checked})}
+                  onChange={e => setFormData({
+                    ...formData,
+                    requires_photo: e.target.checked,
+                    min_photo_count: e.target.checked ? Math.max(1, formData.min_photo_count) : 0,
+                  })}
                   className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <label htmlFor="requires_photo" className="text-[14px] font-medium text-text dark:text-gray-200">Reikalauja nuotraukos</label>
+                <label htmlFor="requires_photo" className="text-[14px] font-medium text-text dark:text-gray-200">Reikia nuotraukos</label>
               </div>
+
+              {formData.requires_photo && (
+                <div>
+                  <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-2">Min. nuotraukų</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={formData.min_photo_count}
+                    onChange={e => setFormData({...formData, min_photo_count: Number(e.target.value)})}
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-xl text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex gap-3">
                 <button
@@ -470,14 +599,14 @@ export default function Checklists() {
 
       <ConfirmModal
         isOpen={templateToDelete !== null}
-        title="Ištrinti šabloną"
-        message="Ar tikrai norite trinti šį šabloną?"
-        confirmText="Ištrinti"
+        title="Deaktyvuoti užduotį"
+        message="Ar tikrai norite deaktyvuoti šią užduotį? Ji liks duomenų bazėje, bet nebebus rodoma aktyviuose šablonuose."
+        confirmText="Deaktyvuoti"
         cancelText="Atšaukti"
         variant="danger"
         onConfirm={() => {
           if (templateToDelete) {
-            deleteMutation.mutate(templateToDelete);
+            deactivateTemplateMutation.mutate(templateToDelete);
           }
           setTemplateToDelete(null);
         }}

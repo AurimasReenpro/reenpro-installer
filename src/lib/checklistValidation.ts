@@ -1,4 +1,5 @@
 import type { SiteChecklist, SitePhoto } from '../types/site.types';
+import { photosForChecklistItem, requiredPhotoCount } from './checklistTemplatePhases';
 
 /**
  * Result of gating a job for completion. `valid` is true only when every rule
@@ -17,9 +18,9 @@ export interface JobCompletionValidation {
   messages: string[];
 }
 
-/** True if a durable photo (or the legacy photo_url mirror) exists for an item. */
-function itemHasPhoto(item: SiteChecklist, photos: SitePhoto[]): boolean {
-  return photos.some((p) => p.storage_path.includes(`/${item.id}/`)) || !!item.photo_url;
+function itemPhotoCount(item: SiteChecklist, photos: SitePhoto[]): number {
+  const linkedPhotos = photosForChecklistItem(item.id, photos);
+  return linkedPhotos.length > 0 ? linkedPhotos.length : (item.photo_url ? 1 : 0);
 }
 
 /**
@@ -42,9 +43,10 @@ export function validateJobCompletion(
   const failedItems = items.filter((i) => i.status === 'fail');
 
   // n_a items are exempt from the photo requirement (the task isn't applicable).
-  const missingPhotoItems = items.filter(
-    (i) => i.is_required && i.status !== 'n_a' && !itemHasPhoto(i, photos),
-  );
+  const missingPhotoItems = items.filter((i) => {
+    const needed = requiredPhotoCount(i);
+    return needed > 0 && i.status !== 'n_a' && itemPhotoCount(i, photos) < needed;
+  });
 
   const messages: string[] = [];
   if (pendingItems.length > 0) {

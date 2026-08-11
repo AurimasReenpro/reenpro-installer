@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import FullPageSpinner from '../../components/ui/FullPageSpinner';
 import { getSiteDetailQuery } from '../../types/site.types';
 import type { SitePhoto } from '../../types/site.types';
+import { getSiteWorkPhases } from '../../api/workPhases';
 
 // Custom Hooks
 import { useSiteTimeTracking } from '../../hooks/useSiteTimeTracking';
@@ -46,6 +47,18 @@ export default function SiteDetail() {
       return data;
     },
     enabled: !!id,
+  });
+
+  const { data: activeWorkPhases = [] } = useQuery({
+    queryKey: ['site_work_phases', id, 'active'],
+    queryFn: () => getSiteWorkPhases(id as string, { activeOnly: true }),
+    enabled: !!id && site?.site_type === 'b2b',
+  });
+
+  const { data: allWorkPhases = [] } = useQuery({
+    queryKey: ['site_work_phases', id, 'all'],
+    queryFn: () => getSiteWorkPhases(id as string),
+    enabled: !!id && site?.site_type === 'b2b',
   });
 
   const {
@@ -96,6 +109,9 @@ export default function SiteDetail() {
   const tabs = ['Objekto info', 'Įranga', 'Darbai', 'Brėžiniai', 'Foto'];
 
   const isActive = site?.time_entries?.some((e) => !e.end_time) ?? false;
+  const currentWorkPhaseId = site?.time_entries?.find(
+    (entry) => entry.installer_id === profile?.id && !entry.end_time,
+  )?.work_phase_id ?? null;
   const displayStatus = isArchivedSiteStatus(site.status)
     ? 'archived'
     : site.status === 'completed'
@@ -156,6 +172,9 @@ export default function SiteDetail() {
           profileId={profile?.id}
           compressingCheckId={compressingCheckId}
           uploadingCheckId={uploadingCheckId}
+          siteType={site.site_type}
+          workPhases={allWorkPhases}
+          currentWorkPhaseId={currentWorkPhaseId}
           onSetStatus={(itemId, status) => { void handleSetStatus(itemId, status); }}
           onSaveComment={handleSaveComment}
           onUploadPhoto={(e, checkId) => { void handleUploadPhoto(e, checkId); }}
@@ -188,9 +207,11 @@ export default function SiteDetail() {
         status={displayStatus}
         isCheckingIn={isCheckingIn}
         isActionPending={isActionPending}
-        onCheckIn={() => { void handleCheckIn(); }}
+        siteType={site.site_type}
+        workPhases={activeWorkPhases}
+        onCheckIn={(workPhaseId) => { void handleCheckIn(workPhaseId); }}
         onPause={() => { void handlePause(); }}
-        onResume={() => { void handleResume(); }}
+        onResume={(workPhaseId) => { void handleResume(workPhaseId); }}
         onComplete={handleAttemptComplete}
         entries={site.time_entries || []}
         installerId={profile?.id}

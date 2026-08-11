@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSameWeek, isSameMonth } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { startWork } from '../../api/timeTracking';
+import { startTimeEntry } from '../../api/timeTracking';
 import { getInstallerSites } from '../../api/sites';
 import { isInstallerVisibleSiteStatus } from '../../lib/siteStatus';
 import { useAuthStore } from '../../stores/authStore';
@@ -31,7 +31,8 @@ export default function Sites() {
 
   const startWorkMutation = useMutation({
     mutationFn: async (siteId: string) => {
-      await startWork(siteId);
+      if (!profile?.id) throw new Error('User not authenticated');
+      await startTimeEntry(siteId, profile.id);
       return siteId;
     },
     onSuccess: (_, siteId) => { 

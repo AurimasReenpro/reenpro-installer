@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { lt } from 'date-fns/locale/lt';
 import { useNavigate } from 'react-router-dom';
-import { startWork } from '../../api/timeTracking';
+import { startTimeEntry } from '../../api/timeTracking';
 import { getCurrentPositionWithTimeout } from '../../lib/geolocation';
 import { getInstallerSites } from '../../api/sites';
 import { isUpcomingInstallerSiteStatus } from '../../lib/siteStatus';
@@ -41,6 +41,7 @@ export default function Today() {
 
   const startWorkMutation = useMutation({
     mutationFn: async (siteId: string) => {
+      if (!profile?.id) throw new Error('User not authenticated');
       // Always attempt GPS capture before starting — keeps clock-in location
       // consistent regardless of which screen the job was started from. Geo is
       // best-effort (resolves null after the timeout) and never blocks the start.
@@ -50,7 +51,7 @@ export default function Today() {
       } catch (geoError) {
         console.warn('Start work geolocation warning:', geoError);
       }
-      await startWork(siteId, pos?.lat, pos?.lng);
+      await startTimeEntry(siteId, profile.id, null, pos?.lat, pos?.lng);
       return siteId;
     },
     onSuccess: (_, siteId) => {

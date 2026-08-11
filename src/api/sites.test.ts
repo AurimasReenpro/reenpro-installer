@@ -4,8 +4,28 @@ import { describe, it, expect, vi } from 'vitest';
 // The functions under test don't touch it, so stub the module out.
 vi.mock('../lib/supabase', () => ({ supabase: {} }));
 
-import { calculateKwpFromEquipment, calculateKwhFromEquipment, hasDeletionBlockers, type SiteDeletionBlockers } from './sites';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { calculateKwpFromEquipment, calculateKwhFromEquipment, hasDeletionBlockers, SITE_FILES_BUCKET, type SiteDeletionBlockers } from './sites';
 import type { EquipmentItem } from '../types/equipment.types';
+
+describe('SITE_FILES_BUCKET (canonical bucket name)', () => {
+  it('is the underscore spelling used by production storage', () => {
+    expect(SITE_FILES_BUCKET).toBe('site_files');
+  });
+
+  it('no hardcoded bucket spelling remains in the storage APIs (grep-proof)', () => {
+    for (const rel of ['./sites.ts', './dashboard.ts']) {
+      const src = readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+      // The hyphen spelling pointed at a nonexistent bucket (delete-safety bug).
+      expect(src.includes("'site-files'"), `${rel} must not reference 'site-files'`).toBe(false);
+      expect(src.includes('"site-files"'), `${rel} must not reference "site-files"`).toBe(false);
+      // The literal may appear only in the single constant definition in sites.ts.
+      const literalCount = src.split("'site_files'").length - 1;
+      expect(literalCount, `${rel} must use SITE_FILES_BUCKET, not the raw literal`).toBeLessThanOrEqual(rel === './sites.ts' ? 1 : 0);
+    }
+  });
+});
 
 describe('hasDeletionBlockers (hard-delete safety gate)', () => {
   const zero: SiteDeletionBlockers = { timeEntries: 0, checklistItems: 0, photos: 0, files: 0, snapshots: 0, earnings: 0 };

@@ -18,7 +18,7 @@ type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
 const editInstallerSchema = z.object({
   firstName: z.string().min(1, 'Vardas yra privalomas'),
-  lastName: z.string().min(1, 'Pavardė yra privalomas'),
+  lastName: z.string().min(1, 'Pavardė yra privaloma'),
   phone: z.string().optional().or(z.literal('')),
   teamId: z.string().optional().or(z.literal('')),
   workRole: z.enum(INSTALLER_WORK_ROLES),
@@ -139,7 +139,7 @@ export default function EditInstallerModal({
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-surface rounded-[2rem] max-w-md w-full overflow-hidden shadow-2xl flex flex-col"
+            className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl"
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
@@ -270,14 +270,14 @@ export default function EditInstallerModal({
                   type="button"
                   onClick={onClose}
                   disabled={mutation.isPending}
-                  className="flex-1 py-3 font-medium text-[14px] rounded-xl border border-border text-muted dark:text-subtle hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors disabled:opacity-60 cursor-pointer"
+                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-medium text-muted transition-colors hover:bg-surface-2 active:scale-[0.98] disabled:opacity-60 cursor-pointer dark:text-subtle dark:hover:bg-surface-2"
                 >
                   Atšaukti
                 </button>
                 <button
                   type="submit"
                   disabled={mutation.isPending}
-                  className="flex-1 py-3 font-medium text-[14px] rounded-xl bg-primary hover:opacity-90 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-75 cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-[14px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-75 cursor-pointer"
                 >
                   {mutation.isPending ? (
                     <>
