@@ -23,10 +23,11 @@
   "vars": {
     "ACCESS_TEAM_DOMAIN": "aurimas-03b.cloudflareaccess.com",
 
-    // Kableliais atskirtas SĄRAŠAS: Production ir Preview yra atskiros
-    // Access aplikacijos su skirtingais aud. Kol tuščias, Workeris
-    // sąmoningai atmeta visus.
-    "ACCESS_AUD": "",
+    // Kableliais atskirtas SĄRAŠAS: pirmas – Production
+    // (reenpro-installer.aurimas-03b.workers.dev), antras – Preview
+    // (*-reenpro-installer...). Tai atskiros Access aplikacijos su
+    // skirtingais aud; palikus vieną, preview versijos duotų 403.
+    "ACCESS_AUD": "623e82d9434ebeba3377c14cfcf55d586223cc4a5c000622204a5b2a040cc733,12280fe71c6d272e37ef6fd3f715cc176e65cb7511049c8347e5ad52ce9e0e99",
 
     "APP_ID": "installer",
 
