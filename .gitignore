@@ -27,3 +27,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cloudflare Worker vietiniai kintamieji
+.dev.vars
+.dev.vars.*
+.wrangler/
+
+# Generuojamas turinys
+graphify-out/
+.pnpm-store/

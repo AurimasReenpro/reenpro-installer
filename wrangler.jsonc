@@ -1,0 +1,50 @@
+{
+  "name": "reenpro-installer",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-05",
+
+  "observability": {
+    "enabled": true
+  },
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+
+    // KRITINĖ nuostata. Be jos Workers atiduoda failus nepaleidęs
+    // worker/index.js, ir visa prieigos patikra apeinama.
+    "run_worker_first": true,
+
+    // React Router: bet koks kelias turi grąžinti index.html, kitaip
+    // atnaujinus puslapį ties /objektai gautume 404.
+    "not_found_handling": "single-page-application"
+  },
+
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "aurimas-03b.cloudflareaccess.com",
+
+    // Kableliais atskirtas SĄRAŠAS: Production ir Preview yra atskiros
+    // Access aplikacijos su skirtingais aud. Kol tuščias, Workeris
+    // sąmoningai atmeta visus.
+    "ACCESS_AUD": "",
+
+    "APP_ID": "installer",
+
+    // Kol kas tuščias sąmoningai: sistema skirta ne vienam skyriui
+    // (montuotojai, projektų vadovai, tiekimas), tad grupės pavadinimas
+    // būtų netikslus. Priskiriama vardiniu būdu – `users.groups` įrašomas
+    // `installer`. Grupė atsiras tada, kai bus aišku, kokia ji.
+    "APP_GROUPS": "",
+
+    "DASHBOARD_URL": "https://reenpro-dashboard.aurimas-03b.workers.dev"
+  },
+
+  "d1_databases": [
+    {
+      // Tik naudotojų patikrai. Sistemos duomenys lieka Supabase.
+      "binding": "DB",
+      "database_name": "reenpro-dashboard",
+      "database_id": "b6f211ee-efca-428a-8a0a-4ab73a32426d"
+    }
+  ]
+}
