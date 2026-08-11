@@ -21,7 +21,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
     const res = await fetch(url, {
-      headers: { 'Accept-Language': 'lt,en', 'User-Agent': 'InstallerApp/1.0' },
+      headers: { 'Accept-Language': 'lt,en', 'User-Agent': 'ReenproMontuotojas/1.0' },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;

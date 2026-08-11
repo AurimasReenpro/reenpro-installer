@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { FEATURES } from '../../config/features';
 import { useBranding } from '../../hooks/useBranding';
 import { useSyncStore } from '../../stores/useSyncStore';
+import reenproBaltas from '../../assets/reenpro-baltas.svg';
+import reenproSlyvinis from '../../assets/reenpro-slyvinis.svg';
 
 // Track real connectivity via the browser's online/offline events.
 function useOnlineStatus() {
@@ -103,7 +105,15 @@ export default function MobileLayout() {
         {logoUrl ? (
           <img src={logoUrl} alt={companyName ?? 'Logo'} className="h-8 w-auto max-w-[140px] object-contain" />
         ) : (
-          <h1 className="text-primary font-bold text-lg truncate px-2">{companyName || 'InstallerApp'}</h1>
+          /* Juosta šviesiu režimu balta, tamsiu – slyvinė, todėl reikia abiejų
+             logotipo variantų. Vienas SVG netiktų: baltas ant balto dingtų. */
+          <div className="flex items-center gap-2 min-w-0">
+            <img src={reenproSlyvinis} alt="Reenpro" className="h-6 w-auto dark:hidden" />
+            <img src={reenproBaltas} alt="Reenpro" className="h-6 w-auto hidden dark:block" />
+            <span className="text-[10px] font-medium uppercase tracking-[.12em] text-subtle whitespace-nowrap">
+              Montuotojas
+            </span>
+          </div>
         )}
         <div className="flex items-center gap-1.5">
           <NetworkStatusChip />

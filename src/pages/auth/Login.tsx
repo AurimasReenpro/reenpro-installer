@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
-import { Sun, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import reenproBaltas from '../../assets/reenpro-baltas.svg';
+import reenproSlyvinis from '../../assets/reenpro-slyvinis.svg';
 
 const loginSchema = z.object({
   email: z.string().email('Neteisingas el. pašto formatas'),
@@ -71,15 +73,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
-      <div className="bg-surface border border-border rounded-[20px] shadow-card p-8 max-w-sm w-full">
+      <div className="bg-surface border border-border rounded-card shadow-card p-8 max-w-sm w-full">
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-2">
-            <Sun className="text-primary w-10 h-10 fill-primary" />
-            <h1 className="text-on-surface font-bold text-xl">InstallerApp</h1>
-          </div>
-          <p className="text-primary-ink text-sm mt-1">
-            Montuotojų platforma
+          {/* Kortelė balta šviesiu režimu ir slyvinė tamsiu, todėl logotipas
+              keičiamas kartu su tema — kitaip vienas iš variantų dingtų. */}
+          <img src={reenproSlyvinis} alt="Reenpro" className="w-[180px] h-auto dark:hidden" />
+          <img src={reenproBaltas} alt="Reenpro" className="w-[180px] h-auto hidden dark:block" />
+          <p className="text-subtle text-[11px] font-medium uppercase tracking-[.14em] mt-3">
+            Montuotojas
           </p>
         </div>
 
@@ -124,7 +126,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-[52px] bg-primary text-white rounded-btn font-semibold text-[15px] shadow-primary hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-[52px] bg-accent text-on-accent rounded-btn font-semibold text-[15px] shadow-primary hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
