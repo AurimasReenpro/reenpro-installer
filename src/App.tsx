@@ -28,7 +28,9 @@ const EquipmentCatalog = lazy(() => import('./pages/admin/EquipmentCatalog'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const Reports = lazy(() => import('./pages/admin/Reports'));
 const Schedule = lazy(() => import('./pages/admin/Schedule'));
-const Payroll = lazy(() => import('./pages/admin/Payroll'));
+// Atlyginimai laikinai atjungti (2026-08-14). Maršruto nėra, tad ir kodas
+// nepatenka į paketą. `src/pages/admin/payroll/` paliktas vietoje — grąžinti
+// reikia šios eilutės ir maršruto žemiau.
 
 const MobileLayout = lazy(() => import('./components/mobile/MobileLayout'));
 const Today = lazy(() => import('./pages/mobile/Today'));
@@ -89,7 +91,6 @@ function AppContent() {
             <Route path="checklists" element={<Checklists />} />
             <Route path="installers" element={<Installers />} />
             <Route path="catalog" element={<EquipmentCatalog />} />
-            <Route path="payroll" element={<Payroll />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

@@ -21,6 +21,15 @@ montuotojai (mobili aplinka), projektų vadovai, darbų vadovas, tiekimas
 React 19 + Vite + Tailwind v4, ~190 failų. `src/pages/mobile` (14 failų) ir
 `src/pages/admin` (72). `RoleRedirect` nusprendžia, kur žmogų nuvesti.
 
+**Atlyginimai nuo 2026-08-14 atjungti.** Sprendimas produktinis, ne saugumo —
+`payroll_*` lentelės RLS lygiu ir taip pasiekiamos tik adminams. Atjungta
+trijose vietose: meniu punktas (`AdminLayout`), maršrutas ir `lazy` importas
+(`App.tsx`), Skydelio „Payroll“ eilutės su užklausomis į `payroll_periods` bei
+`payroll_site_snapshots` (`api/dashboard.ts`, `pages/admin/Dashboard.tsx`).
+Kodas `src/pages/admin/payroll/` ir `src/api/payroll.ts` **paliktas vietoje ir
+nepaliestas**; be maršruto jis nepatenka į paketą (patikrinta — `dist` nebeturi
+Payroll gabalo). Grąžinti — atstatyti tas tris vietas.
+
 ## Kas kur laikoma
 
 **Duomenys lieka Supabase** (projektas `zfntcsdijgclolanwlpp`). Perrašinėti į
@@ -88,9 +97,21 @@ Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
 3. **Rolės viduje** — dabar `user_profiles.role` turi tik `admin` ir
    `installer`, tad tiekimas matytų algas. Naujos rolės gyvena Supabase, ne
    D1: RLS mato tik Supabase duomenis, o paslėptas mygtukas nėra apsauga.
-4. **RLS peržiūra** prieš išdalinant. `supabase/tests/rls_smoke_test.sql` yra
-   vieta, kur tai įrodyti.
+   **Naujos `role` reikšmės neužteks:** objektų matomumas remiasi komanda
+   (`can_access_site` tikrina `team_id`), ne role, tad nauja rolė be komandos
+   nematys nieko, o su komanda matys tiek pat, kiek montuotojas. Reikia
+   atskiro predikato. Žr. `supabase/RLS-PERZIURA.md`.
+4. **RLS sutvarkymas** — peržiūra atlikta 2026-08-14, radiniai ir siūloma
+   migracija: `supabase/RLS-PERZIURA.md`. Esmė: politikų 128, visos
+   `PERMISSIVE`, sudėtos trimis kartomis, ir senos `USING (true)` uždengia
+   naujas `is_admin()`. Algų lentelės tvarkingos, bet `company_settings.iban`
+   rašomas bet kuriam prisijungusiam. **Valyti prieš dedant roles.**
+   `supabase/tests/rls_smoke_test.sql` yra vieta, kur tai įrodyti — jo testas
+   2d su dabartine baze turėtų kristi.
 5. **Pranešimas apie naują versiją** — dabar montuotojas gali savaitę dirbti su
    sena, nes service worker atiduoda iš talpyklos.
-6. Gilesnių ekranų apžiūra po spalvų pakeitimo (Atlyginimai, Objekto kortelė,
-   Ataskaitos) — ten keitimų buvo daugiausia.
+6. ~~Gilesnių ekranų apžiūra po spalvų pakeitimo~~ — padaryta 2026-08-14.
+   Ataskaitos buvo švarios; Objekto kortelėje ir Atlyginimuose likę kietai
+   įrašyti šviesios temos atspalviai perkelti į tokenus. Pridėtas
+   `--danger-bg` (dizaino sistemos `error-bg`) — jo trūko, nors
+   `success/warning/info` fonai jau buvo.

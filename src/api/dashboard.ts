@@ -55,8 +55,6 @@ export interface AdminOperationsDashboard {
   todaySites: DashboardSite[];
   mapSites: DashboardSite[];
   attention: DashboardAttentionItem[];
-  payrollWarningCount: number;
-  payrollStatus: string | null;
   completedMissingPdfCount: number;
   companySettings: CompanySettings | null;
   activity: DashboardActivityItem[];
@@ -84,12 +82,6 @@ interface RawDashboardSite {
   site_checklists: {
     site_checklist_items: { status: string | null }[] | null;
   }[] | null;
-}
-
-interface RawPayrollSnapshot {
-  site_id: string | null;
-  warnings: unknown;
-  site: { code: string | null; client_name: string | null } | null;
 }
 
 type DashboardSupabaseError = {
@@ -222,10 +214,6 @@ function minutesSince(iso: string | null, now: number): number {
   return iso ? Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000)) : 0;
 }
 
-function toWarnings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
-}
-
 async function getMissingPdfSiteIds(sites: DashboardSite[]): Promise<Set<string>> {
   const results = await Promise.all(sites.map(async (site) => {
     const { data, error } = await supabase.storage.from(SITE_FILES_BUCKET).list(site.id, { limit: 100 });
@@ -241,10 +229,8 @@ async function getMissingPdfSiteIds(sites: DashboardSite[]): Promise<Set<string>
  */
 export async function getAdminOperationsDashboard(day = new Date()): Promise<AdminOperationsDashboard> {
   const { start, end } = dayWindow(day);
-  const year = day.getFullYear();
-  const month = day.getMonth() + 1;
 
-  const [scheduledResult, activeResult, completedResult, activityResult, settings, periodResult] = await Promise.all([
+  const [scheduledResult, activeResult, completedResult, activityResult, settings] = await Promise.all([
     supabase
       .from('sites')
       .select(DASHBOARD_SITE_SELECT)
@@ -270,12 +256,6 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
       .order('latest_action_time', { ascending: false })
       .limit(30),
     readCompanySettingsForDashboard(),
-    supabase
-      .from('payroll_periods')
-      .select('id, status')
-      .eq('year', year)
-      .eq('month', month)
-      .maybeSingle(),
   ]);
 
   const dashboardReads = [
@@ -283,7 +263,6 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
     ['active sites', activeResult],
     ['completed sites', completedResult],
     ['admin_activity_view', activityResult],
-    ['payroll_periods', periodResult],
   ] as const;
   for (const [section, result] of dashboardReads) {
     if (result.error) throwDashboardLoadError(section, result.error);
@@ -300,15 +279,6 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
       || +new Date(a.scheduledStart ?? 0) - +new Date(b.scheduledStart ?? 0);
   });
 
-  const payrollResult = periodResult.data?.id
-    ? await supabase
-      .from('payroll_site_snapshots')
-      .select('site_id, warnings, site:sites(code, client_name)')
-      .eq('period_id', periodResult.data.id)
-    : { data: [] as RawPayrollSnapshot[], error: null };
-  if (payrollResult.error) throwDashboardLoadError('payroll_site_snapshots', payrollResult.error);
-
-  const snapshots = (payrollResult.data ?? []) as unknown as RawPayrollSnapshot[];
   const now = Date.now();
   const attention: DashboardAttentionItem[] = [];
 
@@ -382,21 +352,6 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
     }
   }
 
-  let payrollWarningCount = 0;
-  for (const snapshot of snapshots) {
-    const warnings = toWarnings(snapshot.warnings);
-    payrollWarningCount += warnings.length;
-    for (const warning of warnings.slice(0, 2)) {
-      attention.push({
-        id: `payroll-warning-${snapshot.site_id ?? 'unknown'}-${warning}`,
-        tone: 'warning',
-        title: 'Payroll įspėjimas',
-        detail: `${snapshot.site?.code ?? 'Objektas'}: ${warning}`,
-        siteId: snapshot.site_id ?? undefined,
-      });
-    }
-  }
-
   return {
     scheduledTodayCount: scheduledSites.length,
     workingNowCount: activeSites.filter((site) => !!site.openWorkStartedAt).length,
@@ -404,8 +359,6 @@ export async function getAdminOperationsDashboard(day = new Date()): Promise<Adm
     todaySites,
     mapSites: [...new Map([...activeSites, ...scheduledSites].map((site) => [site.id, site])).values()],
     attention,
-    payrollWarningCount,
-    payrollStatus: periodResult.data?.status ?? null,
     completedMissingPdfCount: missingPdfSiteIds.size,
     companySettings: settings,
     activity: (activityResult.data ?? [])

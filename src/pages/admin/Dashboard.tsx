@@ -20,7 +20,6 @@ import {
   Play,
   Plus,
   Users,
-  WalletCards,
 } from 'lucide-react';
 import { useCreateBlankSite } from '../../hooks/useCreateSite';
 import { AdminPageError } from '../../components/admin/AdminStates';
@@ -351,17 +350,10 @@ export default function Dashboard() {
 
         <section className="overflow-hidden rounded-card border border-border bg-surface shadow-sm dark:shadow-none xl:col-span-5">
           <div className="border-b border-border px-4 py-3.5">
-            <h2 className="text-[15px] font-extrabold tracking-tight text-text">Payroll ir dokumentacija</h2>
+            <h2 className="text-[15px] font-extrabold tracking-tight text-text">Dokumentacija</h2>
             <p className="mt-0.5 text-[12px] text-muted">Kontroliniai dienos uždarymo signalai</p>
           </div>
           <div className="divide-y divide-border">
-            <SummaryRow
-              icon={WalletCards}
-              label="Payroll periodas"
-              value={data.payrollStatus === 'locked' ? 'Užrakintas' : data.payrollStatus === 'review' ? 'Peržiūroje' : data.payrollStatus === 'open' ? 'Atviras' : 'Nėra'}
-              href="/admin/payroll"
-            />
-            <SummaryRow icon={AlertTriangle} label="Payroll įspėjimai" value={String(data.payrollWarningCount)} href="/admin/payroll" tone={data.payrollWarningCount > 0 ? 'text-warning' : 'text-success'} />
             <SummaryRow icon={FileWarning} label="Trūksta PDF ataskaitos" value={String(data.completedMissingPdfCount)} href="/admin/sites" tone={data.completedMissingPdfCount > 0 ? 'text-warning' : 'text-success'} />
             <SummaryRow icon={FileText} label="Šiandien užbaigti objektai" value={String(data.completedTodayCount)} href="/admin/reports" />
           </div>
