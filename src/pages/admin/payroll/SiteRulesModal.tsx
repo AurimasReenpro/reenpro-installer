@@ -243,7 +243,7 @@ export default function SiteRulesModal({
                         <div className="inline-flex bg-surface-2 dark:bg-surface-2 rounded-lg p-0.5">
                           {MODES.map((m) => (
                             <button key={m.value} onClick={() => setEdit(r.rate_rule_id, { mode: m.value }, e)}
-                              className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${e.mode === m.value ? 'bg-white dark:bg-[#3f3f46] shadow-sm text-primary dark:text-primary-ink' : 'text-subtle'}`}>
+                              className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${e.mode === m.value ? 'bg-surface dark:bg-primary shadow-sm text-primary dark:text-primary-ink' : 'text-subtle'}`}>
                               {m.label}
                             </button>
                           ))}

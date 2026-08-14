@@ -178,7 +178,7 @@ export default function ObjektaiTab({
                   </td>
                 </tr>
                 {isOpen && (
-                  <tr className="bg-surface-2/50 dark:bg-[#1f1f23] border-b border-border dark:border-white/5">
+                  <tr className="bg-surface-2/50 dark:bg-surface-2 border-b border-border dark:border-white/5">
                     <td colSpan={15} className="px-12 py-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>

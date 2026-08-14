@@ -569,7 +569,7 @@ export default function EquipmentCatalog() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Ieškoti modelio, gamintojo..."
-            className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border/50 dark:border-white/10 rounded-card text-[14px] text-text dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
+            className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border/50 dark:border-white/10 rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
         <div className="relative">

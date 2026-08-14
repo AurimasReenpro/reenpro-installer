@@ -12,7 +12,7 @@ import EquipmentViewTable from './EquipmentViewTable';
 /** Label a catalog item the same way the model dropdown shows it (brand + model). */
 const catalogLabel = (c: CatalogItem) => `${c.brand ? c.brand + ' ' : ''}${c.model}`;
 
-const DEFAULT_CAT_COLORS = { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
+const DEFAULT_CAT_COLORS = { bg: 'var(--surface-2)', text: 'var(--text-subtle)', border: 'var(--border)' };
 
 const EMPTY_EQUIP_ROW: EquipmentItem = { category: 'Inverteris', model: '', quantity: 1, unit: 'vnt.', notes: '' };
 
@@ -131,8 +131,8 @@ export default function EquipmentTab({
 
       {/* Info callout */}
       {!editing && (
-        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-[#EFF6FF] border border-[#BFDBFE] text-[13px] text-text">
-          <Info size={15} className="text-[#2563EB] flex-shrink-0 mt-0.5" />
+        <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[10px] bg-info-bg border border-info/30 text-[13px] text-text">
+          <Info size={15} className="text-info flex-shrink-0 mt-0.5" />
           <span>
             <span className="font-semibold">Kategorija</span> automatiškai nustatoma pagal objekto tipą. Galima laisvai pridėti bet kokių papildomų komponentų.
           </span>

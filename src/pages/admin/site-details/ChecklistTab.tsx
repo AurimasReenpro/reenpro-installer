@@ -278,7 +278,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
                         onClick={() => deletePhaseMutation.mutate(card.phaseId!)}
                         disabled={!canDeletePhase || deletePhaseMutation.isPending}
                         title={canDeletePhase ? 'Ištrinti' : 'Negalima ištrinti, nes yra laiko įrašų'}
-                        className="w-9 h-9 rounded-[8px] bg-surface dark:bg-surface border border-border/40 dark:border-white/10 text-[#DC2626] hover:border-[#DC2626]/40 transition-colors disabled:opacity-40 flex items-center justify-center cursor-pointer"
+                        className="w-9 h-9 rounded-[8px] bg-surface dark:bg-surface border border-border/40 dark:border-white/10 text-danger hover:border-danger/40 transition-colors disabled:opacity-40 flex items-center justify-center cursor-pointer"
                       >
                         {deletePhaseMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                       </button>
@@ -288,7 +288,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[6px] border ${card.isActive ? 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20' : 'bg-surface dark:bg-surface text-subtle dark:text-subtle border-border/50 dark:border-white/10'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[6px] border ${card.isActive ? 'bg-success-bg text-success border-success/20' : 'bg-surface dark:bg-surface text-subtle dark:text-subtle border-border/50 dark:border-white/10'}`}>
                       {card.isActive ? 'Aktyvus' : 'Neaktyvus'}
                     </span>
                     {canEditPhase && (
@@ -308,7 +308,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
                     <span>Valandos: {card.totalHours.toFixed(1)} h</span>
                     {card.openEntryCount > 0 && <span>{card.openEntryCount} aktyvu</span>}
                     <span>Atlikta: {card.completedCount}/{card.totalCount}</span>
-                    {card.missingPhotoCount > 0 && <span className="text-[#DC2626]">Trūksta nuotraukų: {card.missingPhotoCount}</span>}
+                    {card.missingPhotoCount > 0 && <span className="text-danger">Trūksta nuotraukų: {card.missingPhotoCount}</span>}
                   </div>
                 </div>
               </div>
@@ -394,8 +394,8 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
   }, {});
   const SESSION_STATUS: Record<'pending' | 'in_progress' | 'completed', { label: string; className: string }> = {
     pending:     { label: 'Laukia',      className: 'bg-surface-2 dark:bg-surface-2 text-subtle dark:text-subtle border-border/50 dark:border-white/10' },
-    in_progress: { label: 'Vykdoma',     className: 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]/20' },
-    completed:   { label: 'Baigta',      className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20' },
+    in_progress: { label: 'Vykdoma',     className: 'bg-info-bg text-info border-info/20' },
+    completed:   { label: 'Baigta',      className: 'bg-success-bg text-success border-success/20' },
   };
   const ss = SESSION_STATUS[session.status];
 
@@ -417,7 +417,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
           <div className="flex items-center gap-2">
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-[6px] border ${ss.className}`}>{ss.label}</span>
             {failed > 0 && (
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] border bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20 flex items-center gap-1">
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-[6px] border bg-danger-bg text-danger border-danger/20 flex items-center gap-1">
                 <AlertTriangle size={11} /> {failed} neatlikta
               </span>
             )}
@@ -428,9 +428,9 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
         <div className="grid grid-cols-4 gap-3 mb-4">
           {[
             { label: 'Iš viso',    value: total,    cls: 'text-text' },
-            { label: 'Atlikta',    value: passed,   cls: 'text-[#059669]' },
-            { label: 'Neatlikta', value: failed,   cls: 'text-[#DC2626]' },
-            { label: 'Netaikoma', value: naCount,   cls: 'text-[#D97706]' },
+            { label: 'Atlikta',    value: passed,   cls: 'text-success' },
+            { label: 'Neatlikta', value: failed,   cls: 'text-danger' },
+            { label: 'Netaikoma', value: naCount,   cls: 'text-warning' },
           ].map(s => (
             <div key={s.label} className="bg-surface-2 dark:bg-surface-2 rounded-[10px] p-3 border border-border/30 dark:border-white/10 text-center">
               <span className={`text-[20px] font-bold block ${s.cls}`}>{s.value}</span>
@@ -442,8 +442,10 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
         {/* Progress bar */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-2.5 bg-border/20 rounded-full overflow-hidden">
+            {/* Dizaino sistema §11.4: užpildas — viena brand spalva, ne
+                gradientas į violetinę, kurios paletėje nėra. */}
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-[#7c3aed]"
+              className="h-full rounded-full bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -493,7 +495,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
             <h4 className="text-[12px] font-bold text-subtle dark:text-subtle uppercase tracking-wider flex items-center gap-2">
               <Package size={14} className="text-primary" /> Papildomos medžiagos
             </h4>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed border border-primary/20">
               PAPILDOMOS MEDŽIAGOS
             </span>
           </div>
@@ -502,7 +504,7 @@ export default function ChecklistTab({ siteId, siteType }: { siteId: string; sit
               <div key={m.id} className="flex items-center gap-3 bg-surface-2 dark:bg-surface-2 rounded-[10px] px-3.5 py-2.5 border border-border/30 dark:border-white/10">
                 <Package size={15} className="text-subtle dark:text-subtle shrink-0" />
                 <span className="flex-1 text-[13px] font-semibold text-text truncate">{m.name}</span>
-                <span className="text-[13px] text-[#574f61] font-medium whitespace-nowrap">{m.quantity} {m.unit}</span>
+                <span className="text-[13px] text-muted font-medium whitespace-nowrap">{m.quantity} {m.unit}</span>
               </div>
             ))}
           </div>

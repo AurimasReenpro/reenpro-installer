@@ -15,9 +15,9 @@ import type { ItemStatus } from './types';
 
 const STATUS_ITEM: Record<ItemStatus, { label: string; icon: React.ElementType; className: string; dotClass: string }> = {
   pending: { label: 'Laukia',     icon: Circle,       className: 'bg-surface-2 dark:bg-surface-2 text-subtle dark:text-subtle border-border/50 dark:border-white/10',  dotClass: 'bg-border' },
-  pass:    { label: 'Atlikta',    icon: CheckCircle2, className: 'bg-[#ECFDF5] text-[#059669] border-[#059669]/20',   dotClass: 'bg-[#059669]' },
-  fail:    { label: 'Neatlikta', icon: XCircle,      className: 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]/20',   dotClass: 'bg-[#DC2626]' },
-  n_a:     { label: 'Netaikoma', icon: MinusCircle,  className: 'bg-[#FFFBEB] text-[#D97706] border-[#D97706]/20',   dotClass: 'bg-[#D97706]' },
+  pass:    { label: 'Atlikta',    icon: CheckCircle2, className: 'bg-success-bg text-success border-success/20', dotClass: 'bg-success' },
+  fail:    { label: 'Neatlikta', icon: XCircle,      className: 'bg-danger-bg text-danger border-danger/20',    dotClass: 'bg-danger' },
+  n_a:     { label: 'Netaikoma', icon: MinusCircle,  className: 'bg-warning-bg text-warning border-warning/20', dotClass: 'bg-warning' },
 };
 
 /**
@@ -111,7 +111,7 @@ function ChecklistPhoto({
           onClick={() => void handleDelete()}
           disabled={downloading || deleting}
           title="Ištrinti nuotrauką"
-          className="flex items-center justify-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-danger-bg border border-danger/20 text-danger hover:bg-danger hover:text-surface transition-colors disabled:opacity-50 cursor-pointer"
         >
           {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
         </button>
@@ -154,21 +154,21 @@ export default function ChecklistItemRow({
   const hasAnyPhoto = hasInstallerPhotos || !!item.photo_url;
 
   return (
-    <div className={`rounded-[10px] border transition-all duration-200 ${item.status === 'fail' ? 'border-[#DC2626]/30 bg-[#FEF2F2]/30' : 'border-border/30 dark:border-white/10 bg-surface hover:border-border/60'}`}>
+    <div className={`rounded-[10px] border transition-all duration-200 ${item.status === 'fail' ? 'border-danger/30 bg-danger-bg/30' : 'border-border/30 dark:border-white/10 bg-surface hover:border-border/60'}`}>
       <button
         onClick={() => setExpanded(v => !v)}
         className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer"
       >
-        <StatusIcon size={18} className={item.status === 'pass' ? 'text-[#059669]' : item.status === 'fail' ? 'text-[#DC2626]' : item.status === 'n_a' ? 'text-[#D97706]' : 'text-subtle'} />
+        <StatusIcon size={18} className={item.status === 'pass' ? 'text-success' : item.status === 'fail' ? 'text-danger' : item.status === 'n_a' ? 'text-warning' : 'text-subtle'} />
         <span className="flex-1 text-[13px] font-semibold text-text leading-snug">
           {item.question_text}
           {item.is_extra && (
-            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FBF0FF] text-primary border border-primary/20 align-middle">
+            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed border border-primary/20 align-middle">
               PAPILDOMAS DARBAS
             </span>
           )}
           {item.requires_photo && (
-            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FFFBEB] text-[#D97706] border border-[#D97706]/20 align-middle">
+            <span className="ml-2 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-warning-bg text-warning border border-warning/20 align-middle">
               Reikia nuotraukos{item.min_photo_count && item.min_photo_count > 1 ? ` ${item.min_photo_count}` : ''}
             </span>
           )}
@@ -189,7 +189,7 @@ export default function ChecklistItemRow({
           </span>
         )}
         {item.is_required && item.status === 'pending' && (
-          <span className="text-[10px] font-bold text-[#DC2626] border border-[#DC2626]/30 bg-[#FEF2F2] px-1.5 py-0.5 rounded">REQ</span>
+          <span className="text-[10px] font-bold text-danger border border-danger/30 bg-danger-bg px-1.5 py-0.5 rounded">REQ</span>
         )}
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-[6px] border ${s.className}`}>{s.label}</span>
         <ChevronRight size={14} className={`text-subtle transition-transform ${expanded ? 'rotate-90' : ''}`} />
@@ -247,7 +247,7 @@ export default function ChecklistItemRow({
               </div>
 
               {item.status === 'fail' && !hasAnyPhoto && (
-                <div className="flex items-center gap-2 text-[#D97706] bg-[#FFFBEB] border border-[#D97706]/20 rounded-[8px] px-3 py-2">
+                <div className="flex items-center gap-2 text-warning bg-warning-bg border border-warning/20 rounded-[8px] px-3 py-2">
                   <AlertTriangle size={14} />
                   <span className="text-[12px] font-semibold">Reikia nuotraukos — laukiama montuotojo įkėlimo.</span>
                 </div>

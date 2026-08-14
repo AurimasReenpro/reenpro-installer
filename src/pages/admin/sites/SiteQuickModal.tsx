@@ -32,11 +32,11 @@ export default function SiteQuickModal({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Nepavyko išsaugoti.'),
   });
 
-  const selectCls = 'w-full h-[42px] px-3 bg-surface-2 dark:bg-[#27272a] border border-border dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
+  const selectCls = 'w-full h-[42px] px-3 bg-surface-2 border border-border dark:border-white/10 rounded-card text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget && !save.isPending) onClose(); }}>
-      <div className="bg-surface dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-sm border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-surface rounded-[20px] shadow-2xl w-full max-w-sm border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10">
           <div className="min-w-0">
             <h2 className="font-bold text-[16px] text-text flex items-center gap-2">

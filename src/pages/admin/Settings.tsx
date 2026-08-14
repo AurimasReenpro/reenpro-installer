@@ -263,7 +263,7 @@ export default function Settings() {
   return (
     <div className="max-w-5xl">
       {/* ── Sticky header bar ───────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#18181b] backdrop-blur-md -mx-6 px-6 pt-2 pb-4 mb-6 border-b border-border flex justify-between items-center">
+      <div className="sticky top-0 z-10 bg-surface/80 backdrop-blur-md -mx-6 px-6 pt-2 pb-4 mb-6 border-b border-border flex justify-between items-center">
         <div>
           <h2 className="text-[22px] font-extrabold tracking-tight text-text dark:text-white leading-tight">Bendrieji nustatymai</h2>
           <p className="text-[13px] text-muted mt-0.5">

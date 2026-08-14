@@ -14,7 +14,10 @@ const EQUIP_ICON_MAP: Record<string, React.ElementType> = {
   Apsauga: Shield,
 };
 const DEFAULT_EQUIP_ICON = Package;
-const DEFAULT_CAT_COLORS = { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
+/* Kategorijų spalvos ateina iš duomenų (`equipment_categories`), tad jų
+   tokenizuoti negalime. Atsarginis variantas — tokenai, kad be spalvos
+   likusi kategorija neliktų šviesiai pilka tamsioje temoje. */
+const DEFAULT_CAT_COLORS = { bg: 'var(--surface-2)', text: 'var(--text-subtle)', border: 'var(--border)' };
 
 type CatColors = { bg: string; text: string; border: string };
 
@@ -81,7 +84,7 @@ export default function EquipmentViewTable({
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-text leading-snug">{item.model || '—'}</p>
               {isBatteryCategory(item.category) && item.capacity_kwh != null && (
-                <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30">
+                <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-info-bg text-info border border-info/30">
                   <Battery className="w-3 h-3" /> {item.capacity_kwh} kWh
                 </span>
               )}

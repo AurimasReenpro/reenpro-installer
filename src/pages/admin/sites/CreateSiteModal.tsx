@@ -73,7 +73,7 @@ export default function CreateSiteModal({
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
       onClick={(event) => { if (event.target === event.currentTarget && !isCreating) onClose(); }}
     >
-      <div className="bg-surface dark:bg-[#18181b] rounded-[20px] shadow-2xl w-full max-w-md border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-surface rounded-[20px] shadow-2xl w-full max-w-md border border-border dark:border-white/10 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-white/10">
           <div className="min-w-0">
             <h2 className="font-bold text-[16px] text-text flex items-center gap-2">

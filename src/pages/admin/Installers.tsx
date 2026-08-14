@@ -194,7 +194,7 @@ function InstallerActionsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div className="absolute right-0 top-9 z-20 w-56 bg-surface dark:bg-[#18181b] rounded-card shadow-lg border border-border dark:border-white/10 py-1 overflow-hidden">
+          <div className="absolute right-0 top-9 z-20 w-56 bg-surface rounded-card shadow-lg border border-border dark:border-white/10 py-1 overflow-hidden">
             <button onClick={() => { close(); onView(); }} className={item}>
               <Eye size={15} className="text-subtle" /> Žiūrėti profilį
             </button>
@@ -535,7 +535,7 @@ export default function Installers() {
             {activeTab === tab.id && (
               <motion.div
                 layoutId="tab-indicator"
-                className="absolute inset-0 bg-white dark:bg-[#3f3f46] rounded-[8px] shadow-sm"
+                className="absolute inset-0 bg-surface dark:bg-primary rounded-[8px] shadow-sm"
                 style={{ zIndex: -1 }}
                 transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
               />

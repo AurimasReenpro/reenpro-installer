@@ -134,7 +134,7 @@ export default function ManualEntryModal({
                 <button
                   key={o.value} type="button" onClick={() => setType(o.value)}
                   className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all cursor-pointer ${
-                    type === o.value ? 'bg-white dark:bg-[#3f3f46] shadow-sm text-primary dark:text-primary-ink' : 'text-subtle hover:text-text dark:hover:text-subtle'
+                    type === o.value ? 'bg-surface dark:bg-primary shadow-sm text-primary dark:text-primary-ink' : 'text-subtle hover:text-text dark:hover:text-subtle'
                   }`}
                 >{o.label}</button>
               ))}

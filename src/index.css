@@ -57,6 +57,7 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
   --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
 
   /* Tekstas ant ember fono. Šviesoje ember tamsus (#C43C22) – tekstas baltas;
      tamsoje ember šviesus (#FF6A4D) – tekstas turi tapti tamsus, kitaip baltas
@@ -127,6 +128,7 @@
   --info: #1F5F9E;
   --info-bg: #EAF2FA;
   --danger: #C0281C;
+  --danger-bg: #FCEBE9;
   --on-accent: #FFFFFF;
 
   --nav: #1d033a;
@@ -175,6 +177,7 @@ html.dark {
   --info: #6BB0E8;
   --info-bg: #0F2437;
   --danger: #FF7B6B;
+  --danger-bg: #3A1310;
   --on-accent: #14022A;
 
   /* Juosta lieka slyvinė ir tamsoje – ji šviesesnė už puslapio foną

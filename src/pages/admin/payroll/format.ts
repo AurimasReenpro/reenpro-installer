@@ -17,9 +17,9 @@ export const fmtDate = (iso: string | null | undefined) =>
 
 // ── Period status chips ─────────────────────────────────────────────────────
 export const STATUS_CHIP: Record<PeriodStatus, { label: string; cls: string }> = {
-  open:   { label: 'Atviras',    cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-200 dark:border-blue-500/20' },
-  review: { label: 'Peržiūra',   cls: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-200 dark:border-amber-500/20' },
-  locked: { label: 'Užrakintas', cls: 'bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 border-zinc-200 dark:border-white/10' },
+  open:   { label: 'Atviras',    cls: 'bg-info-bg text-info border-info/20' },
+  review: { label: 'Peržiūra',   cls: 'bg-warning-bg text-warning border-warning/20' },
+  locked: { label: 'Užrakintas', cls: 'bg-surface-2 text-subtle border-border dark:bg-white/10 dark:border-white/10' },
 };
 
 // ── Rate-rule metadata ──────────────────────────────────────────────────────
@@ -47,10 +47,10 @@ export const RULE_UNIT_LABELS: Record<string, string> = {
 
 // ── Participant source chips ────────────────────────────────────────────────
 export const PARTICIPANT_SOURCE: Record<ParticipantSource, { label: string; cls: string }> = {
-  time_entries: { label: 'Laiko įrašai', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' },
-  assignments:  { label: 'Priskyrimai', cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-200 dark:border-blue-500/20' },
+  time_entries: { label: 'Laiko įrašai', cls: 'bg-success-bg text-success border-success/20' },
+  assignments:  { label: 'Priskyrimai', cls: 'bg-info-bg text-info border-info/20' },
   manual:       { label: 'Rankinis',     cls: 'bg-primary-fixed text-on-primary-fixed border-primary/30' },
-  auto:         { label: 'Nenustatyta',  cls: 'bg-zinc-100 text-zinc-500 dark:bg-white/10 dark:text-zinc-400 border-zinc-200 dark:border-white/10' },
+  auto:         { label: 'Nenustatyta',  cls: 'bg-surface-2 text-subtle border-border dark:bg-white/10 dark:border-white/10' },
 };
 
 export const ENTRY_TYPE_LABELS: Record<EarningsEntryType, string> = {

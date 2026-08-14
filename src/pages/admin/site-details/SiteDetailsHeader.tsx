@@ -7,11 +7,11 @@ import ReopenSiteModal from './ReopenSiteModal';
 import type { SiteWithTeam } from './types';
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  in_progress: { label: 'Vykdomas', className: 'bg-[#ECFDF5] text-[#10B981]' },
-  paused:      { label: 'Sustabdytas', className: 'bg-[#FFFBEB] text-[#F59E0B]' },
-  completed:   { label: 'Baigtas', className: 'bg-[#F3F4F6] text-[#6B7280]' },
+  in_progress: { label: 'Vykdomas', className: 'bg-success-bg text-success' },
+  paused:      { label: 'Sustabdytas', className: 'bg-warning-bg text-warning' },
+  completed:   { label: 'Baigtas', className: 'bg-surface-2 text-subtle' },
   archived:    { label: 'Archyvuotas', className: 'bg-surface-2 text-subtle dark:bg-white/5' },
-  pending:     { label: 'Laukia', className: 'bg-[#F0F9FF] text-[#0284C7]' },
+  pending:     { label: 'Laukia', className: 'bg-info-bg text-info' },
 };
 
 export default function SiteDetailsHeader({

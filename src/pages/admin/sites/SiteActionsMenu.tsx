@@ -28,7 +28,7 @@ export default function SiteActionsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div className="absolute right-0 top-9 z-20 w-52 bg-surface dark:bg-[#18181b] rounded-card shadow-lg border border-border dark:border-white/10 py-1 overflow-hidden">
+          <div className="absolute right-0 top-9 z-20 w-52 bg-surface rounded-card shadow-lg border border-border dark:border-white/10 py-1 overflow-hidden">
             <Link to={`/admin/sites/${site.id}`} onClick={close} className={item}>
               <Eye size={15} className="text-subtle" /> Žiūrėti
             </Link>

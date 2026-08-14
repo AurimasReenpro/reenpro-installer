@@ -117,7 +117,7 @@ export default function StringingSection({
                           <span className="bg-surface-2 dark:bg-primary/10 text-primary px-2 py-0.5 rounded text-[11px] font-semibold border border-primary/10">{row.mppt}</span>
                         </td>
                         <td className="py-3 px-4 text-muted dark:text-subtle text-[13px]">
-                          <span className="bg-[#ECFDF5] text-[#10B981] px-2 py-0.5 rounded text-[11px] font-semibold border border-[#10B981]/10">{row.orientation}</span>
+                          <span className="bg-success-bg text-success px-2 py-0.5 rounded text-[11px] font-semibold border border-success/10">{row.orientation}</span>
                         </td>
                         <td className="py-3 px-4 text-muted dark:text-subtle text-[13px]">{row.angle}</td>
                       </>

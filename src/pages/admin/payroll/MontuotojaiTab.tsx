@@ -151,7 +151,7 @@ export default function MontuotojaiTab({
                     const isManual = e.source === 'manual';
                     const code = e.site_snapshot_id ? codeBySnapshot.get(e.site_snapshot_id) : null;
                     return (
-                      <tr key={e.id} className="border-b border-border dark:border-white/5 bg-surface-2/50 dark:bg-[#1f1f23]">
+                      <tr key={e.id} className="border-b border-border dark:border-white/5 bg-surface-2/50 dark:bg-surface-2">
                         <td className="py-2 px-4 pl-10 text-[12px] text-subtle tabular-nums">{fmtDate(e.created_at)}</td>
                         <td className="py-2 px-4 text-[12px]"><span className="font-semibold text-muted">{ENTRY_TYPE_LABELS[e.entry_type]}</span></td>
                         <td className="py-2 px-4 text-[12px]" colSpan={4}>

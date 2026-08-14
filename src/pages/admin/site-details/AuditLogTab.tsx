@@ -36,19 +36,19 @@ function describeAudit(log: AuditEntry): { icon: React.ElementType; title: strin
   switch (log.action) {
     case 'status_change': {
       const lt = newStatus ? (AUDIT_SITE_STATUS_LT[newStatus] ?? newStatus) : '—';
-      return { icon: Activity, title: `pakeitė statusą į „${lt}"`, tint: '#2563EB' };
+      return { icon: Activity, title: `pakeitė statusą į „${lt}"`, tint: 'var(--info)' };
     }
     case 'site_updated':
-      return { icon: Pencil, title: 'atnaujino objekto informaciją', tint: '#7c3aed' };
+      return { icon: Pencil, title: 'atnaujino objekto informaciją', tint: 'var(--primary-ink)' };
     case 'checklist_update': {
       const lt = newStatus ? (AUDIT_ITEM_STATUS_LT[newStatus] ?? newStatus) : '—';
-      const tint = newStatus === 'pass' ? '#059669' : newStatus === 'fail' ? '#DC2626' : '#D97706';
+      const tint = newStatus === 'pass' ? 'var(--success)' : newStatus === 'fail' ? 'var(--danger)' : 'var(--warning)';
       return { icon: CheckCircle2, title: `pažymėjo punktą kaip „${lt}"`, detail: question, tint };
     }
     case 'extra_work_added':
-      return { icon: Plus, title: 'pridėjo papildomą darbą', detail: question, tint: '#7c3aed' };
+      return { icon: Plus, title: 'pridėjo papildomą darbą', detail: question, tint: 'var(--primary-ink)' };
     default:
-      return { icon: Activity, title: log.action, detail: log.entity_type, tint: '#6B7280' };
+      return { icon: Activity, title: log.action, detail: log.entity_type, tint: 'var(--text-subtle)' };
   }
 }
 
