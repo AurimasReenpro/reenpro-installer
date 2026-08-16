@@ -83,7 +83,7 @@ function Field({
 }
 
 function inputClass(hasIcon = false) {
-  return `w-full h-[40px] bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
+  return `w-full h-[40px] bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all ${hasIcon ? 'pl-9 pr-3' : 'px-3'}`;
 }
 
 // ─── Main Settings Page ───────────────────────────────────────────────────────
@@ -103,8 +103,8 @@ export default function Settings() {
     phone: '',
     email: '',
     logo_url: null,
-    warehouse_lat: null,
-    warehouse_lng: null,
+    base_lat: null,
+    base_lng: null,
   });
 
   // ── Fetch current settings ────────────────────────────────────────────────
@@ -127,13 +127,13 @@ export default function Settings() {
         phone:         settings.phone         ?? '',
         email:         settings.email         ?? '',
         logo_url:      settings.logo_url,
-        warehouse_lat: settings.warehouse_lat,
-        warehouse_lng: settings.warehouse_lng,
+        base_lat: settings.base_lat,
+        base_lng: settings.base_lng,
       });
       // Always sync coordsInput from DB — null → '' so stale typed values don't persist
       setCoordsInput(
-        settings.warehouse_lat != null && settings.warehouse_lng != null
-          ? `${settings.warehouse_lat}, ${settings.warehouse_lng}`
+        settings.base_lat != null && settings.base_lng != null
+          ? `${settings.base_lat}, ${settings.base_lng}`
           : '',
       );
       if (settings.logo_url) setLogoPreview(settings.logo_url);
@@ -239,15 +239,15 @@ export default function Settings() {
       const lat = parseFloat(parts[0]?.trim() ?? '');
       const lng = parseFloat(parts[1]?.trim() ?? '');
       if (parts.length >= 2 && !isNaN(lat) && !isNaN(lng)) {
-        payload.warehouse_lat = lat;
-        payload.warehouse_lng = lng;
+        payload.base_lat = lat;
+        payload.base_lng = lng;
       } else {
         toast.error('Neteisingas koordinačių formatas. Pvz.: 54.8985, 23.9036');
         return;
       }
     } else {
-      payload.warehouse_lat = null;
-      payload.warehouse_lng = null;
+      payload.base_lat = null;
+      payload.base_lng = null;
     }
     saveMutation.mutate(payload);
   };

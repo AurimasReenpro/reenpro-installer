@@ -93,7 +93,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
                 value={fee}
                 onChange={(e) => setFee(e.target.value)}
                 placeholder="0.00"
-                className="w-full h-[40px] pl-3 pr-9 bg-surface-2 border border-border rounded-card text-[14px] text-text tabular-nums focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
+                className="w-full h-[40px] pl-3 pr-9 bg-surface-2 border border-border rounded-card text-[14px] text-text tabular-nums focus:outline-none focus:border-primary focus:bg-surface dark:focus:bg-surface-2 transition-colors"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-subtle font-medium pointer-events-none">
                 €
@@ -110,7 +110,7 @@ export default function SiteFeeCard({ siteId, status }: { siteId: string; status
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Pvz.: papildomos sąlygos"
-              className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-surface-2 transition-colors"
+              className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface dark:focus:bg-surface-2 transition-colors"
             />
           </div>
 

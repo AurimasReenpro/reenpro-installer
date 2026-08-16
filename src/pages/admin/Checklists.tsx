@@ -407,7 +407,7 @@ export default function Checklists() {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="Užduoties pavadinimas..."
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
               </div>
 
@@ -417,7 +417,7 @@ export default function Checklists() {
                   required
                   value={formData.phase}
                   onChange={e => setFormData({...formData, phase: e.target.value as 'pre' | 'during' | 'post'})}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="pre">Pre (prieš pradžią)</option>
                   <option value="during">During (darbų eigoje)</option>
@@ -431,7 +431,7 @@ export default function Checklists() {
                   type="number"
                   value={formData.sort_order}
                   onChange={e => setFormData({...formData, sort_order: Number(e.target.value)})}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
                 <p className="mt-1 text-[11px] text-subtle">Tik rikiavimui.</p>
               </div>
@@ -451,7 +451,7 @@ export default function Checklists() {
                       ? formData.b2b_work_category_id
                       : '',
                   })}
-                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="">-- Pasirinkti --</option>
                   {categories?.map((cat) => (
@@ -466,7 +466,7 @@ export default function Checklists() {
                   <select
                     value={formData.b2b_work_category_id}
                     onChange={e => setFormData({...formData, b2b_work_category_id: e.target.value})}
-                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   >
                     <option value="">-- Nepriskirta --</option>
                     {b2bWorkCategories
@@ -513,7 +513,7 @@ export default function Checklists() {
                     max={5}
                     value={formData.min_photo_count}
                     onChange={e => setFormData({...formData, min_photo_count: Number(e.target.value)})}
-                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
               )}
@@ -582,7 +582,7 @@ export default function Checklists() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Naujos grupės pavadinimas"
-                  className="flex-1 h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                  className="flex-1 h-[44px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                 />
                 <button
                   type="submit"

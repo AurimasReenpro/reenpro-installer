@@ -758,7 +758,7 @@ export default function Installers() {
                     }}
                     placeholder="Komandos pavadinimas..."
                     disabled={createTeamMutation.isPending}
-                    className="flex-1 h-[40px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
+                    className="flex-1 h-[40px] px-4 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
                   />
                   <button
                     onClick={handleCreateTeam}

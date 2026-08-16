@@ -193,10 +193,10 @@ function DashboardSkeleton() {
 }
 
 function formatDashboardError(error: unknown): string {
-  if (!import.meta.env.DEV) return 'DuomenÅ³ nepavyko Ä¯kelti.';
+  if (!import.meta.env.DEV) return 'Duomenų nepavyko įkelti.';
   if (error instanceof DashboardLoadError) return error.toDevMessage();
   if (error instanceof Error) return error.message;
-  return 'NeÅ¾inoma Dashboard duomenÅ³ klaida.';
+  return 'Nežinoma Skydelio duomenų klaida.';
 }
 
 export default function Dashboard() {
@@ -247,10 +247,10 @@ export default function Dashboard() {
     );
   }
 
-  const mapBaseCoords = data.companySettings?.warehouse_lat && data.companySettings?.warehouse_lng
+  const mapBaseCoords = data.companySettings?.base_lat && data.companySettings?.base_lng
     ? {
-        lat: Number(data.companySettings.warehouse_lat),
-        lng: Number(data.companySettings.warehouse_lng),
+        lat: Number(data.companySettings.base_lat),
+        lng: Number(data.companySettings.base_lng),
         label: data.companySettings.company_name ?? 'Įmonės bazė',
       }
     : null;

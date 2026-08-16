@@ -311,7 +311,7 @@ export default function EquipmentCatalog() {
                     <select
                       value={form.category}
                       onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full h-[42px] pl-3 pr-9 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                      className="w-full h-[42px] pl-3 pr-9 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white appearance-none focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all cursor-pointer"
                     >
                       {categories.map(c => (
                         <option key={c.id} value={c.name}>{c.name}</option>
@@ -329,7 +329,7 @@ export default function EquipmentCatalog() {
                     value={form.brand}
                     onChange={(e) => setForm(f => ({ ...f, brand: e.target.value }))}
                     placeholder="Pvz.: Huawei, Longi, BYD..."
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -342,7 +342,7 @@ export default function EquipmentCatalog() {
                     onChange={(e) => setForm(f => ({ ...f, model: e.target.value }))}
                     placeholder="Pvz.: SUN2000-10KTL-M1"
                     required
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -354,7 +354,7 @@ export default function EquipmentCatalog() {
                     value={form.specifications}
                     onChange={(e) => setForm(f => ({ ...f, specifications: e.target.value }))}
                     placeholder="Pvz.: 10 kW, 3 fazės, MPPT × 2"
-                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
                 </div>
 
@@ -371,7 +371,7 @@ export default function EquipmentCatalog() {
                       value={form.capacity_kwh}
                       onChange={(e) => setForm(f => ({ ...f, capacity_kwh: e.target.value }))}
                       placeholder="Pvz.: 9 (kWh už 1 bloką)"
-                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                     />
                     <p className="text-[11px] text-subtle dark:text-subtle mt-1">Bazinė talpa už vieną vienetą — bus padauginta iš kiekio objekte.</p>
                   </div>
@@ -471,7 +471,7 @@ export default function EquipmentCatalog() {
                             value={editForm.name}
                             onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
                             placeholder="Kategorijos pavadinimas"
-                            className="w-full h-[36px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-lg text-[13px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                            className="w-full h-[36px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-lg text-[13px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                           />
                           <SwatchPicker
                             selected={{ bg_color: editForm.bg_color, text_color: editForm.text_color, border_color: editForm.border_color }}
@@ -509,7 +509,7 @@ export default function EquipmentCatalog() {
                       onChange={(e) => setNewCatForm(f => ({ ...f, name: e.target.value }))}
                       placeholder="Kategorijos pavadinimas"
                       autoFocus
-                      className="w-full h-[36px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-lg text-[13px] text-text dark:text-white focus:outline-none focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                      className="w-full h-[36px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-lg text-[13px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                     />
                     <SwatchPicker
                       selected={{ bg_color: newCatForm.bg_color, text_color: newCatForm.text_color, border_color: newCatForm.border_color }}

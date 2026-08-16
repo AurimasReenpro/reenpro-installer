@@ -173,7 +173,7 @@ export default function EditInstallerModal({
                     disabled={mutation.isPending}
                     {...register('firstName')}
                     placeholder="Jonas"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.firstName && (
                     <span className="text-danger text-xs mt-0.5">
@@ -191,7 +191,7 @@ export default function EditInstallerModal({
                     disabled={mutation.isPending}
                     {...register('lastName')}
                     placeholder="Jonaitis"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.lastName && (
                     <span className="text-danger text-xs mt-0.5">
@@ -210,7 +210,7 @@ export default function EditInstallerModal({
                   disabled={mutation.isPending}
                   {...register('phone')}
                   placeholder="+37060000000"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.phone && (
                   <span className="text-danger text-xs mt-0.5">
@@ -226,7 +226,7 @@ export default function EditInstallerModal({
                 <select
                   disabled={mutation.isPending}
                   {...register('teamId')}
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60 cursor-pointer"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60 cursor-pointer"
                 >
                   <option value="">Nepriskirta</option>
                   {teams?.map((team) => (
@@ -249,7 +249,7 @@ export default function EditInstallerModal({
                 <select
                   disabled={mutation.isPending}
                   {...register('workRole')}
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60 cursor-pointer"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {INSTALLER_WORK_ROLE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>

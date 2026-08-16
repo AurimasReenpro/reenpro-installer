@@ -148,7 +148,7 @@ export default function AddInstallerModal({
                     disabled={mutation.isPending}
                     {...register('firstName')}
                     placeholder="Jonas"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.firstName && (
                     <span className="text-danger text-xs mt-0.5">
@@ -166,7 +166,7 @@ export default function AddInstallerModal({
                     disabled={mutation.isPending}
                     {...register('lastName')}
                     placeholder="Jonaitis"
-                    className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                    className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                   />
                   {errors.lastName && (
                     <span className="text-danger text-xs mt-0.5">
@@ -185,7 +185,7 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('email')}
                   placeholder="jonas.jonaitis@imone.lt"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.email && (
                   <span className="text-danger text-xs mt-0.5">
@@ -203,7 +203,7 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('phone')}
                   placeholder="+37060000000"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.phone && (
                   <span className="text-danger text-xs mt-0.5">
@@ -221,7 +221,7 @@ export default function AddInstallerModal({
                   disabled={mutation.isPending}
                   {...register('password')}
                   placeholder="••••••"
-                  className="w-full bg-surface-2 border border-transparent focus:bg-white dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
+                  className="w-full bg-surface-2 border border-transparent focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary rounded-card px-4 py-3 text-sm text-text focus:outline-none transition-all disabled:opacity-60"
                 />
                 {errors.password && (
                   <span className="text-danger text-xs mt-0.5">

@@ -96,7 +96,7 @@ export default function ReopenSiteModal({
               <select
                 value={revisitCategory}
                 onChange={(e) => setRevisitCategory(e.target.value)}
-                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none appearance-none"
+                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-surface focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none appearance-none"
               >
                 {REVISIT_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -111,7 +111,7 @@ export default function ReopenSiteModal({
                 onChange={(e) => setRevisitNotes(e.target.value)}
                 rows={3}
                 placeholder="Trumpai aprašykite, kodėl objektas atidaromas iš naujo…"
-                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-white focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none resize-none"
+                className="w-full bg-surface-2 border-0 rounded-card px-4 py-3.5 text-sm text-text focus:bg-surface focus:ring-2 focus:ring-primary shadow-inner transition-all focus:outline-none resize-none"
               />
 
               <button

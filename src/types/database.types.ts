@@ -27,8 +27,8 @@ export type Database = {
           email: string | null
           logo_url: string | null
           primary_color: string | null
-          warehouse_lat: number | null
-          warehouse_lng: number | null
+          base_lat: number | null
+          base_lng: number | null
           created_at: string
           updated_at: string
         }
@@ -43,8 +43,8 @@ export type Database = {
           email?: string | null
           logo_url?: string | null
           primary_color?: string | null
-          warehouse_lat?: number | null
-          warehouse_lng?: number | null
+          base_lat?: number | null
+          base_lng?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -59,8 +59,8 @@ export type Database = {
           email?: string | null
           logo_url?: string | null
           primary_color?: string | null
-          warehouse_lat?: number | null
-          warehouse_lng?: number | null
+          base_lat?: number | null
+          base_lng?: number | null
           created_at?: string
           updated_at?: string
         }
