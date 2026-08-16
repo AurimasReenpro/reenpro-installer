@@ -40,6 +40,39 @@ Todėl visur galioja pati laisviausia.
 
 ## Radiniai
 
+### 0. Nuotraukos pasiekiamos NEPRISIJUNGUS (rasta 2026-08-16)
+
+Svarbiausias radinys. Rastas ne peržiūros metu, o tikrinant, ar pritaikyta 1
+etapo migracija — pirmoji peržiūra jo praleido, nes žiūrėjo tik `public`
+schemą.
+
+`storage.objects` kartoja tą pačią trijų kartų istoriją, tik kaina didesnė:
+
+```
+Public Access                            ALL    TO public         USING (bucket_id = 'site-photos')
+Leisti prisijungusiems matyti nuotraukas SELECT TO authenticated  USING (bucket_id = 'site-photos')
+```
+
+`public` rolė apima **`anon`**, t. y. neprisijungusį naudotoją, o `FOR ALL` be
+atskiro `WITH CHECK` taiko `USING` ir įterpimui. Praktiškai bet kas iš
+interneto galėjo skaityti, įkelti, perrašyti ir **ištrinti** montavimo
+nuotraukas. Antroji politika leidžia bet kuriam prisijungusiam matyti visų
+objektų nuotraukas.
+
+Šalia yra keturios visiškai teisingos `p1_sitephotos_*` politikos su
+`is_admin() OR is_assigned_to_site(foldername(name)[1])`. Jos nedarė nieko —
+permissive politikos jungiamos per OR.
+
+Prisideda tai, kad **visi trys segtuvai buvo `public: true`**. Tokiu atveju
+objektai atiduodami viešu adresu apskritai neklausiant RLS, tad programos
+`createSignedUrl` pastangos privatumui buvo beprasmės.
+
+Uždaro `supabase/migrations/20260816120000_lock_storage_site_photos.sql`.
+**`site_files` sąmoningai paliktas** — ten ta pati yda (`ALL TO authenticated`,
+tikrinamas tik `bucket_id`), bet `src/api/sites.ts:314,340` skaito failus per
+`getPublicUrl`, tad segtuvo uždarymas be kodo pataisos sulaužytų Brėžinius ir
+Failus.
+
 ### 1. `company_settings.iban` rašomas bet kuriam prisijungusiam
 
 Politika **„Admins can update settings“** yra `UPDATE USING (true) WITH CHECK
@@ -124,7 +157,68 @@ sąmoningai ir reikalauja žmogaus patikros sąsajoje. Sudėjus į krūvą,
 nebežinotum, kuris žingsnis ką sulaužė.
 
 Matuoklis visiems etapams — `supabase/tests/rls_policy_invariants.sql`.
-Etalonas prieš valymą: **11 atviro rašymo eilučių, 21 dublikatų grupė**.
+Etalonas prieš valymą: **1 anoniminio rašymo, 3 storage be tapatybės patikros,
+11 atviro rašymo, 21 dublikatų grupė, 0 lentelių be politikų.**
+
+> Tas failas iš pradžių tikrino tik `public` schemą ir dėl to **nematė
+> svarbiausios skylės**. Nuo 2026-08-16 jis apima ir `storage`. Pamoka
+> bendresnė: matuoklis, kurio apimtis siauresnė už problemos apimtį, ramina
+> be pagrindo.
+
+### 0 ir 1 etapai — ATLIKTA 2026-08-16
+
+Abi migracijos pritaikytos ir patikrintos. Skaičiai po jų:
+
+| Patikra | Prieš | Po |
+|---|---|---|
+| anoniminis rašymas | 1 | **0** |
+| storage be tapatybės patikros | 3 | **1** |
+| atviras rašymas | 11 | **10** |
+| dublikatai | 21 | 21 |
+| RLS be politikų | 0 | 0 |
+
+Nenušluota per daug: `site-photos` liko 7 politikos (iš 9), visos tikrina
+naudotoją; `company_settings` liko 3 admino rašymo politikos; `public`
+schemoje 128 → 127; nė viena nuotrauka neprarasta.
+
+**Tiesioginis įrodymas, kad skylė uždaryta** (2026-08-16, HTTP kreipiniai į
+Supabase domeną, ne į programą):
+
+| Adresas | Segtuvas | Atsakymas |
+|---|---|---|
+| `…/object/public/site-photos/…jpg` | privatus | **400**, neatiduoda |
+| `…/object/public/branding/logo-…png` | viešas | **200, image/png** |
+
+Kontrolinis bandymas su `branding` reikalingas tam, kad 400 nebūtų
+paaiškinamas blogu adresu ar tinklu: tas pats domenas ir endpoint'as,
+skiriasi tik segtuvo privatumas.
+
+> Tikrinant per naršyklę nesupainioti domenų. Programos adresas yra už
+> Cloudflare Access, tad bet koks kelias jame paprašys Microsoft
+> prisijungimo — tai Access, o ne storage, ir apie RLS nesako nieko.
+> Kreiptis reikia į `https://<project-ref>.supabase.co/storage/v1/…`.
+
+Papildomai patikrinta, ar montuotojas nepraranda prieigos. Segtuve 13
+objektų, visi su taisyklingu UUID aplanku, bet tik **6 atitinka egzistuojantį
+objektą**; likusios 7 yra našlaitės. Visos 6 pasiekiamos priklauso objektams,
+kurių komanda sutampa su montuotojo komanda, tad montuotojas mato tiek pat,
+kiek matė. Našlaitės nuo šiol prieinamos tik adminui — anksčiau jas matė
+visas internetas.
+
+### 0 etapas — `storage`, `site-photos` (atlikta)
+
+`supabase/migrations/20260816120000_lock_storage_site_photos.sql`. Šalinamos
+dvi politikos, segtuvas paverčiamas privačiu.
+
+Iškelta prieš `company_settings`, nes čia vienintelė vieta, kur duomenis gali
+keisti **neprisijungęs** žmogus, ir vienintelė, kur galima negrįžtamai
+sunaikinti darbo įrodymus.
+
+Prieš rašant patikrinta, kad tai nieko nelaužia: `site-photos` niekur
+neskaitomas per `getPublicUrl`, o senų įrašų su pilnu `https://` adresu nėra
+(`photos.storage_path` 0 iš 5, `site_checklist_items.photo_url` 0 iš 4).
+
+Laukiama: anoniminio rašymo 1 → **0**, storage be tapatybės 3 → **1**.
 
 ### 1 etapas — `company_settings` (paruošta)
 

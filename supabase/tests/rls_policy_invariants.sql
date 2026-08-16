@@ -40,6 +40,51 @@
 -- ============================================================================
 
 WITH
+-- 0. Politika, taikoma `public` arba `anon` rolei ir leidžianti RAŠYTI.
+--    `public` Postgres'e apima neprisijungusį naudotoją, tad tokia politika
+--    reiškia, kad duomenis gali keisti bet kas iš interneto.
+--
+--    Būtent šitai 2026-08-16 rado `storage.objects`: politika "Public Access"
+--    buvo `ALL TO public USING (bucket_id = 'site-photos')`, t. y. neprisijungęs
+--    žmogus galėjo trinti montavimo nuotraukas. Pirmoji šio failo versija to
+--    nematė, nes tikrino tik `schemaname = 'public'`.
+anoniminis_rasymas AS (
+  SELECT
+    1 AS sunkumas,
+    'anoniminis rasymas' AS problema,
+    schemaname || '.' || tablename AS tablename,
+    cmd,
+    policyname AS detale,
+    'politika taikoma public/anon rolei - keisti gali bet kas' AS paaiskinimas
+  FROM pg_policies
+  WHERE schemaname IN ('public', 'storage')
+    AND permissive = 'PERMISSIVE'
+    AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+    AND (roles::text LIKE '%public%' OR roles::text LIKE '%anon%')
+),
+
+-- 0b. `storage` politika, kuri autorizuoja TIK pagal segtuvo vardą.
+--     Segtuvo vardas nėra paslaptis, tad tokia sąlyga reiškia „visiems“.
+--     Tikrinama, ar sąlygoje minima bent viena tapatybės funkcija.
+--
+--     Išimtis: `branding` skaitymas. Logotipas rodomas prisijungimo lange dar
+--     prieš autentifikaciją, tad ten viešas SELECT yra sąmoningas sprendimas.
+storage_be_tapatybes AS (
+  SELECT
+    1 AS sunkumas,
+    'storage be tapatybes patikros' AS problema,
+    schemaname || '.' || tablename AS tablename,
+    cmd,
+    policyname AS detale,
+    'salyga tikrina tik bucket_id - prieina visi' AS paaiskinimas
+  FROM pg_policies
+  WHERE schemaname = 'storage'
+    AND permissive = 'PERMISSIVE'
+    AND COALESCE(qual, '')       !~ 'is_admin|auth\.uid|is_assigned_to_site|can_access_site'
+    AND COALESCE(with_check, '') !~ 'is_admin|auth\.uid|is_assigned_to_site|can_access_site'
+    AND NOT (cmd = 'SELECT' AND COALESCE(qual, '') LIKE '%branding%')
+),
+
 -- 1. Rašyti leidžianti PERMISSIVE politika, kurios sąlyga yra tiesiog `true`.
 --    Tiksliai ta klaidų klasė, dėl kurios `company_settings.iban` buvo
 --    perrašomas bet kam. NULL nelaikomas pažeidimu: INSERT neturi USING, o
@@ -48,7 +93,7 @@ atviras_rasymas AS (
   SELECT
     1 AS sunkumas,
     'atviras rasymas' AS problema,
-    tablename,
+    'public.' || tablename AS tablename,
     cmd,
     policyname AS detale,
     'USING/WITH CHECK yra true - rasyti gali bet kuris prisijunges' AS paaiskinimas
@@ -68,7 +113,7 @@ dublikatai AS (
   SELECT
     2 AS sunkumas,
     'dublikatai' AS problema,
-    tablename,
+    'public.' || tablename AS tablename,
     cmd,
     string_agg(policyname, ' | ' ORDER BY policyname) AS detale,
     format('%s politikos su vienoda salyga - %s is ju perteklines',
@@ -85,7 +130,7 @@ be_politiku AS (
   SELECT
     3 AS sunkumas,
     'RLS ijungtas be politiku' AS problema,
-    c.relname AS tablename,
+    'public.' || c.relname AS tablename,
     '-' AS cmd,
     '-' AS detale,
     'lentele neprieinama per anon/authenticated' AS paaiskinimas
@@ -100,6 +145,10 @@ be_politiku AS (
     )
 )
 
+SELECT * FROM anoniminis_rasymas
+UNION ALL
+SELECT * FROM storage_be_tapatybes
+UNION ALL
 SELECT * FROM atviras_rasymas
 UNION ALL
 SELECT * FROM dublikatai
@@ -113,7 +162,15 @@ ORDER BY sunkumas, tablename, cmd, detale;
 -- Paleista prieš pirmąją valymo migraciją. Jei vėliau eilučių padaugėja,
 -- kažkas grąžino seną politiką atgal.
 --
---   sunkumas 1 — 11 eiluciu:
+--   sunkumas 1, "anoniminis rasymas" — 1 eilute:
+--     storage.objects  ALL  "Public Access"  TO public
+--
+--   sunkumas 1, "storage be tapatybes patikros" — 3 eilutes:
+--     storage.objects  ALL     "Public Access"                            (site-photos)
+--     storage.objects  SELECT  "Leisti prisijungusiems matyti nuotraukas" (site-photos)
+--     storage.objects  ALL     "Leisti pilna priejima prie failu"         (site_files)
+--
+--   sunkumas 1, "atviras rasymas" — 11 eiluciu:
 --     company_settings       UPDATE  "Admins can update settings"
 --     equipment_categories   INSERT / UPDATE / DELETE           (3)
 --     site_extra_materials   INSERT / UPDATE                    (2)
@@ -126,8 +183,27 @@ ORDER BY sunkumas, tablename, cmd, detale;
 --
 --   sunkumas 3 — 0 eiluciu.
 --
--- Po `20260814170000_lock_company_settings_writes.sql` laukiama:
---   sunkumas 1 — 10 eiluciu (dingsta company_settings);
---   sunkumas 2 — 21 grupe, nepakitusi (ta migracija dublikatu neliecia);
---   sunkumas 3 — 0.
+-- ────────────────────────────────────────────────────────────────────────────
+-- PO ABIEJU MIGRACIJU, 2026-08-16 — PATVIRTINTA
+-- ────────────────────────────────────────────────────────────────────────────
+-- Abi migracijos pritaikytos, patikra paleista is naujo. Visi keturi skaiciai
+-- sutapo su prognoze, be nuokrypiu:
+--
+--   anoniminis rasymas             1 -> 0   (Public Access pasalinta)
+--   storage be tapatybes patikros  3 -> 1   (liko tik site_files)
+--   atviras rasymas               11 -> 10  (liko company_settings)
+--   dublikatai                    21 -> 21  (nepaliesti, kaip ir planuota)
+--   RLS be politiku                0 -> 0
+--
+-- Patikrinta ir kita puse - ar nenusluota per daug:
+--   site-photos politiku 9 -> 7, visos septynios tikrina naudotoja;
+--   site-photos segtuvas public = false; site_files ir branding nepaliesti;
+--   company_settings liko 3 admino rasymo ir 3 skaitymo politikos;
+--   public schemoje politiku 128 -> 127; nuotrauku segtuve 13, nei viena
+--   neprarasta.
+--
+-- LIKUSI 1 SUNKUMO EILUTE yra samoninga: "Leisti pilna priejima prie failu"
+-- (site_files, ALL TO authenticated, tikrina tik bucket_id). Jos uzdaryti
+-- negalima, kol src/api/sites.ts:314,340 skaito failus per getPublicUrl.
+-- Tai kitas etapas kartu su kodo pataisa.
 -- ════════════════════════════════════════════════════════════════════════════

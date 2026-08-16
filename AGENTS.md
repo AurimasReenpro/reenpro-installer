@@ -104,14 +104,29 @@ Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
 4. **RLS sutvarkymas** — planas etapais: `supabase/RLS-PERZIURA.md`. Esmė:
    politikų 128, visos `PERMISSIVE`, sudėtos trimis kartomis, ir senos
    `USING (true)` uždengia naujas `is_admin()`. Algų lentelės tvarkingos.
-   **1 etapas parašytas ir laukia paleidimo:**
-   `supabase/migrations/20260814170000_lock_company_settings_writes.sql`
-   uždaro `company_settings.iban` rašymą ne adminams. **Valyti prieš dedant
-   roles.**
+   **Valyti prieš dedant roles.** Dvi migracijos **pritaikytos 2026-08-16**:
+
+   - `20260816120000_lock_storage_site_photos.sql` — svarbiausia buvo ši.
+     `storage.objects` politika „Public Access“ buvo `ALL TO public`, tad
+     objektų nuotraukas galėjo skaityti, keisti ir **trinti neprisijungęs**
+     žmogus. Ta pati OR problema, tik `storage` schemoje, kurios pirmoji
+     peržiūra netikrino.
+   - `20260814170000_lock_company_settings_writes.sql` — uždarė
+     `company_settings.iban` rašymą ne adminams.
 
    Matuoklis — `supabase/tests/rls_policy_invariants.sql`: struktūrinė
-   patikra be fixture'ų, veikia ir per read-only MCP. Etalonas prieš valymą:
-   **11 atviro rašymo eilučių, 21 dublikatų grupė, 0 lentelių be politikų.**
+   patikra be fixture'ų, veikia ir per read-only MCP. Būsena **po** jų:
+   **0 anoniminio rašymo, 1 storage be tapatybės, 10 atviro rašymo,
+   21 dublikatų grupė, 0 lentelių be politikų.**
+
+   Likusi storage eilutė — `site_files` („Leisti pilną priėjimą prie failų“).
+   Jos uždaryti negalima, kol `src/api/sites.ts:314,340` skaito failus per
+   `getPublicUrl`; tai kitas etapas kartu su kodo pataisa.
+
+   **Migracijos taikomos ranka per SQL editorių.** `supabase_migrations`
+   schemos bazėje nėra — visos 32 repozitorijos migracijos buvo sudėtos
+   ranka, registro nėra. `supabase db push` bandytų sugroti visas iš naujo
+   prieš bazę, kurioje viskas jau yra.
 
    **`rls_smoke_test.sql` čia nepakanka.** Bazėje tik 2 naudotojai (1 adminas,
    1 montuotojas), tad patikros, kurioms reikia dviejų skirtingų ne-adminų,
