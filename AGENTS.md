@@ -101,13 +101,23 @@ Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
    (`can_access_site` tikrina `team_id`), ne role, tad nauja rolė be komandos
    nematys nieko, o su komanda matys tiek pat, kiek montuotojas. Reikia
    atskiro predikato. Žr. `supabase/RLS-PERZIURA.md`.
-4. **RLS sutvarkymas** — peržiūra atlikta 2026-08-14, radiniai ir siūloma
-   migracija: `supabase/RLS-PERZIURA.md`. Esmė: politikų 128, visos
-   `PERMISSIVE`, sudėtos trimis kartomis, ir senos `USING (true)` uždengia
-   naujas `is_admin()`. Algų lentelės tvarkingos, bet `company_settings.iban`
-   rašomas bet kuriam prisijungusiam. **Valyti prieš dedant roles.**
-   `supabase/tests/rls_smoke_test.sql` yra vieta, kur tai įrodyti — jo testas
-   2d su dabartine baze turėtų kristi.
+4. **RLS sutvarkymas** — planas etapais: `supabase/RLS-PERZIURA.md`. Esmė:
+   politikų 128, visos `PERMISSIVE`, sudėtos trimis kartomis, ir senos
+   `USING (true)` uždengia naujas `is_admin()`. Algų lentelės tvarkingos.
+   **1 etapas parašytas ir laukia paleidimo:**
+   `supabase/migrations/20260814170000_lock_company_settings_writes.sql`
+   uždaro `company_settings.iban` rašymą ne adminams. **Valyti prieš dedant
+   roles.**
+
+   Matuoklis — `supabase/tests/rls_policy_invariants.sql`: struktūrinė
+   patikra be fixture'ų, veikia ir per read-only MCP. Etalonas prieš valymą:
+   **11 atviro rašymo eilučių, 21 dublikatų grupė, 0 lentelių be politikų.**
+
+   **`rls_smoke_test.sql` čia nepakanka.** Bazėje tik 2 naudotojai (1 adminas,
+   1 montuotojas), tad patikros, kurioms reikia dviejų skirtingų ne-adminų,
+   tyliai praleidžiamos — įskaitant 2d, kuris turėjo įrodyti profilių skylę.
+   Ankstesnė prognozė „2d kris“ buvo klaidinga: jis praleidžiamas. Skaitant to
+   testo išvestį, **`[SKIP]` yra tokia pat svarbi eilutė kaip `[FAIL]`.**
 5. **Pranešimas apie naują versiją** — dabar montuotojas gali savaitę dirbti su
    sena, nes service worker atiduoda iš talpyklos.
 6. ~~Gilesnių ekranų apžiūra po spalvų pakeitimo~~ — padaryta 2026-08-14.

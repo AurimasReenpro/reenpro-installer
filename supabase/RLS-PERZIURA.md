@@ -58,10 +58,22 @@ Trigeriai saugo `role`, `hourly_rate`, `team_id`, `work_role`,
 `employment_status`, `deactivated_*`. **Nesaugo** `full_name`, `phone`,
 `email`, `avatar_url` — šiuos bet kas gali perrašyti bet kam.
 
-> `supabase/tests/rls_smoke_test.sql` testas **2d** tikisi, kad svetimo profilio
-> `UPDATE` palies 0 eilučių („RLS USING id = auth.uid()“). Su dabartiniu
-> politikų rinkiniu jis palies 1 eilutę, ir testas turėtų kristi. Jei jis
-> praeina — vadinasi, smoke testas nebuvo leistas prieš šią bazę.
+> **Pataisyta 2026-08-14 (antra sesija).** Pirmoji šio dokumento redakcija
+> teigė, kad `rls_smoke_test.sql` testas **2d** turėtų kristi. Patikrinta —
+> **jis nekrenta ir nepraeina, jis praleidžiamas.**
+>
+> `user_profiles` turi 2 eilutes: vieną adminą ir vieną montuotoją. Testo
+> fixture'as `v_other_inst` ieško ANTRO ne-admino, jo neranda, ir 2d nueina
+> į `RAISE NOTICE '[SKIP] 2d: no second non-admin user.'`
+>
+> Pati skylė reali — politika `USING (true)` niekur nedingo. Bet smoke testas
+> jos neįrodo ir neįrodys, kol bazėje nebus antro ne-admin naudotojo. Todėl
+> pridėtas `supabase/tests/rls_policy_invariants.sql`, kuriam fixture'ų
+> nereikia: jis tikrina politikų rinkinį, ne elgseną.
+>
+> Iš to seka bendresnė pamoka: **`[SKIP]` smoke teste nėra gera žinia.** Šioje
+> bazėje praleidžiamos būtent tos patikros, kurios liečia du skirtingus
+> naudotojus — t. y. įdomiausios.
 
 ### 3. Algos matomos ir be `payroll_*` lentelių
 
@@ -101,13 +113,104 @@ Taigi rolėms neužtenka naujos `user_profiles.role` reikšmės — reikia atski
 predikato (pvz., `can_see_all_sites()`), kurį naudotų `can_access_site()`.
 Kitaip nauja rolė bus arba akla, arba montuotojas.
 
-## Siūlomas taisymas
+## Valymo planas etapais
 
 Tvarka svarbi: **pirma išvalyti senas politikas, tik paskui dėti roles.**
 Kol galioja OR su `true`, bet kokia nauja rolės logika bus dekoracija.
 
-Migracijos juodraštis (į `supabase/migrations/`, **dar neparašytas ir
-nepritaikytas** — laukia sprendimo):
+Viena didelė migracija čia netinka. Etapai skiriasi ne dydžiu, o tuo, **kaip
+įrodomas saugumas**: vieni nekeičia elgsenos iš principo, kiti ją keičia
+sąmoningai ir reikalauja žmogaus patikros sąsajoje. Sudėjus į krūvą,
+nebežinotum, kuris žingsnis ką sulaužė.
+
+Matuoklis visiems etapams — `supabase/tests/rls_policy_invariants.sql`.
+Etalonas prieš valymą: **11 atviro rašymo eilučių, 21 dublikatų grupė**.
+
+### 1 etapas — `company_settings` (paruošta)
+
+`supabase/migrations/20260814170000_lock_company_settings_writes.sql`.
+Pašalinama viena politika. Naujų nereikia — trys `ALL … is_admin()` jau
+dengia ir INSERT, ir UPDATE.
+
+Rizika mažiausia iš visų, o nauda didžiausia: tai vienintelė vieta, kur ant
+kortos pinigai. Elgsena keičiasi tik ne-adminams, o jie Nustatymų puslapio ir
+taip nepasiekia. Migracija turi savikontrolę: jei liktų atvira politika arba,
+priešingai, nebeliktų nė vienos admino rašymo politikos, ji nutrūksta ir
+atsisuka.
+
+Laukiama: atviro rašymo 11 → **10**, dublikatų 21 → 21.
+
+### 2 etapas — tikslūs dublikatai
+
+21 grupė, apie 24 perteklinės politikos iš 128. Ta pati lentelė, komanda,
+rolės ir **pažodžiui ta pati sąlyga**, tik kitas vardas.
+
+Čia elgsena nesikeičia ne „turbūt“, o **iš principo**: permissive politikos
+jungiamos per OR, o `X OR X = X`. Todėl šitą etapą galima daryti be jokios
+sąsajos patikros — užtenka, kad invariantų testas parodytų 21 → 0, o
+`rls_smoke_test.sql` liktų toks pat.
+
+Siūlau daryti **antrą, prieš visus turinio pakeitimus**. Po jo politikų lieka
+apie 104 ir rinkinys tampa perskaitomas; tolesni etapai nustoja būti
+spėliojimu.
+
+### 3 etapas — `user_profiles` „Leisti redagavimą“
+
+Viena politika, `UPDATE USING (true)`. Trigeriai saugo `role`, `hourly_rate`,
+`team_id`; nesaugo `full_name`, `phone`, `email`, `avatar_url`.
+
+**Prieš tai reikia antro ne-admin naudotojo**, kitaip 2d ir toliau bus
+praleidžiamas ir taisymo niekas nepatvirtins. Tai vienintelis etapas, kuriam
+reikia paruošti duomenis, o ne kodą.
+
+### 4 etapas — `teams`, `site_extra_materials`, `site_checklist_items`
+
+Laisvos politikos, kurios TURI griežtus atitikmenis (`teams_admin`, `sem_*`,
+`sci_insert`). Šalinamos laisvosios, naujų rašyti nereikia.
+
+**Rizikingiausia vieta visame plane — `site_extra_materials`.**
+`src/lib/offlineMutations.ts` rodo, kad montuotojas šias eilutes kuria ir
+trina **neprisijungęs**, o jos išsiunčiamos vėliau. Jei griežtoji politika jo
+nepraleistų, klaida išlįstų ne iš karto, o po sinchronizacijos — blogiausias
+įmanomas laikas.
+
+Konkretus skirtumas: `sem_insert` naudoja `can_access_site()` (adminas arba
+**objekto komanda**), o `is_assigned_to_site()` papildomai praleidžia ir tuos,
+kas priskirti tiesiogiai per `site_assignments`. Montuotojas, priskirtas
+vardiniu būdu prie kitos komandos objekto, pirmąjį testą praeitų, antrojo ne.
+
+Patikrinta: `site_assignments` šiandien turi **0 eilučių**, tad visa prieiga
+eina per komandą ir abi funkcijos duoda tą patį. **Rizika latentinė, ne
+dabartinė** — bet ji suveiktų tą dieną, kai kas nors priskirtų montuotoją
+vardiniu būdu. Prieš šį etapą verta apsispręsti, ar `sem_*` politikos turi
+naudoti `is_assigned_to_site()` vietoj `can_access_site()`.
+
+### 5 etapas — `site_file_annotations`, `equipment_categories`
+
+Vienintelis etapas, kur griežtų politikų **apskritai nėra** ir jas reikia
+parašyti. Todėl elgsena tikrai keisis, ir tik čia būtina žmogaus patikra
+sąsajoje.
+
+Prieš rašant reikia atsakyti, kas jais naudojasi: `site_file_annotations`
+skaito ir rašo `src/api/annotations.ts` per `ImageAnnotator`, o brėžinių
+skirtukas yra ir administracinėje, ir mobiliojoje dalyje. Jei žymėjimus deda
+montuotojas, tinka `can_access_site`; jei tik biuras — `is_admin()`.
+`equipment_categories` redaguojamos iš `EquipmentCatalog`, t. y. iš
+administracinės dalies, tad joms `is_admin()` atrodo teisingai.
+
+### Ką daryti su trigerių dublikatais
+
+`prevent_profile_priv_escalation` ir `user_profiles_guard` yra
+`guard_user_profile_columns` poaibiai. Nekenkia, tik kartojasi. Siūlau liesti
+paskutinius — jie yra vienintelė veikianti apsauga nuo rolės pakėlimo, o
+nauda iš jų sutvarkymo vien kosmetinė.
+
+---
+
+### Ankstesnis vieno gabalo juodraštis
+
+Paliktas kaip nuoroda, ką kuris etapas apima. **Netaikyti kaip vienos
+migracijos** — dėl to ir surašyti etapai aukščiau.
 
 ```sql
 -- 1. Politikos, kurios uždengia griežtesnes bendravardes
@@ -145,17 +248,20 @@ CREATE POLICY eq_cat_write ON public.equipment_categories
   FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 ```
 
-Trigerių dublikatus (`prevent_profile_priv_escalation`, `user_profiles_guard`)
-galima palikti — jie nekenkia, tik kartojasi. `guard_user_profile_columns` yra
-pilniausias.
+## Kaip tikriname kiekvieną etapą
 
-### Prieš taikant
+Ta pati seka visiems etapams:
 
-1. Paleisti `supabase/tests/rls_smoke_test.sql` **dabar**, kad būtų užfiksuota
-   „prieš“ būsena. Laukiama, kad **2d kris** — tai patvirtins 2 radinį.
-2. Patikrinti, ar sąsaja niekur nesiremia laisvomis politikomis. Įtartinos
-   vietos: įrangos kategorijų redagavimas (`EquipmentCatalog`), brėžinių
-   žymėjimai (`BlueprintsTab`, `ImageAnnotator`), papildomos medžiagos
-   (`ExtraMaterialsSection`) — jei jos veikia ne admino teisėmis, po taisymo
-   nustos veikti. Tai būtų teisinga, bet apie tai reikia žinoti iš anksto.
-3. Paleisti smoke testą dar kartą po migracijos.
+1. **Prieš.** Paleisti `supabase/tests/rls_policy_invariants.sql` ir užsirašyti
+   skaičius. Jis skaito tik `pg_policies`, tad tinka ir per Supabase MCP.
+2. **Prieš.** Paleisti `supabase/tests/rls_smoke_test.sql`. Jis apvyniotas
+   `BEGIN … ROLLBACK`, tad nieko nepalieka. **Skaityti ne tik `[FAIL]`, bet ir
+   `[SKIP]`** — šioje bazėje praleidžiamos patikros yra pagrindinė aklavietė.
+3. Paleisti migraciją.
+4. **Po.** Abu testus iš naujo ir palyginti su „prieš“. Invariantų skaičiai
+   turi pasikeisti tiksliai tiek, kiek etape parašyta — ne daugiau.
+5. **Po.** Sąsajos patikra, jei etapas keičia elgseną (4 ir 5 etapai; 1 ir 2 —
+   nereikia, ten elgsena nesikeičia).
+
+Kas dar netikrinama niekur: `storage.objects` politikos. Joms reikia tikrų
+failų segtuve, tad jos tikrinamos tik per programą.
