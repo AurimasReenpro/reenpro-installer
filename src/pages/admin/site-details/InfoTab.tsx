@@ -25,30 +25,35 @@ function FieldRow({ label, icon: Icon, last, children }: { label: string; icon?:
 export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: string }) {
   const queryClient = useQueryClient();
 
-  const [editingClient, setEditingClient] = useState(false);
-  const [clientForm, setClientForm] = useState({
-    client_name: '',
-    contact_person: '',
-    client_phone: '',
-    client_email: '',
-    address: '',
-  });
   const [editingTech, setEditingTech] = useState(false);
   const [siteType, setSiteType] = useState<SiteType>(() => normalizeSiteType(site.site_type));
 
   const [localNotes, setLocalNotes] = useState<string | null>(null);
   const notes = localNotes ?? site.notes ?? '';
 
-  const startEditingClient = () => {
-    setClientForm({
-      client_name:    site.client_name    ?? '',
-      contact_person: site.contact_person ?? '',
-      client_phone:   site.client_phone   ?? '',
-      client_email:   site.client_email   ?? '',
-      address:        site.address        ?? '',
-    });
-    setEditingClient(true);
+  // Kliento laukai redaguojami vietoje, be atskiro „Redaguoti" režimo — taip
+  // pat, kaip Objekto tipas ir Pastabos. Anksčiau viename ekrane veikė du
+  // skirtingi būdai, ir nebuvo aišku, kuris laukas atrakintas.
+  const serverClient = {
+    client_name:    site.client_name    ?? '',
+    contact_person: site.contact_person ?? '',
+    client_phone:   site.client_phone   ?? '',
+    client_email:   site.client_email   ?? '',
+    address:        site.address        ?? '',
   };
+  const [clientForm, setClientForm] = useState(serverClient);
+
+  // Serveris atsakė naujomis reikšmėmis — persikrauname. `sig` keičiasi tik
+  // tada, kai pasikeičia išsaugoti duomenys, todėl rašomas tekstas nedingsta.
+  const clientSig = JSON.stringify(serverClient);
+  const [syncedClientSig, setSyncedClientSig] = useState(clientSig);
+  if (syncedClientSig !== clientSig) {
+    setSyncedClientSig(clientSig);
+    setClientForm(serverClient);
+  }
+
+  const clientDirty = (Object.keys(serverClient) as (keyof typeof serverClient)[])
+    .some((k) => clientForm[k] !== serverClient[k]);
 
   const saveClientMutation = useMutation({
     mutationFn: () => updateClientInfo(siteId, {
@@ -60,7 +65,6 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
     }),
     onSuccess: () => {
       toast.success('Kliento informacija išsaugota!');
-      setEditingClient(false);
       void queryClient.invalidateQueries({ queryKey: ['admin_site', siteId] });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
@@ -95,17 +99,10 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
         <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="font-semibold text-text text-[15px]">Kliento informacija</h3>
-            {!editingClient ? (
-              <button
-                onClick={startEditingClient}
-                className="text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer"
-              >
-                Redaguoti
-              </button>
-            ) : (
+            {clientDirty && (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setEditingClient(false)}
+                  onClick={() => setClientForm(serverClient)}
                   disabled={saveClientMutation.isPending}
                   className="text-[13px] text-subtle font-medium hover:text-muted transition-colors cursor-pointer disabled:opacity-60"
                 >
@@ -123,8 +120,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
             )}
           </div>
 
-          {editingClient ? (
-            <div className="space-y-3 pt-1">
+          <div className="space-y-3 pt-1">
               <div>
                 <label className="text-[12px] text-subtle font-medium tracking-wide block mb-1">Įmonė / Klientas</label>
                 <input
@@ -132,7 +128,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   value={clientForm.client_name}
                   onChange={(e) => setClientForm(f => ({ ...f, client_name: e.target.value }))}
                   disabled={saveClientMutation.isPending}
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
                 />
               </div>
               <div>
@@ -143,7 +139,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   onChange={(e) => setClientForm(f => ({ ...f, contact_person: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Vardas Pavardė"
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -155,7 +151,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                     onChange={(e) => setClientForm(f => ({ ...f, client_phone: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="+370 600 00000"
-                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
                   />
                 </div>
                 <div>
@@ -166,7 +162,7 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                     onChange={(e) => setClientForm(f => ({ ...f, client_email: e.target.value }))}
                     disabled={saveClientMutation.isPending}
                     placeholder="vardas@imone.lt"
-                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                    className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -178,20 +174,11 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
                   onChange={(e) => setClientForm(f => ({ ...f, address: e.target.value }))}
                   disabled={saveClientMutation.isPending}
                   placeholder="Pvz.: Vilniaus g. 1, Vilnius"
-                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+                  className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
                 />
                 <p className="text-[12px] text-subtle italic mt-1.5">Koordinatės bus atnaujintos automatiškai pagal adresą.</p>
               </div>
-            </div>
-          ) : (
-            <div>
-              <FieldRow label="Įmonė / Klientas">{site.client_name}</FieldRow>
-              <FieldRow label="Kontaktinis asmuo">{site.contact_person || '—'}</FieldRow>
-              <FieldRow label="Tel. numeris">{site.client_phone || '—'}</FieldRow>
-              <FieldRow label="El. paštas">{site.client_email || '—'}</FieldRow>
-              <FieldRow label="Adresas" last>{site.address || '—'}</FieldRow>
-            </div>
-          )}
+          </div>
         </div>
 
         <div className="bg-surface rounded-card border border-border shadow-sm p-5">
@@ -228,20 +215,31 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
               <Building2 className="w-4 h-4 text-primary" />
               Objekto tipas
             </h3>
-            <button
-              onClick={() => saveSiteTypeMutation.mutate()}
-              disabled={saveSiteTypeMutation.isPending || siteType === normalizeSiteType(site.site_type)}
-              className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            >
-              {saveSiteTypeMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Išsaugoti
-            </button>
+            {siteType !== normalizeSiteType(site.site_type) && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSiteType(normalizeSiteType(site.site_type))}
+                  disabled={saveSiteTypeMutation.isPending}
+                  className="text-[13px] text-subtle font-medium hover:text-muted transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  Atšaukti
+                </button>
+                <button
+                  onClick={() => saveSiteTypeMutation.mutate()}
+                  disabled={saveSiteTypeMutation.isPending}
+                  className="flex items-center gap-1 text-[13px] text-primary font-semibold hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-60"
+                >
+                  {saveSiteTypeMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Išsaugoti
+                </button>
+              </div>
+            )}
           </div>
           <select
             value={siteType}
             onChange={(e) => setSiteType(e.target.value as SiteType)}
             disabled={saveSiteTypeMutation.isPending}
-            className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60"
+            className="w-full h-[40px] px-3 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors disabled:opacity-60"
           >
             {SITE_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -255,21 +253,32 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
         <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-text text-[15px]">Pastabos / komentarai</h3>
-            <button
-              onClick={() => saveNotesMutation.mutate()}
-              disabled={saveNotesMutation.isPending || notes === (site.notes || '')}
-              className="flex items-center gap-1 text-[13px] text-primary font-medium hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            >
-              {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Išsaugoti
-            </button>
+            {notes !== (site.notes || '') && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setLocalNotes(null)}
+                  disabled={saveNotesMutation.isPending}
+                  className="text-[13px] text-subtle font-medium hover:text-muted transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  Atšaukti
+                </button>
+                <button
+                  onClick={() => saveNotesMutation.mutate()}
+                  disabled={saveNotesMutation.isPending}
+                  className="flex items-center gap-1 text-[13px] text-primary font-semibold hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-60"
+                >
+                  {saveNotesMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Išsaugoti
+                </button>
+              </div>
+            )}
           </div>
           <textarea
             value={notes}
             onChange={(e) => setLocalNotes(e.target.value)}
             placeholder="Objekto specifika, prieigos niuansai, pastabos montuotojui..."
             rows={8}
-            className="w-full min-h-[180px] p-3.5 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-white transition-colors resize-y"
+            className="w-full min-h-[180px] p-3.5 bg-surface-2 border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors resize-y"
           />
         </div>
       </div>

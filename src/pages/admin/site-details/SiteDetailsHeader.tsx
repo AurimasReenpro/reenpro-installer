@@ -1,18 +1,39 @@
 import { useState } from 'react';
-import { ArrowLeft, RotateCcw, Building2, MapPin, Sun, Battery } from 'lucide-react';
+import {
+  ArrowLeft, RotateCcw, Building2, MapPin, Sun, Battery,
+  PlayCircle, PauseCircle, CheckCircle2, Archive, Clock, FileEdit,
+} from 'lucide-react';
 import { isSiteDraft } from '../../../lib/siteDraft';
 import { siteTypeLabel } from '../../../lib/siteTypes';
 import { formatLocation } from './helpers';
 import ReopenSiteModal from './ReopenSiteModal';
 import type { SiteWithTeam } from './types';
 
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  in_progress: { label: 'Vykdomas', className: 'bg-success-bg text-success' },
-  paused:      { label: 'Sustabdytas', className: 'bg-warning-bg text-warning' },
-  completed:   { label: 'Baigtas', className: 'bg-surface-2 text-subtle' },
-  archived:    { label: 'Archyvuotas', className: 'bg-surface-2 text-subtle dark:bg-white/5' },
-  pending:     { label: 'Laukia', className: 'bg-info-bg text-info' },
+/**
+ * Būsena yra vienintelis sodrus ženklelis antraštėje. Dizaino sistema (§14):
+ * būsena niekada tik spalva — visada spalva + ikona + tekstas, todėl kiekviena
+ * reikšmė turi savo ikoną, o ne vien foną.
+ */
+const STATUS_MAP: Record<string, { label: string; className: string; icon: React.ElementType }> = {
+  in_progress: { label: 'Vykdomas',    className: 'bg-success-bg text-success border-success/20', icon: PlayCircle },
+  paused:      { label: 'Sustabdytas', className: 'bg-warning-bg text-warning border-warning/20', icon: PauseCircle },
+  completed:   { label: 'Baigtas',     className: 'bg-surface-2 text-subtle border-border',       icon: CheckCircle2 },
+  archived:    { label: 'Archyvuotas', className: 'bg-surface-2 text-subtle border-border',       icon: Archive },
+  pending:     { label: 'Laukia',      className: 'bg-info-bg text-info border-info/20',          icon: Clock },
 };
+
+/**
+ * Antriniai faktai apie objektą: komanda, sistemos tipas, B2B/B2C. Tai ne
+ * būsenos, o klasifikatoriai, todėl jie neturi konkuruoti su būsena — vienodas
+ * blankus stilius, be spalvinio kodo.
+ */
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] font-medium text-muted dark:text-subtle">
+      {children}
+    </span>
+  );
+}
 
 export default function SiteDetailsHeader({
   site,
@@ -56,38 +77,38 @@ export default function SiteDetailsHeader({
               <Building2 size={26} className="text-primary" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-[22px] font-bold text-text leading-tight tracking-tight">
-                {site.client_name}
-              </h1>
+              {/* Objekto numeris yra tapatybė, ne būsena, todėl stovi prie
+                  pavadinimo blankiu tekstu, o ne konkuruoja ženkleliu. */}
+              <div className="flex items-baseline gap-2.5 flex-wrap">
+                <h1 className="text-[22px] font-bold text-text leading-tight tracking-tight">
+                  {site.client_name}
+                </h1>
+                <span className="text-[14px] font-medium text-subtle tabular-nums">
+                  {site.code}
+                </span>
+              </div>
               <p className="text-[13px] text-subtle font-medium flex items-center gap-1.5 mt-1">
                 <MapPin size={13} className="shrink-0" />
                 <span className="truncate">{formatLocation(site.address)}</span>
               </p>
 
-              {/* Soft iOS-style badges */}
               <div className="flex items-center gap-2 mt-3 flex-wrap">
-                <span className="bg-surface-2 text-muted dark:text-subtle rounded-full px-3 py-1 text-xs font-medium">
-                  {site.code}
-                </span>
-                {isSiteDraft(site) && (
-                  <span className="bg-warning-bg text-warning text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider self-center">
-                    Juodraštis
-                  </span>
-                )}
+                {/* Vienintelis sodrus ženklelis ekrane. */}
                 {status && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.className}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.className}`}>
+                    <status.icon size={14} className="shrink-0" />
                     {status.label}
                   </span>
                 )}
-                <span className="bg-success-bg text-success rounded-full px-3 py-1 text-xs font-medium">
-                  {team?.name || 'Nepriskirta'}
-                </span>
-                <span className="bg-primary-fixed text-primary rounded-full px-3 py-1 text-xs font-medium">
-                  {site.system_type}
-                </span>
-                <span className="bg-surface-2 text-muted dark:text-subtle rounded-full px-3 py-1 text-xs font-medium">
-                  {siteTypeLabel(site.site_type)}
-                </span>
+                {isSiteDraft(site) && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning-bg px-2.5 py-1 text-[12px] font-semibold text-warning">
+                    <FileEdit size={14} className="shrink-0" />
+                    Juodraštis
+                  </span>
+                )}
+                <MetaChip>{team?.name || 'Komanda nepriskirta'}</MetaChip>
+                <MetaChip>{site.system_type}</MetaChip>
+                <MetaChip>{siteTypeLabel(site.site_type)}</MetaChip>
               </div>
             </div>
           </div>

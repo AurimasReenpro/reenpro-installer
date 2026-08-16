@@ -24,7 +24,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'equip', label: 'Įranga', icon: Cpu },
   { id: 'blueprints', label: 'Brėžiniai', icon: DraftingCompass },
   { id: 'files', label: 'Failai', icon: FolderOpen },
-  { id: 'check', label: 'Checklist', icon: ListChecks },
+  { id: 'check', label: 'Kontrolinis sąrašas', icon: ListChecks },
   { id: 'history', label: 'Istorija', icon: History },
 ];
 
