@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MessageSquare, Loader2, Eye, PenLine } from 'lucide-react';
-import { getSiteAnnotationNotes } from '../../../api/annotations';
+import { MessageSquare, Loader2, Eye, PenLine, FileImage, DraftingCompass, FileX } from 'lucide-react';
+import { getSiteAnnotationNotes, type SiteAnnotationNote } from '../../../api/annotations';
 import { parseBlueprintCategory } from '../../../api/sites';
+import { useSignedPhotoUrls } from '../../../hooks/useSignedPhotoUrls';
 import PhotoAnnotator from '../../../components/shared/PhotoAnnotator';
 
-/** Žmogui skaitomas failo pavadinimas: nuotraukai – failo vardas, brėžiniui – kategorija. */
-function failoEtiketė(fileName: string): string {
+interface Grupe {
+  fileName: string;
+  isPhoto: boolean;
+  etiketė: string;
+  notes: SiteAnnotationNote[];
+}
+
+/**
+ * Failo etiketė žmogui. Saugyklos vardas (`1783448228438_7jar4s.jpg`) nieko
+ * nesako, todėl nuotraukoms jo nerodome iš viso — jas atpažįsta miniatiūra.
+ */
+function etiketė(fileName: string): string {
   const kategorija = parseBlueprintCategory(fileName);
   if (kategorija) return `Brėžinys: ${kategorija}`;
-  if (fileName.includes('/')) return fileName.split('/').pop() ?? fileName;
+  if (fileName.includes('/')) return 'Nuotrauka';
+  if (fileName.startsWith('ann_')) return 'Pastabos priedas';
   return fileName;
 }
 
@@ -17,8 +29,11 @@ function failoEtiketė(fileName: string): string {
  * Visos montuotojo pastabos, paliktos ant objekto nuotraukų ir brėžinių.
  *
  * Tekstas jau seniai buvo saugomas, bet gyveno tik žymėjimo JSON'e — kad jį
- * perskaitytum, reikėjo atspėti, kurią nuotrauką atidaryti. Ši kortelė nieko
- * naujo nerenka, tik iškelia tai, kas jau yra.
+ * perskaitytum, reikėjo atspėti, kurią nuotrauką atidaryti.
+ *
+ * Grupuojama pagal failą: prie vieno kadro dažnai būna kelios pastabos
+ * („Grid port“, „Backup port“…), ir sąraše jos turi stovėti kartu, o ne
+ * kartoti tą patį vardą tris kartus.
  */
 export default function SiteAnnotationNotes({ siteId }: { siteId: string }) {
   const [perziura, setPerziura] = useState<string | null>(null);
@@ -28,6 +43,27 @@ export default function SiteAnnotationNotes({ siteId }: { siteId: string }) {
     queryFn: () => getSiteAnnotationNotes(siteId),
     enabled: !!siteId,
   });
+
+  const grupes = useMemo<Grupe[]>(() => {
+    const map = new Map<string, Grupe>();
+    for (const n of notes ?? []) {
+      let g = map.get(n.fileName);
+      if (!g) {
+        g = { fileName: n.fileName, isPhoto: n.isPhoto, etiketė: etiketė(n.fileName), notes: [] };
+        map.set(n.fileName, g);
+      }
+      g.notes.push(n);
+    }
+    return [...map.values()];
+  }, [notes]);
+
+  // Miniatiūros vienai partijai — nuotrauką atpažinti iš vaizdo greičiau nei
+  // iš bet kokio vardo.
+  const photoPaths = useMemo(
+    () => grupes.filter((g) => g.isPhoto).map((g) => g.fileName),
+    [grupes],
+  );
+  const { data: signedMap, isLoading: signing } = useSignedPhotoUrls(photoPaths);
 
   if (isLoading) {
     return (
@@ -65,39 +101,96 @@ export default function SiteAnnotationNotes({ siteId }: { siteId: string }) {
           )}
         </div>
 
-        {!notes || notes.length === 0 ? (
+        {grupes.length === 0 ? (
           <p className="text-[13px] text-subtle italic">
             Pastabų prie nuotraukų ir brėžinių nėra.
           </p>
         ) : (
-          <ul className="space-y-2.5">
-            {notes.map((n) => (
-              <li
-                key={`${n.fileName}-${n.annotationId}`}
-                className="rounded-[10px] border border-border/60 bg-surface-2/40 px-3 py-2.5"
-              >
-                <p className="text-[13px] text-text leading-snug whitespace-pre-wrap">{n.comment}</p>
+          /* Aukštis ribojamas: pastabų gali būti daug, o kortelė neturi
+             nustumti viso skirtuko žemyn. */
+          <ul className="space-y-3 max-h-[420px] overflow-y-auto -mr-1 pr-1">
+            {grupes.map((g) => {
+              const url = g.isPhoto ? signedMap?.get(g.fileName) : undefined;
+              // Supabase į atsakymą neįtraukia kelių, kurių saugykloje nėra.
+              // Tad jei pasirašymas baigtas, o nuorodos nėra — failas ištrintas,
+              // o pastaba liko. Geriau tai pasakyti, nei rodyti mygtuką, kuris
+              // nieko neatidaro.
+              const dingesFailas = g.isPhoto && !signing && !url;
+              return (
+                <li key={g.fileName} className="rounded-[10px] border border-border/60 overflow-hidden">
+                  {/* Grupės antraštė — miniatiūra arba ikona + etiketė */}
+                  <div className="flex items-center gap-2.5 bg-surface-2/60 px-3 py-2">
+                    {url ? (
+                      <img
+                        src={url}
+                        alt=""
+                        className="w-9 h-9 rounded-[6px] object-cover shrink-0 border border-border/50"
+                      />
+                    ) : (
+                      <span className="w-9 h-9 rounded-[6px] bg-surface-2 flex items-center justify-center shrink-0 border border-border/50">
+                        {g.isPhoto
+                          ? <FileImage size={15} className="text-subtle" />
+                          : <DraftingCompass size={15} className="text-subtle" />}
+                      </span>
+                    )}
 
-                <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[11px] text-subtle">
-                  <span className="font-semibold text-muted">{n.authorName}</span>
-                  {n.createdAt && <span className="tabular-nums">{n.createdAt.slice(0, 10)}</span>}
-                  <span className="truncate max-w-[45%]" title={n.fileName}>{failoEtiketė(n.fileName)}</span>
-
-                  {n.reviewedAt ? (
-                    <span className="ml-auto inline-flex items-center gap-1 text-success font-semibold">
-                      <Eye size={11} /> Peržiūrėta
+                    <span className="flex-1 min-w-0 text-[12px] font-semibold text-muted truncate" title={g.fileName}>
+                      {g.etiketė}
+                      {g.notes.length > 1 && (
+                        <span className="text-subtle font-normal"> · {g.notes.length} pastabos</span>
+                      )}
                     </span>
-                  ) : n.isPhoto ? (
-                    <button
-                      onClick={() => setPerziura(n.fileName)}
-                      className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer"
-                    >
-                      <PenLine size={11} /> Atidaryti
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+
+                    {dingesFailas ? (
+                      <span
+                        title="Nuotrauka ištrinta, pastaba liko"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-[6px] bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-subtle"
+                      >
+                        <FileX size={11} /> Failas ištrintas
+                      </span>
+                    ) : g.isPhoto ? (
+                      <button
+                        onClick={() => setPerziura(g.fileName)}
+                        className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        <PenLine size={11} /> Atidaryti
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {/* Pastabos */}
+                  <ul className="divide-y divide-border/50">
+                    {g.notes.map((n) => (
+                      <li key={n.annotationId} className="px-3 py-2">
+                        <div className="flex items-start gap-2">
+                          <p className="flex-1 text-[13px] text-text leading-snug whitespace-pre-wrap">
+                            {n.comment}
+                          </p>
+                          {n.reviewedAt && (
+                            <span
+                              title={`Peržiūrėta ${n.reviewedAt.slice(0, 10)}`}
+                              className="shrink-0 mt-0.5 text-success"
+                            >
+                              <Eye size={13} />
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Autorius ir data rodomi TIK jei žinomi. Seni įrašai jų
+                            neturi, o „Nežinoma“ užimtų vietą nieko nepasakydama. */}
+                        {(n.authorId || n.createdAt) && (
+                          <p className="mt-0.5 text-[11px] text-subtle">
+                            {n.authorId ? n.authorName : null}
+                            {n.authorId && n.createdAt ? ' · ' : null}
+                            {n.createdAt ? <span className="tabular-nums">{n.createdAt.slice(0, 10)}</span> : null}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

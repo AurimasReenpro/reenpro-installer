@@ -150,6 +150,33 @@ export async function getSiteAnnotationNotes(siteId: string): Promise<SiteAnnota
     .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 }
 
+/**
+ * Pašalina failo žymėjimus. Kviečiama trinant patį failą.
+ *
+ * Iki 2026-08-16 to nedarė niekas: `deletePhotoFromAllSources` savo komentare
+ * žadėjo išvalyti „all three locations“, bet vietų yra keturios — `photos`
+ * eilutė, `photo_url` nuoroda, failas saugykloje ir ŠITOS eilutės. Todėl
+ * kiekviena ištrinta nuotrauka palikdavo pastabą, rodančią į nebeegzistuojantį
+ * failą.
+ *
+ * Adminas eilutę trina; montuotojas pagal `sfa_delete` to negali, tad jam
+ * masyvas ištuštinamas — rezultatas sąsajai toks pat.
+ */
+export async function removeFileAnnotations(siteId: string, fileName: string): Promise<void> {
+  const { error } = await supabase
+    .from('site_file_annotations')
+    .delete()
+    .eq('site_id', siteId)
+    .eq('file_name', fileName);
+  if (!error) return;
+
+  await supabase
+    .from('site_file_annotations')
+    .update({ annotations: [] })
+    .eq('site_id', siteId)
+    .eq('file_name', fileName);
+}
+
 export async function saveFileAnnotations(
   siteId: string,
   fileName: string,

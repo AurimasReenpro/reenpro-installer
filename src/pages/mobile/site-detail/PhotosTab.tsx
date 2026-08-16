@@ -7,6 +7,7 @@ import type { SiteDetailData, SitePhoto } from '../../../types/site.types';
 import { usePhotoUpload } from '../../../hooks/usePhotoUpload';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
+import { removeFileAnnotations } from '../../../api/annotations';
 import { toast } from 'sonner';
 import * as Sentry from '@sentry/react';
 
@@ -106,6 +107,9 @@ export default function PhotosTab({ photos, siteId, profileId, siteData, readOnl
     try {
       await supabase.storage.from('site-photos').remove([photo.storage_path]);
       await supabase.from('photos').delete().eq('id', photo.id);
+      // Kartu ir žymėjimai — kitaip liktų pastaba, rodanti į nebeegzistuojantį
+      // failą, o biuras jos nei atidarytų, nei suprastų, iš kur ji.
+      await removeFileAnnotations(siteId, photo.storage_path);
       void queryClient.invalidateQueries({ queryKey: ['site', siteId] });
       toast.success('Nuotrauka ištrinta.');
       setViewerPath(null);

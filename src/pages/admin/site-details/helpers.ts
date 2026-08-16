@@ -1,6 +1,8 @@
 import { supabase } from '../../../lib/supabase';
 import { isPdf } from '../../../lib/pdf';
 
+import { removeFileAnnotations } from '../../../api/annotations';
+
 // ── Shared photo helpers ──────────────────────────────────────────────────────
 
 /**
@@ -36,10 +38,15 @@ export async function forceDownload(signedUrl: string, storagePath: string): Pro
 }
 
 /**
- * Removes a photo from all three locations:
+ * Removes a photo from all FOUR locations:
  *  1. `photos` DB table   (matched by storage_path)
  *  2. `site_checklist_items.photo_url` (reset to null / 'pending')
  *  3. `site-photos` storage bucket
+ *  4. `site_file_annotations` — the markup left on that photo
+ *
+ * Ketvirtos iki 2026-08-16 nebuvo, ir dėl to kiekviena ištrinta nuotrauka
+ * palikdavo „pastabą be nuotraukos“: eilutė lieka, failo nebėra, o sąsajoje
+ * atsiranda įrašas, kurio atidaryti neįmanoma.
  *
  * Pass `checklistItemId` when you know the exact item so the UPDATE is precise;
  * otherwise falls back to matching by the photo_url value.
@@ -64,6 +71,17 @@ export async function deletePhotoFromAllSources(
       .from('site_checklist_items')
       .update({ photo_url: null, status: 'pending' })
       .eq('photo_url', storagePath);
+  }
+
+  // Žymėjimai — objekto ID paimamas iš pirmo kelio segmento, nes nuotraukų
+  // kelias visada yra `<siteId>/...` (tuo remiasi ir RLS politikos).
+  const siteId = storagePath.split('/')[0];
+  if (siteId) {
+    try {
+      await removeFileAnnotations(siteId, storagePath);
+    } catch {
+      // Nekritinis: nuotrauka vis tiek turi būti ištrinta.
+    }
   }
 
   const { error: storageErr } = await supabase.storage
