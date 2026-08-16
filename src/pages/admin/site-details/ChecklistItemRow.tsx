@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Loader2, Download, Trash2, Circle, CheckCircle2, XCircle, MinusCircle,
-  ChevronRight, AlertTriangle, Image as ImageIcon,
+  ChevronRight, AlertTriangle, Image as ImageIcon, PenLine,
 } from 'lucide-react';
+import { getAnnotatedFileNames } from '../../../api/annotations';
+import PhotoAnnotator from '../../../components/shared/PhotoAnnotator';
 import { useConfirm } from '../../../hooks/useConfirm';
 import { useSignedPhotoUrl } from '../../../hooks/useSignedPhotoUrl';
 import ImageLightbox from '../../../components/shared/ImageLightbox';
@@ -144,8 +146,19 @@ export default function ChecklistItemRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Peržiūrai atidaryta nuotrauka su montuotojo žymėjimais.
+  const [viewingAnnotations, setViewingAnnotations] = useState<string | null>(null);
   const s = STATUS_ITEM[item.status];
   const StatusIcon = s.icon;
+
+  // Kurie objekto failai turi žymėjimų. Viena užklausa visam objektui ir
+  // bendras raktas visoms eilutėms, tad React Query ją atlieka vieną kartą.
+  const { data: annotatedFiles } = useQuery({
+    queryKey: ['annotated_files', siteId],
+    queryFn: () => getAnnotatedFileNames(siteId),
+    enabled: !!siteId,
+  });
+  const hasAnnotations = (path: string) => (annotatedFiles ?? []).includes(path);
 
   // Durable photos (photos table) are the source of truth. Fall back to the
   // legacy single `photo_url` column only when no rows matched this item.
@@ -220,16 +233,33 @@ export default function ChecklistItemRow({
                 <p className="text-[11px] font-bold text-subtle dark:text-subtle uppercase tracking-wider mb-2">Montuotojo nuotrauka</p>
                 {hasInstallerPhotos ? (
                   <div className="flex flex-wrap gap-2">
-                    {photoUrls.map((u, idx) => (
-                      <button
-                        key={installerPhotos[idx]?.id ?? u}
-                        onClick={() => setLightboxIndex(idx)}
-                        className="w-20 h-20 rounded-[8px] overflow-hidden border border-border/30 dark:border-white/10 hover:border-primary/50 transition-colors cursor-zoom-in focus:outline-none"
-                        title="Peržiūrėti"
-                      >
-                        <img src={u} alt="Įrodymas" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                    {photoUrls.map((u, idx) => {
+                      const path = installerPhotos[idx]?.storage_path;
+                      const zymeta = !!path && hasAnnotations(path);
+                      return (
+                        <div key={installerPhotos[idx]?.id ?? u} className="relative">
+                          <button
+                            onClick={() => setLightboxIndex(idx)}
+                            className="w-20 h-20 rounded-[8px] overflow-hidden border border-border/30 dark:border-white/10 hover:border-primary/50 transition-colors cursor-zoom-in focus:outline-none block"
+                            title="Peržiūrėti"
+                          >
+                            <img src={u} alt="Įrodymas" className="w-full h-full object-cover" />
+                          </button>
+                          {/* Žymėjimai matomi tik peržiūrai: nuotrauka yra darbo
+                              įrodymas, todėl biuras jo neperpiešia. */}
+                          {zymeta && (
+                            <button
+                              onClick={() => setViewingAnnotations(path)}
+                              title="Peržiūrėti montuotojo žymėjimus"
+                              className="absolute bottom-1 right-1 inline-flex items-center gap-1 rounded-[6px] bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
+                            >
+                              <PenLine size={10} />
+                              Žymėjimai
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : item.photo_url ? (
                   /* Legacy fallback: single photo_url column */
@@ -256,6 +286,17 @@ export default function ChecklistItemRow({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Montuotojo žymėjimai — peržiūra be redagavimo */}
+      {viewingAnnotations && (
+        <PhotoAnnotator
+          siteId={siteId}
+          storagePath={viewingAnnotations}
+          isAdmin
+          readOnly
+          onClose={() => setViewingAnnotations(null)}
+        />
+      )}
 
       {/* Full-screen lightbox for the installer evidence photos */}
       {lightboxIndex !== null && hasInstallerPhotos && (

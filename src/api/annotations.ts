@@ -57,6 +57,24 @@ export async function getFileAnnotations(siteId: string, fileName: string): Prom
   return raw.map(migrateAnnotation);
 }
 
+/**
+ * Objekto failų vardai, kurie TURI bent vieną žymėjimą.
+ *
+ * Viena užklausa visam objektui, o ne po vieną kiekvienai nuotraukai —
+ * kontroliniame sąraše jų gali būti dešimtys. Naudojama ženkleliui „yra
+ * žymėjimų“ administracinėje kortelėje.
+ */
+export async function getAnnotatedFileNames(siteId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('site_file_annotations')
+    .select('file_name, annotations')
+    .eq('site_id', siteId);
+  if (error) throw error;
+  return (data ?? [])
+    .filter((row) => Array.isArray(row.annotations) && row.annotations.length > 0)
+    .map((row) => row.file_name);
+}
+
 export async function saveFileAnnotations(
   siteId: string,
   fileName: string,

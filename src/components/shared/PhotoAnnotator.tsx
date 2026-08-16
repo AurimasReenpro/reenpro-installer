@@ -8,12 +8,16 @@ interface Props {
   siteId: string;
   storagePath: string;
   onClose: () => void;
+  /** Biuro pusėje – peržiūra be redagavimo (žr. ImageAnnotator `readOnly`). */
+  readOnly?: boolean;
+  /** Dešinėje rodyti pastabų registrą vietoj mobiliosios apatinės kortelės. */
+  isAdmin?: boolean;
 }
 
 // Photos live in the private `site-photos` bucket, so they need a signed URL
 // before the Konva canvas can load them. This wrapper resolves that URL and
 // then hands off to the shared ImageAnnotator, keyed by the storage path.
-export default function PhotoAnnotator({ siteId, storagePath, onClose }: Props) {
+export default function PhotoAnnotator({ siteId, storagePath, onClose, readOnly = false, isAdmin = false }: Props) {
   const { url, isLoading, error } = useSignedPhotoUrl(storagePath);
 
   useEffect(() => {
@@ -37,6 +41,8 @@ export default function PhotoAnnotator({ siteId, storagePath, onClose }: Props) 
       fileName={storagePath}
       imageUrl={url}
       onClose={onClose}
+      readOnly={readOnly}
+      isAdmin={isAdmin}
     />
   );
 }

@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import {
   X, MousePointer, Pencil, CheckCircle2, AlertTriangle, Save, Trash2, Loader2,
   ArrowUpRight, Square, Circle as CircleIcon, Type, Eraser, Undo2, Redo2,
-  Camera, ArrowLeft, Image as ImageIcon, ChevronLeft, ChevronRight,
+  Camera, ArrowLeft, Image as ImageIcon, ChevronLeft, ChevronRight, Eye,
 } from 'lucide-react';
 import { getFileAnnotations, saveFileAnnotations } from '../../api/annotations';
 import type { Annotation } from '../../api/annotations';
@@ -105,6 +105,12 @@ interface Props {
   initialPage?: number;
   // Admin gets the right-side annotation registry; installers use the bottom card.
   isAdmin?: boolean;
+  /**
+   * Peržiūra be redagavimo. Biuras mato, ką montuotojas pažymėjo, bet įrodymo
+   * nekeičia: paslepiami įrankiai, spalvos, atšaukimas ir išsaugojimas, o
+   * pastabos su prisegtukais rodomos tik skaitymui.
+   */
+  readOnly?: boolean;
 }
 
 interface AnnotatorCanvasProps extends Props {
@@ -127,7 +133,7 @@ function clampStageScale(s: number) {
 }
 
 // ─── Inner canvas ─────────────────────────────────────────────────────────────
-function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotations, initialPage = 1, isAdmin = false }: AnnotatorCanvasProps) {
+function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotations, initialPage = 1, isAdmin = false, readOnly = false }: AnnotatorCanvasProps) {
   const queryClient = useQueryClient();
 
   // ── PDF paging ────────────────────────────────────────────────────────────
@@ -139,7 +145,9 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
   // ── Tool & style state ──────────────────────────────────────────────────
   // Admins open in select mode so clicking a shape immediately opens it in the
   // registry; installers open ready to draw.
-  const [tool,              setTool]              = useState<Tool>(isAdmin ? 'pointer' : 'draw');
+  // Peržiūroje įrankių juostos nėra, tad `pointer` čia lieka visam laikui —
+  // `handleMouseDown` su juo tik nuima žymėjimą ir niekada nepiešia.
+  const [tool,              setTool]              = useState<Tool>(readOnly || isAdmin ? 'pointer' : 'draw');
   const [activeColor,       setActiveColor]       = useState<string>('#ef4444');
   const [activeStrokeWidth, setActiveStrokeWidth] = useState<number>(3);
   const [selectedId,        setSelectedId]        = useState<string | null>(null);
@@ -703,11 +711,43 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
   // registry accordion. Only ever rendered for the currently-selected pin, so
   // the attachment handlers (keyed on `selectedId`) operate on this annotation.
   function renderEditorBody(ann: Annotation) {
+    if (readOnly) {
+      const priedai = ann.attachment_urls ?? [];
+      return (
+        <>
+          <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">Komentaras</p>
+          {ann.comment?.trim()
+            ? <p className="text-nav-ink text-[13px] leading-snug whitespace-pre-wrap bg-white/5 rounded-lg p-2.5 border border-white/10">{ann.comment}</p>
+            : <p className="text-nav-ink/40 text-[13px] italic">Komentaro nėra.</p>}
+
+          {priedai.length > 0 && (
+            <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+              <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">
+                Nuotraukos ({priedai.length})
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {priedai.map((url, i) => (
+                  <div key={url} className="relative rounded-lg overflow-hidden ring-1 ring-white/20 aspect-square">
+                    <img
+                      src={url}
+                      alt="Prisegta nuotrauka"
+                      className="w-full h-full object-cover block cursor-pointer active:opacity-80 transition-opacity"
+                      onClick={() => setGalleryView({ urls: priedai, index: i })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
     return (
       <>
-        <p className="text-white/60 text-[11px] uppercase tracking-wider font-bold">Komentaras</p>
+        <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">Komentaras</p>
         <textarea
-          className="flex-1 min-h-[100px] bg-white/10 text-white text-[13px] rounded-lg p-2.5 border border-white/20 resize-none focus:outline-none focus:border-primary/60 placeholder:text-white/30"
+          className="flex-1 min-h-[100px] bg-white/10 text-nav-ink text-[13px] rounded-lg p-2.5 border border-white/20 resize-none focus:outline-none focus:border-primary/60 placeholder:text-nav-ink/30"
           placeholder="Įrašyti pastabą..."
           value={ann.comment ?? ''}
           onChange={(e) => {
@@ -718,7 +758,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
         {/* Photo attachments — gallery grid + always-visible upload box */}
         <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
-          <p className="text-white/60 text-[11px] uppercase tracking-wider font-bold">
+          <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">
             Nuotraukos{(ann.attachment_urls?.length ?? 0) > 0 ? ` (${ann.attachment_urls!.length})` : ''}
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -733,7 +773,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
                 <button
                   onClick={() => removeAttachmentUrl(url)}
                   title="Pašalinti nuotrauką"
-                  className="absolute top-0.5 right-0.5 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-danger transition-colors cursor-pointer"
+                  className="absolute top-0.5 right-0.5 w-6 h-6 rounded-full bg-black/70 text-nav-ink flex items-center justify-center hover:bg-danger transition-colors cursor-pointer"
                 >
                   <X size={13} />
                 </button>
@@ -747,14 +787,14 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
               Hidden entirely once the 5-photo cap is reached so the picker can't
               even be opened when the slots are full. */}
           {(ann.attachment_urls?.length ?? 0) >= MAX_ATTACHMENTS ? (
-            <p className="text-[12px] text-white/40 italic text-center py-1">
+            <p className="text-[12px] text-nav-ink/40 italic text-center py-1">
               Pasiektas {MAX_ATTACHMENTS} nuotraukų limitas.
             </p>
           ) : (
             <div className="flex gap-2">
               {/* Camera: single capture */}
               <label htmlFor={`camera-upload-${ann.id}`} title="Nufotografuoti"
-                className={`flex-1 h-10 rounded-card bg-primary text-white font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer ${attachmentUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                className={`flex-1 h-10 rounded-card bg-primary text-nav-ink font-semibold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer ${attachmentUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 {attachmentUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                 Nufotografuoti
               </label>
@@ -773,7 +813,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
                   the Documents/Files picker that honours multi-select. Non-image files
                   are filtered out in handleAttachmentUpload. */}
               <label htmlFor={`gallery-upload-${ann.id}`} title="Galerija"
-                className={`flex-1 h-10 rounded-card bg-white/10 text-white font-semibold text-[13px] flex items-center justify-center gap-2 hover:bg-white/15 active:scale-95 transition-all cursor-pointer ${attachmentUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                className={`flex-1 h-10 rounded-card bg-white/10 text-nav-ink font-semibold text-[13px] flex items-center justify-center gap-2 hover:bg-white/15 active:scale-95 transition-all cursor-pointer ${attachmentUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <ImageIcon size={16} />
                 Galerija
               </label>
@@ -789,7 +829,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
         </div>
 
         <button onClick={deleteSelected}
-          className="flex items-center justify-center gap-2 h-9 rounded-lg bg-danger/80 text-white text-[13px] font-semibold hover:bg-danger transition-colors cursor-pointer">
+          className="flex items-center justify-center gap-2 h-9 rounded-lg bg-danger/80 text-nav-ink text-[13px] font-semibold hover:bg-danger transition-colors cursor-pointer">
           <Trash2 size={14} />
           Ištrinti
         </button>
@@ -808,11 +848,11 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
           ? { Icon: CheckCircle2, tint: 'text-success', label: 'Gerai' }
           : { Icon: AlertTriangle, tint: 'text-warning', label: 'Dėmesio' };
       case 'text':    return { Icon: Type,        tint: 'text-info',  label: 'Tekstas' };
-      case 'arrow':   return { Icon: ArrowUpRight, tint: 'text-white/70', label: 'Rodyklė' };
-      case 'rect':    return { Icon: Square,       tint: 'text-white/70', label: 'Stačiakampis' };
-      case 'ellipse': return { Icon: CircleIcon,   tint: 'text-white/70', label: 'Elipsė' };
-      case 'path':    return { Icon: Pencil,       tint: 'text-white/70', label: 'Piešinys' };
-      default:        return { Icon: Pencil,       tint: 'text-white/70', label: 'Žymėjimas' };
+      case 'arrow':   return { Icon: ArrowUpRight, tint: 'text-nav-ink/70', label: 'Rodyklė' };
+      case 'rect':    return { Icon: Square,       tint: 'text-nav-ink/70', label: 'Stačiakampis' };
+      case 'ellipse': return { Icon: CircleIcon,   tint: 'text-nav-ink/70', label: 'Elipsė' };
+      case 'path':    return { Icon: Pencil,       tint: 'text-nav-ink/70', label: 'Piešinys' };
+      default:        return { Icon: Pencil,       tint: 'text-nav-ink/70', label: 'Žymėjimas' };
     }
   }
 
@@ -840,25 +880,38 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
   const showColorBar = ['draw', 'arrow', 'rect', 'ellipse', 'text'].includes(tool);
 
+  // Anotatorius yra pilno ekrano tamsus sluoksnis, o ne programos puslapis.
+  // Todėl jo valdikliai remiasi `nav-*` tokenais — jie tamsūs ABIEJOSE temose.
+  // Su `surface` šviesioje temoje fonas tapdavo baltas, o tekstas liko baltas,
+  // ir užrašų nesimatydavo.
   return (
-    <div className="fixed inset-0 z-[9999] w-full h-full bg-surface overflow-hidden">
+    <div className="fixed inset-0 z-[9999] w-full h-full bg-nav overflow-hidden">
       {/* ── Island 1: floating top navigation ───────────────────────────── */}
       <button onClick={onClose} title="Atgal"
-        className="pointer-events-auto absolute top-4 left-4 z-50 flex items-center gap-2 bg-surface/90 backdrop-blur-md text-white shadow-xl rounded-full pl-3 pr-4 py-2 active:scale-95 transition-transform">
+        className="pointer-events-auto absolute top-4 left-4 z-50 flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full pl-3 pr-4 py-2 active:scale-95 transition-transform">
         <ArrowLeft size={18} strokeWidth={2.4} />
         <span className="font-semibold text-sm">Atgal</span>
       </button>
-      <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} title="Išsaugoti"
-        className="pointer-events-auto absolute top-4 right-4 z-50 flex items-center gap-2 bg-surface/90 backdrop-blur-md text-white shadow-xl rounded-full px-4 py-2 active:scale-95 transition-transform disabled:opacity-60">
-        {saveMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} strokeWidth={2.4} />}
-        <span className="font-semibold text-sm">Išsaugoti</span>
-      </button>
+      {readOnly ? (
+        <span
+          className="pointer-events-none absolute top-4 right-4 z-50 flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink/70 shadow-xl rounded-full px-4 py-2"
+          title="Montuotojo žymėjimai rodomi tik peržiūrai">
+          <Eye size={16} strokeWidth={2.4} />
+          <span className="font-semibold text-sm">Peržiūra</span>
+        </span>
+      ) : (
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} title="Išsaugoti"
+          className="pointer-events-auto absolute top-4 right-4 z-50 flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full px-4 py-2 active:scale-95 transition-transform disabled:opacity-60">
+          {saveMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} strokeWidth={2.4} />}
+          <span className="font-semibold text-sm">Išsaugoti</span>
+        </button>
+      )}
 
       {/* Zoom level / reset — appears when the canvas is scaled.
           Shifts down on multi-page PDFs to clear the pagination island. */}
       {Math.abs(stageScale - 1) > 0.01 && (
         <button onClick={resetZoom} title="Atstatyti mastelį"
-          className={`pointer-events-auto absolute left-1/2 -translate-x-1/2 z-50 h-9 px-3 rounded-full bg-surface/90 backdrop-blur-md text-white text-[12px] font-mono font-bold shadow-xl active:scale-95 cursor-pointer ${
+          className={`pointer-events-auto absolute left-1/2 -translate-x-1/2 z-50 h-9 px-3 rounded-full bg-nav/90 backdrop-blur-md text-nav-ink text-[12px] font-mono font-bold shadow-xl active:scale-95 cursor-pointer ${
             pdfMode && numPages > 1 ? 'top-[4.5rem]' : 'top-4'
           }`}>
           {Math.round(stageScale * 100)}%
@@ -867,7 +920,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
       {/* ── PDF pagination island ──────────────────────────────────────────── */}
       {pdfMode && numPages > 1 && (
-        <div className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-surface/90 backdrop-blur-md text-white shadow-2xl rounded-full px-1.5 py-1.5 ring-1 ring-white/10">
+        <div className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-nav/90 backdrop-blur-md text-nav-ink shadow-2xl rounded-full px-1.5 py-1.5 ring-1 ring-white/10">
           <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}
             title="Ankstesnis lapas"
             className="w-11 h-11 flex items-center justify-center rounded-full transition-colors disabled:opacity-30 enabled:active:bg-white/15 enabled:hover:bg-white/10">
@@ -887,21 +940,23 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       {/* PDF page render spinner */}
       {pdfMode && pdf.loading && (
         <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-          <Loader2 className="w-10 h-10 text-white/80 animate-spin" />
+          <Loader2 className="w-10 h-10 text-nav-ink/80 animate-spin" />
         </div>
       )}
 
       {/* ── Island 2: floating vertical tool palette ────────────────────── */}
-      <div className="pointer-events-auto absolute left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 bg-surface/90 backdrop-blur-md p-2 rounded-full shadow-2xl ring-1 ring-white/10">
-        {[...TOOLS.filter(t => t.id !== 'eraser'), ...MARKERS].map(({ id, Icon, label }) => (
-          <button key={id} onClick={() => setTool(id)} title={label}
-            className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
-              tool === id ? 'bg-primary text-white' : 'text-subtle hover:text-white hover:bg-white/10'
-            }`}>
-            <Icon size={22} strokeWidth={2.1} />
-          </button>
-        ))}
-      </div>
+      {!readOnly && (
+        <div className="pointer-events-auto absolute left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 bg-nav/90 backdrop-blur-md p-2 rounded-full shadow-2xl ring-1 ring-white/10">
+          {[...TOOLS.filter(t => t.id !== 'eraser'), ...MARKERS].map(({ id, Icon, label }) => (
+            <button key={id} onClick={() => setTool(id)} title={label}
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+                tool === id ? 'bg-primary text-nav-ink' : 'text-nav-muted hover:text-nav-ink hover:bg-white/10'
+              }`}>
+              <Icon size={22} strokeWidth={2.1} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Base layer: fullscreen canvas ────────────────────────────────── */}
       <div ref={containerRef} className="absolute inset-0 z-0 overflow-hidden" style={{ cursor: stageCursor, touchAction: 'none' }}>
@@ -931,16 +986,16 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
       {/* ── Admin: right-side annotation registry ─────────────────────────── */}
       {isAdmin && (
-        <div className="pointer-events-auto absolute right-4 top-20 bottom-6 w-[350px] z-[9999] flex flex-col bg-surface/95 backdrop-blur-xl rounded-card shadow-2xl overflow-hidden border border-border">
-          <div className="px-4 py-3 border-b border-border shrink-0">
-            <p className="text-white font-bold text-sm">Pastabų registras</p>
-            <p className="text-white/50 text-[11px]">
+        <div className="pointer-events-auto absolute right-4 top-20 bottom-6 w-[350px] z-[9999] flex flex-col bg-nav/95 backdrop-blur-xl rounded-card shadow-2xl overflow-hidden border border-nav-border">
+          <div className="px-4 py-3 border-b border-nav-border shrink-0">
+            <p className="text-nav-ink font-bold text-sm">Pastabų registras</p>
+            <p className="text-nav-ink/50 text-[11px]">
               {registryItems.length > 0 ? `${registryItems.length} žym. šiame lape` : 'Žymėjimų šiame lape nėra'}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
             {registryItems.length === 0 ? (
-              <p className="text-white/40 text-[12px] text-center px-4 py-8">
+              <p className="text-nav-ink/40 text-[12px] text-center px-4 py-8">
                 Pažymėkite ką nors brėžinyje, kad jis atsirastų sąraše.
               </p>
             ) : (
@@ -957,11 +1012,11 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
                       onClick={() => { setTool('pointer'); setSelectedId(isSel ? null : ann.id); }}
                       className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer">
                       <Icon size={20} className={`shrink-0 ${tint}`} />
-                      <span className={`flex-1 truncate text-[13px] ${note ? 'text-white' : 'text-white/40 italic'}`}>
+                      <span className={`flex-1 truncate text-[13px] ${note ? 'text-nav-ink' : 'text-nav-ink/40 italic'}`}>
                         {primary}
                       </span>
                       {photoCount > 0 && (
-                        <span className="shrink-0 flex items-center gap-1 text-white/60 text-[11px] font-semibold">
+                        <span className="shrink-0 flex items-center gap-1 text-nav-ink/60 text-[11px] font-semibold">
                           <Camera size={12} />{photoCount}
                         </span>
                       )}
@@ -981,12 +1036,12 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
       {/* ── Mobile: floating properties card — comment + photos ───────────── */}
       {!isAdmin && tool === 'pointer' && selectedAnnotation && (
-        <div className="pointer-events-auto absolute z-50 inset-x-3 bottom-24 max-h-[55%] md:inset-x-auto md:right-4 md:top-20 md:bottom-24 md:w-[300px] md:max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl bg-surface/95 backdrop-blur-md shadow-2xl ring-1 ring-white/10 p-4 flex flex-col gap-3">
+        <div className="pointer-events-auto absolute z-50 inset-x-3 bottom-24 max-h-[55%] md:inset-x-auto md:right-4 md:top-20 md:bottom-24 md:w-[300px] md:max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl bg-nav/95 backdrop-blur-md shadow-2xl ring-1 ring-white/10 p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <p className="text-white/60 text-[11px] uppercase tracking-wider font-bold">Žymėjimas</p>
+            <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">Žymėjimas</p>
             <button
               onClick={() => setSelectedId(null)}
-              className="text-white/60 hover:text-white p-1 -mr-1 cursor-pointer"
+              className="text-nav-ink/60 hover:text-nav-ink p-1 -mr-1 cursor-pointer"
               title="Uždaryti"
             >
               <X size={16} />
@@ -997,8 +1052,8 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       )}
 
       {/* ── Island 3: contextual colors + stroke (drawing/text tools only) ─ */}
-      {showColorBar && (
-        <div className="pointer-events-auto absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-hide bg-surface/90 backdrop-blur-md p-3 rounded-full shadow-2xl ring-1 ring-white/10">
+      {!readOnly && showColorBar && (
+        <div className="pointer-events-auto absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-hide bg-nav/90 backdrop-blur-md p-3 rounded-full shadow-2xl ring-1 ring-white/10">
           {PALETTE.map(({ color, label }) => (
             <button key={color} title={label} onClick={() => setActiveColor(color)}
               style={{ background: color }}
@@ -1010,7 +1065,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
           {STROKE_OPTIONS.map(({ value, label }) => (
             <button key={value} title={label} onClick={() => setActiveStrokeWidth(value)}
               className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                activeStrokeWidth === value ? 'bg-surface-2 ring-1 ring-white/40' : 'bg-white/5 hover:bg-white/10'
+                activeStrokeWidth === value ? 'bg-nav-hover ring-1 ring-white/40' : 'bg-white/5 hover:bg-white/10'
               }`}>
               <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
                 <line x1="2" y1="7" x2="16" y2="7" stroke="white"
@@ -1022,11 +1077,11 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       )}
 
       {/* ── Island 4: action bar (Undo / Redo / Eraser) ───────────────────── */}
-      {!(!isAdmin && tool === 'pointer' && selectedAnnotation) && (
-        <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-stretch gap-1.5 bg-surface/90 backdrop-blur-md rounded-full shadow-2xl px-2.5 py-2 ring-1 ring-white/10">
+      {!readOnly && !(!isAdmin && tool === 'pointer' && selectedAnnotation) && (
+        <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-stretch gap-1.5 bg-nav/90 backdrop-blur-md rounded-full shadow-2xl px-2.5 py-2 ring-1 ring-white/10">
           <button onClick={undo} disabled={!canUndo} title="Atšaukti"
             className={`flex flex-col items-center justify-center gap-0.5 w-[68px] py-2 rounded-card transition-colors ${
-              canUndo ? 'text-white active:bg-white/15' : 'text-white/25'
+              canUndo ? 'text-nav-ink active:bg-white/15' : 'text-nav-ink/25'
             }`}>
             <Undo2 size={22} strokeWidth={2.4} />
             <span className="text-[11px] font-bold leading-none">Atšaukti</span>
@@ -1034,7 +1089,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
           <button onClick={redo} disabled={!canRedo} title="Grąžinti"
             className={`flex flex-col items-center justify-center gap-0.5 w-[68px] py-2 rounded-card transition-colors ${
-              canRedo ? 'text-white active:bg-white/15' : 'text-white/25'
+              canRedo ? 'text-nav-ink active:bg-white/15' : 'text-nav-ink/25'
             }`}>
             <Redo2 size={22} strokeWidth={2.4} />
             <span className="text-[11px] font-bold leading-none">Grąžinti</span>
@@ -1044,7 +1099,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 
           <button onClick={() => setTool('eraser')} title="Trintukas"
             className={`flex flex-col items-center justify-center gap-0.5 w-[68px] py-2 rounded-card transition-colors ${
-              tool === 'eraser' ? 'bg-primary text-white' : 'text-white active:bg-white/15'
+              tool === 'eraser' ? 'bg-primary text-nav-ink' : 'text-nav-ink active:bg-white/15'
             }`}>
             <Eraser size={22} strokeWidth={2.4} />
             <span className="text-[11px] font-bold leading-none">Trintukas</span>
@@ -1059,10 +1114,10 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
           onClick={cancelText}
         >
           <div
-            className="w-full max-w-sm rounded-card bg-surface ring-1 ring-white/10 shadow-2xl p-4 flex flex-col gap-3"
+            className="w-full max-w-sm rounded-card bg-nav ring-1 ring-white/10 shadow-2xl p-4 flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-white font-bold text-base">Pridėti tekstą</p>
+            <p className="text-nav-ink font-bold text-base">Pridėti tekstą</p>
             <textarea
               ref={textareaRef}
               autoFocus
@@ -1070,7 +1125,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
               onChange={(e) => setTextValue(e.target.value)}
               placeholder="Įveskite tekstą..."
               rows={3}
-              className="w-full resize-none rounded-card bg-white/10 text-white text-[15px] p-3 border border-white/20 focus:outline-none focus:border-primary placeholder:text-white/40"
+              className="w-full resize-none rounded-card bg-white/10 text-nav-ink text-[15px] p-3 border border-white/20 focus:outline-none focus:border-primary placeholder:text-nav-ink/40"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); confirmText(); }
                 if (e.key === 'Escape') { e.preventDefault(); cancelText(); }
@@ -1079,14 +1134,14 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
             <div className="flex gap-2">
               <button
                 onClick={cancelText}
-                className="flex-1 h-11 rounded-card bg-white/10 text-white font-semibold text-sm active:scale-95 transition-transform"
+                className="flex-1 h-11 rounded-card bg-white/10 text-nav-ink font-semibold text-sm active:scale-95 transition-transform"
               >
                 Atšaukti
               </button>
               <button
                 onClick={confirmText}
                 disabled={!textValue.trim()}
-                className="flex-1 h-11 rounded-card bg-primary text-white font-bold text-sm active:scale-95 transition-transform disabled:opacity-40"
+                className="flex-1 h-11 rounded-card bg-primary text-nav-ink font-bold text-sm active:scale-95 transition-transform disabled:opacity-40"
               >
                 Pridėti
               </button>
@@ -1109,7 +1164,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
 }
 
 // ─── Outer loader shell ───────────────────────────────────────────────────────
-export default function ImageAnnotator({ siteId, fileName, imageUrl, onClose, initialPage = 1, isAdmin = false }: Props) {
+export default function ImageAnnotator({ siteId, fileName, imageUrl, onClose, initialPage = 1, isAdmin = false, readOnly = false }: Props) {
   const { isLoading, data } = useQuery({
     queryKey: ['annotations', siteId, fileName],
     queryFn: () => getFileAnnotations(siteId, fileName),
@@ -1118,7 +1173,7 @@ export default function ImageAnnotator({ siteId, fileName, imageUrl, onClose, in
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black w-screen h-screen">
-        <Loader2 className="w-8 h-8 text-white animate-spin" />
+        <Loader2 className="w-8 h-8 text-nav-ink animate-spin" />
       </div>
     );
   }
@@ -1126,6 +1181,6 @@ export default function ImageAnnotator({ siteId, fileName, imageUrl, onClose, in
   return (
     <AnnotatorCanvas
       siteId={siteId} fileName={fileName} imageUrl={imageUrl}
-      onClose={onClose} initialAnnotations={data ?? []} initialPage={initialPage} isAdmin={isAdmin} />
+      onClose={onClose} initialAnnotations={data ?? []} initialPage={initialPage} isAdmin={isAdmin} readOnly={readOnly} />
   );
 }

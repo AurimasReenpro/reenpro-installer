@@ -41,8 +41,10 @@ export default function PdfPagePreview({ url, page, onPageChange, className }: P
         </div>
       )}
 
+      {/* Valdikliai ant atvaizduoto puslapio — `nav-*`, ne `surface`:
+          šviesioje temoje `surface` yra baltas ir baltas tekstas dingtų. */}
       {numPages > 1 && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 bg-surface/90 backdrop-blur-md text-white shadow-xl rounded-full px-1 py-1 ring-1 ring-white/10 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full px-1 py-1 ring-1 ring-white/10 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
           <button onClick={() => go(page - 1)} disabled={page <= 1}
             title="Ankstesnis lapas"
             className="w-9 h-9 flex items-center justify-center rounded-full transition-colors disabled:opacity-30 enabled:active:bg-white/20 enabled:hover:bg-white/10">
