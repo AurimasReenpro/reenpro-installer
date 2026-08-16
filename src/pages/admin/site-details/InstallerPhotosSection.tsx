@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Image as ImageIcon, Download, Trash2, X } from 'lucide-react';
+import { Loader2, Image as ImageIcon, Download, Trash2, X, PenLine, Link2 } from 'lucide-react';
 import { useConfirm } from '../../../hooks/useConfirm';
+import { createPhotoShareLink, SHARE_LINK_TTL_SECONDS } from '../../../api/sites';
 import type { InstallerPhoto } from '../../../api/sites';
 import { forceDownload, deletePhotoFromAllSources } from './helpers';
+import { getAnnotatedFileNames } from '../../../api/annotations';
+import PhotoAnnotator from '../../../components/shared/PhotoAnnotator';
 
 export default function InstallerPhotosSection({
   photos,
@@ -21,6 +24,17 @@ export default function InstallerPhotosSection({
   const [lightboxPhoto, setLightboxPhoto] = useState<InstallerPhoto | null>(null);
   const [deletingId,    setDeletingId]    = useState<string | null>(null);
   const [downloading,   setDownloading]   = useState(false);
+  // Peržiūrai atidaryta nuotrauka su montuotojo žymėjimais.
+  const [viewingAnnotations, setViewingAnnotations] = useState<string | null>(null);
+
+  // Kurie failai turi žymėjimų. Tas pats React Query raktas kaip
+  // `ChecklistItemRow`, tad abi vietos naudoja vieną užklausą.
+  const { data: annotatedFiles } = useQuery({
+    queryKey: ['annotated_files', siteId],
+    queryFn: () => getAnnotatedFileNames(siteId),
+    enabled: !!siteId,
+  });
+  const hasAnnotations = (path: string) => (annotatedFiles ?? []).includes(path);
 
   const handleDownload = async (photo: InstallerPhoto) => {
     if (!photo.signedUrl) return;
@@ -31,6 +45,29 @@ export default function InstallerPhotosSection({
       toast.error(`Atsisiuntimo klaida: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const [sharing, setSharing] = useState(false);
+
+  /** Laikina nuoroda į iškarpinę — kad nereikėtų siųsti paties failo. */
+  const handleShare = async (photo: InstallerPhoto) => {
+    setSharing(true);
+    try {
+      const url = await createPhotoShareLink(photo.storage_path);
+      const dienos = Math.round(SHARE_LINK_TTL_SECONDS / 86400);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(`Nuoroda nukopijuota. Galioja ${dienos} d.`);
+      } catch {
+        // Iškarpinė neveikia ne per HTTPS arba be leidimo — parodom nuorodą,
+        // kad naudotojas galėtų ją pasižymėti ranka.
+        toast.info(`Nuoroda (galioja ${dienos} d.): ${url}`, { duration: 15000 });
+      }
+    } catch (err) {
+      toast.error(`Nepavyko sukurti nuorodos: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -69,6 +106,18 @@ export default function InstallerPhotosSection({
 
   return (
     <>
+      {/* Montuotojo žymėjimai — tik peržiūra: nuotrauka yra darbo įrodymas,
+          todėl biuras jo neperpiešia. */}
+      {viewingAnnotations && (
+        <PhotoAnnotator
+          siteId={siteId}
+          storagePath={viewingAnnotations}
+          isAdmin
+          readOnly
+          onClose={() => setViewingAnnotations(null)}
+        />
+      )}
+
       <div className="bg-surface rounded-[16px] border border-border/20 dark:border-white/10 shadow-sm overflow-hidden">
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-border/20 dark:border-white/10 bg-surface-2/50 flex items-center gap-2">
@@ -76,6 +125,14 @@ export default function InstallerPhotosSection({
           <h3 className="font-semibold text-text text-[14px]">Montuotojų nuotraukos</h3>
           <span className="ml-auto text-[12px] text-subtle dark:text-subtle">
             {photos.length} nuotrauk{photos.length === 1 ? 'a' : 'ų'}
+            {/* Kiek iš jų montuotojas pažymėjo — kitaip biurui tektų atidaryti
+                kiekvieną, kad sužinotų, ar po ja kas nors yra. */}
+            {(() => {
+              const zymetos = photos.filter((p) => hasAnnotations(p.storage_path)).length;
+              return zymetos > 0
+                ? <span className="text-primary font-semibold"> · {zymetos} su žymėjimais</span>
+                : null;
+            })()}
           </span>
         </div>
 
@@ -141,6 +198,19 @@ export default function InstallerPhotosSection({
                     </div>
                   </div>
 
+                  {/* Ženklelis, kad montuotojas nuotrauką pažymėjo. Rodomas
+                      visada, ne tik hover metu — kitaip biuras nežinotų, kad
+                      po nuotrauka apskritai kas nors yra. */}
+                  {hasAnnotations(photo.storage_path) && (
+                    <span
+                      className="pointer-events-none absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-[6px] bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                      title="Montuotojas pažymėjo šią nuotrauką"
+                    >
+                      <PenLine size={10} />
+                      Žymėjimai
+                    </span>
+                  )}
+
                   {/* Deleting spinner overlay */}
                   {isDeleting && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -173,6 +243,29 @@ export default function InstallerPhotosSection({
             className="absolute top-4 right-4 flex items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Žymėjimai — peržiūra be redagavimo */}
+            {hasAnnotations(lightboxPhoto.storage_path) && (
+              <button
+                onClick={() => setViewingAnnotations(lightboxPhoto.storage_path)}
+                title="Peržiūrėti montuotojo žymėjimus"
+                className="h-[38px] px-4 rounded-[8px] bg-primary/90 backdrop-blur-sm text-white font-semibold text-[13px] flex items-center gap-2 hover:bg-primary transition-colors cursor-pointer shadow-lg"
+              >
+                <PenLine size={14} />
+                Žymėjimai
+              </button>
+            )}
+
+            {/* Dalintis laikina nuoroda */}
+            <button
+              onClick={() => void handleShare(lightboxPhoto)}
+              disabled={sharing}
+              title={`Nukopijuoti laikiną nuorodą (${Math.round(SHARE_LINK_TTL_SECONDS / 86400)} d.)`}
+              className="h-[38px] px-4 rounded-[8px] bg-white/90 backdrop-blur-sm text-text font-semibold text-[13px] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-60 cursor-pointer shadow-lg"
+            >
+              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+              Dalintis
+            </button>
+
             {/* Download */}
             <button
               onClick={() => void handleDownload(lightboxPhoto)}

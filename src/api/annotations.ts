@@ -27,6 +27,20 @@ export interface Annotation {
   comment?: string;
   // 1-based page this annotation belongs to (multi-page PDFs). Defaults to 1.
   page_number?: number;
+
+  // ── Autorystė ──────────────────────────────────────────────────────────
+  // Iki 2026-08-16 žymėjimai neturėjo nei autoriaus, nei laiko: `updated_at`
+  // buvo tik visai eilutei, tad nebuvo kaip pasakyti, KAS parašė pastabą ir
+  // ar ji nauja nuo praėjusios peržiūros. Seni įrašai šių laukų neturi —
+  // sąsaja tokiu atveju rodo „nežinoma“, o ne slepia pastabą.
+  author_id?: string;
+  created_at?: string;      // ISO
+
+  // ── Biuro peržiūra ─────────────────────────────────────────────────────
+  // Biuras įrodymo nekeičia, bet gali pažymėti, kad pastabą matė. Tai
+  // vienintelis dalykas, kurį peržiūros režimas rašo.
+  reviewed_at?: string;     // ISO
+  reviewed_by?: string;
 }
 
 // Legacy rows stored a single `attachment_url`. Convert it on the fly to the
@@ -73,6 +87,67 @@ export async function getAnnotatedFileNames(siteId: string): Promise<string[]> {
   return (data ?? [])
     .filter((row) => Array.isArray(row.annotations) && row.annotations.length > 0)
     .map((row) => row.file_name);
+}
+
+export interface SiteAnnotationNote {
+  fileName: string;
+  annotationId: string;
+  comment: string;
+  authorId?: string;
+  authorName: string;
+  createdAt?: string;
+  reviewedAt?: string;
+  /** Nuotraukos kelias turi „/“; brėžiniai ir prisegtukai – ne. Tik nuotraukas
+   *  galima atidaryti peržiūrai per `PhotoAnnotator`. */
+  isPhoto: boolean;
+}
+
+/**
+ * Visos objekto žymėjimų PASTABOS vienu sąrašu.
+ *
+ * Pastabos tekstas iki šiol gulėjo tik JSON'e ir buvo pasiekiamas vien
+ * atidarius konkrečią nuotrauką. Jei montuotojas parašydavo „trūksta
+ * tarpiklio“, to nematė nei objekto kortelė, nei Skydelis. Čia duomenys
+ * iškeliami į paviršių — nauja informacija nerenkama, tik parodoma.
+ */
+export async function getSiteAnnotationNotes(siteId: string): Promise<SiteAnnotationNote[]> {
+  const { data, error } = await supabase
+    .from('site_file_annotations')
+    .select('file_name, annotations')
+    .eq('site_id', siteId);
+  if (error) throw error;
+
+  const notes: Omit<SiteAnnotationNote, 'authorName'>[] = [];
+  for (const row of data ?? []) {
+    const raw = Array.isArray(row.annotations) ? row.annotations : [];
+    for (const item of raw as unknown as Annotation[]) {
+      const comment = item.comment?.trim();
+      if (!comment) continue;                       // be teksto pastabos nėra
+      notes.push({
+        fileName: row.file_name,
+        annotationId: item.id,
+        comment,
+        authorId: item.author_id,
+        createdAt: item.created_at,
+        reviewedAt: item.reviewed_at,
+        isPhoto: row.file_name.includes('/'),
+      });
+    }
+  }
+
+  // Vardai atskira užklausa, o ne denormalizuoti JSON'e — kitaip pervadinus
+  // žmogų senos pastabos rodytų seną vardą.
+  const ids = [...new Set(notes.map((n) => n.authorId).filter((v): v is string => !!v))];
+  const vardai = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data: profiles } = await supabase
+      .from('user_profiles').select('id, full_name').in('id', ids);
+    for (const p of profiles ?? []) vardai.set(p.id, p.full_name ?? 'Be vardo');
+  }
+
+  return notes
+    .map((n) => ({ ...n, authorName: n.authorId ? (vardai.get(n.authorId) ?? 'Nežinomas') : 'Nežinoma' }))
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 }
 
 export async function saveFileAnnotations(

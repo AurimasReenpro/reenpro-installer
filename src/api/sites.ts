@@ -582,6 +582,30 @@ export async function assignChecklistToSite(
 
 // ── Fetch installer photos for admin view ────────────────────────────────────
 
+/**
+ * Laikina dalijimosi nuoroda į nuotrauką.
+ *
+ * Iki 2026-08-16 `site-photos` segtuvas buvo viešas, tad nuorodą buvo galima
+ * tiesiog nusikopijuoti iš adreso juostos. Uždarius segtuvą tas kelias dingo,
+ * o kito nebuvo — liko tik atsisiųsti failą ir siųsti jį ranka.
+ *
+ * Pasirašyta nuoroda tą galimybę grąžina nesugrąžinant skylės: ji galioja
+ * ribotą laiką ir nesuteikia prieigos prie nieko kito.
+ */
+export const SHARE_LINK_TTL_SECONDS = 7 * 24 * 60 * 60;   // 7 paros
+
+export async function createPhotoShareLink(
+  storagePath: string,
+  ttlSeconds: number = SHARE_LINK_TTL_SECONDS,
+): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('site-photos')
+    .createSignedUrl(storagePath, ttlSeconds);
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error('Nepavyko sukurti nuorodos.');
+  return data.signedUrl;
+}
+
 export interface InstallerPhoto {
   id: string;
   storage_path: string;

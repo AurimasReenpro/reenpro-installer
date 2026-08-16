@@ -7,6 +7,7 @@ import { updateClientInfo, updateSiteDetails, updateSiteType } from '../../../ap
 import { ensureDefaultSiteWorkPhases } from '../../../api/workPhases';
 import { normalizeSiteType, siteTypeLabel, SITE_TYPE_OPTIONS, type SiteType } from '../../../lib/siteTypes';
 import TechDataModal from './TechDataModal';
+import SiteAnnotationNotes from './SiteAnnotationNotes';
 import type { SiteWithTeam } from './types';
 
 /** Clean iOS-style list row: muted label left, focal value right, hairline divider. */
@@ -209,6 +210,10 @@ export default function InfoTab({ site, siteId }: { site: SiteWithTeam; siteId: 
       </div>
 
       <div className="lg:col-span-1 space-y-5">
+        {/* Montuotojo pastabos — pirmas dalykas dešinėje, nes tai vienintelė
+            gyva informacija šiame skirtuke. Likusieji laukai yra sutartis. */}
+        <SiteAnnotationNotes siteId={siteId} />
+
         <div className="bg-surface rounded-card border border-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-text text-[15px] flex items-center gap-2">

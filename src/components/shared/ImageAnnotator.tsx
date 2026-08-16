@@ -17,12 +17,13 @@ import { toast } from 'sonner';
 import {
   X, MousePointer, Pencil, CheckCircle2, AlertTriangle, Save, Trash2, Loader2,
   ArrowUpRight, Square, Circle as CircleIcon, Type, Eraser, Undo2, Redo2,
-  Camera, ArrowLeft, Image as ImageIcon, ChevronLeft, ChevronRight, Eye,
+  Camera, ArrowLeft, Image as ImageIcon, ChevronLeft, ChevronRight, Eye, Download,
 } from 'lucide-react';
 import { getFileAnnotations, saveFileAnnotations } from '../../api/annotations';
 import type { Annotation } from '../../api/annotations';
 import { uploadAnnotationAttachment, deleteAnnotationAttachment } from '../../api/sites';
 import { isPdf, usePdfPage } from '../../lib/pdf';
+import { useAuthStore } from '../../stores/authStore';
 import ImageLightbox from './ImageLightbox';
 
 type Tool = 'pointer' | 'draw' | 'check' | 'warning' | 'arrow' | 'rect' | 'ellipse' | 'text' | 'eraser';
@@ -187,6 +188,15 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
   const [textValue, setTextValue] = useState('');
   const textareaRef   = useRef<HTMLTextAreaElement>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
+  const stageRef      = useRef<Konva.Stage>(null);
+
+  // Autoriaus antspaudas kiekvienam naujam žymėjimui. Be jo pastaba lieka
+  // bevardė, o biuras nežino, ko klausti.
+  const profileId = useAuthStore((s) => s.profile?.id);
+  const stamp = useCallback(
+    () => ({ author_id: profileId, created_at: new Date().toISOString() }),
+    [profileId],
+  );
   const dragStartImg  = useRef({ x: 0, y: 0 });
 
   // ── History ─────────────────────────────────────────────────────────────
@@ -265,11 +275,12 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
         x: textDraft.imgX, y: textDraft.imgY,
         text: trimmed, color: activeColor, strokeWidth: activeStrokeWidth,
         page_number: currentPage,
+        ...stamp(),
       }]);
     }
     setTextDraft(null);
     setTextValue('');
-  }, [textValue, textDraft, activeColor, activeStrokeWidth, commitFn, currentPage]);
+  }, [textValue, textDraft, activeColor, activeStrokeWidth, commitFn, currentPage, stamp]);
 
   const cancelText = useCallback(() => {
     setTextDraft(null);
@@ -292,6 +303,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
           id: uuidv4(), type: 'marker',
           x: imgX, y: imgY, color: markerColor(tool), icon: tool,
           page_number: currentPage,
+          ...stamp(),
         }]);
         return;
       }
@@ -305,7 +317,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       dragStartImg.current = { x: imgX, y: imgY };
 
       if (tool === 'draw') {
-        setDraft({ id: uuidv4(), type: 'path', points: [imgX, imgY], color: activeColor, strokeWidth: activeStrokeWidth, page_number: currentPage });
+        setDraft({ id: uuidv4(), type: 'path', points: [imgX, imgY], color: activeColor, strokeWidth: activeStrokeWidth, page_number: currentPage, ...stamp() });
         return;
       }
 
@@ -315,9 +327,10 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
         width: 0, height: 0, radiusX: 0, radiusY: 0,
         color: activeColor, strokeWidth: activeStrokeWidth,
         page_number: currentPage,
+        ...stamp(),
       });
     },
-    [tool, imgFit, activeColor, activeStrokeWidth, commitFn, currentPage],
+    [tool, imgFit, activeColor, activeStrokeWidth, commitFn, currentPage, stamp],
   );
 
   const handleMouseMove = useCallback(
@@ -705,6 +718,84 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
     );
   }
 
+  /**
+   * Suplokština nuotrauką kartu su žymėjimais į vieną PNG ir atsisiunčia.
+   *
+   * Iki šiol pasidalinti buvo galima tik pačia nuotrauka — žymėjimai lieka
+   * atskiru sluoksniu bazėje, tad klientui ar tiekėjui tekdavo aiškinti
+   * žodžiu, ką montuotojas apvedė. Dabar išsiunčiamas vienas failas, kuriame
+   * viskas matosi.
+   *
+   * Eksportuojama NATŪRALIA nuotraukos raiška ir neatsižvelgiant į tai, kiek
+   * naudotojas tuo metu priartinęs: transformacija laikinai nunulinama tiesiai
+   * ant Konva mazgo (ne per React būseną, nes ji atsinaujintų per vėlai) ir
+   * iškart grąžinama.
+   */
+  const exportFlattened = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage || !image) {
+      toast.error('Nuotrauka dar neįkelta.');
+      return;
+    }
+
+    const prevScale = stage.scaleX();
+    const prevPos   = stage.position();
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
+
+    let dataUrl: string;
+    try {
+      dataUrl = stage.toDataURL({
+        x: imgFit.x,
+        y: imgFit.y,
+        width:  image.width  * imgFit.scale,
+        height: image.height * imgFit.scale,
+        pixelRatio: 1 / imgFit.scale,
+        mimeType: 'image/png',
+      });
+    } finally {
+      stage.scale({ x: prevScale, y: prevScale });
+      stage.position(prevPos);
+      stage.batchDraw();
+    }
+
+    // Blob'as, o ne tiesiogiai data: URL — didelės nuotraukos per data: URL
+    // mobiliajame Chrome atsisiunčiamos nepatikimai.
+    const [meta, b64] = dataUrl.split(',');
+    if (!b64) { toast.error('Nepavyko paruošti failo.'); return; }
+    const bytes = atob(b64);
+    const buf = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+    const blob = new Blob([buf], { type: meta?.includes('png') ? 'image/png' : 'image/jpeg' });
+
+    const bazinis = (fileName.split('/').pop() ?? 'nuotrauka').replace(/\.[^.]+$/, '');
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `${bazinis}-zymejimai.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    toast.success('Atsisiųsta su žymėjimais.');
+  }, [image, imgFit, fileName]);
+
+  /**
+   * Pažymi žymėjimą kaip biuro peržiūrėtą ir iškart išsaugo.
+   *
+   * Rašymas peržiūros režime atrodo prieštaringai, bet tai NE įrodymo
+   * keitimas: piešinys ir komentaras lieka nepaliesti, pridedamas tik faktas,
+   * kad biuras matė. Be to montuotojas niekada nesužinotų, ar į jo pastabą
+   * kas nors sureagavo.
+   */
+  const zymetiPerziureta = useCallback((annId: string) => {
+    mutateFn(prev => prev.map(a => a.id === annId
+      ? { ...a, reviewed_at: new Date().toISOString(), reviewed_by: profileId }
+      : a));
+    // Išsaugoma iš karto — peržiūros režime „Išsaugoti" mygtuko nėra.
+    setTimeout(() => saveMutation.mutate(), 0);
+  }, [mutateFn, profileId, saveMutation]);
+
   const selectedAnnotation = annotations.find(a => a.id === selectedId);
 
   // Comment + photo editor, shared by the mobile bottom card and the admin
@@ -715,6 +806,22 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       const priedai = ann.attachment_urls ?? [];
       return (
         <>
+          {/* Biuras įrodymo nekeičia, bet gali pažymėti, kad matė. Tai
+              vienintelis rašymas peržiūros režime. */}
+          <button
+            onClick={() => zymetiPerziureta(ann.id)}
+            disabled={saveMutation.isPending}
+            className={`flex items-center justify-center gap-2 h-9 rounded-lg text-[13px] font-semibold transition-colors cursor-pointer disabled:opacity-60 ${
+              ann.reviewed_at
+                ? 'bg-success/20 text-success'
+                : 'bg-white/10 text-nav-ink hover:bg-white/15'
+            }`}>
+            {saveMutation.isPending
+              ? <Loader2 size={14} className="animate-spin" />
+              : <Eye size={14} />}
+            {ann.reviewed_at ? `Peržiūrėta ${ann.reviewed_at.slice(0, 10)}` : 'Pažymėti peržiūrėta'}
+          </button>
+
           <p className="text-nav-ink/60 text-[11px] uppercase tracking-wider font-bold">Komentaras</p>
           {ann.comment?.trim()
             ? <p className="text-nav-ink text-[13px] leading-snug whitespace-pre-wrap bg-white/5 rounded-lg p-2.5 border border-white/10">{ann.comment}</p>
@@ -892,20 +999,30 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
         <ArrowLeft size={18} strokeWidth={2.4} />
         <span className="font-semibold text-sm">Atgal</span>
       </button>
-      {readOnly ? (
-        <span
-          className="pointer-events-none absolute top-4 right-4 z-50 flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink/70 shadow-xl rounded-full px-4 py-2"
-          title="Montuotojo žymėjimai rodomi tik peržiūrai">
-          <Eye size={16} strokeWidth={2.4} />
-          <span className="font-semibold text-sm">Peržiūra</span>
-        </span>
-      ) : (
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} title="Išsaugoti"
-          className="pointer-events-auto absolute top-4 right-4 z-50 flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full px-4 py-2 active:scale-95 transition-transform disabled:opacity-60">
-          {saveMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} strokeWidth={2.4} />}
-          <span className="font-semibold text-sm">Išsaugoti</span>
+      <div className="pointer-events-none absolute top-4 right-4 z-50 flex items-center gap-2">
+        {/* Suplokštintas eksportas — vienintelis būdas išsiųsti nuotrauką
+            KARTU su žymėjimais. Reikalingas abiem režimais. */}
+        <button onClick={exportFlattened} title="Atsisiųsti nuotrauką kartu su žymėjimais"
+          className="pointer-events-auto flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full px-4 py-2 active:scale-95 transition-transform">
+          <Download size={18} strokeWidth={2.4} />
+          <span className="font-semibold text-sm hidden sm:inline">Su žymėjimais</span>
         </button>
-      )}
+
+        {readOnly ? (
+          <span
+            className="flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink/70 shadow-xl rounded-full px-4 py-2"
+            title="Montuotojo žymėjimai rodomi tik peržiūrai">
+            <Eye size={16} strokeWidth={2.4} />
+            <span className="font-semibold text-sm">Peržiūra</span>
+          </span>
+        ) : (
+          <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} title="Išsaugoti"
+            className="pointer-events-auto flex items-center gap-2 bg-nav/90 backdrop-blur-md text-nav-ink shadow-xl rounded-full px-4 py-2 active:scale-95 transition-transform disabled:opacity-60">
+            {saveMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} strokeWidth={2.4} />}
+            <span className="font-semibold text-sm">Išsaugoti</span>
+          </button>
+        )}
+      </div>
 
       {/* Zoom level / reset — appears when the canvas is scaled.
           Shifts down on multi-page PDFs to clear the pagination island. */}
@@ -961,6 +1078,7 @@ function AnnotatorCanvas({ siteId, fileName, imageUrl, onClose, initialAnnotatio
       {/* ── Base layer: fullscreen canvas ────────────────────────────────── */}
       <div ref={containerRef} className="absolute inset-0 z-0 overflow-hidden" style={{ cursor: stageCursor, touchAction: 'none' }}>
         <Stage
+          ref={stageRef}
           width={canvasSize.w} height={canvasSize.h}
           scaleX={stageScale} scaleY={stageScale}
           x={stagePos.x} y={stagePos.y}
