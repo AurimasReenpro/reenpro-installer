@@ -119,9 +119,17 @@ Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
    **0 anoniminio rašymo, 1 storage be tapatybės, 10 atviro rašymo,
    21 dublikatų grupė, 0 lentelių be politikų.**
 
-   Likusi storage eilutė — `site_files` („Leisti pilną priėjimą prie failų“).
-   Jos uždaryti negalima, kol `src/api/sites.ts:314,340` skaito failus per
-   `getPublicUrl`; tai kitas etapas kartu su kodo pataisa.
+   **Dar dvi migracijos parašytos ir laukia paleidimo** (2026-08-16):
+   `20260816140000_photo_delete_and_annotation_rules.sql` ir
+   `20260816150000_lock_site_files_office_material.sql`. Jos įgyvendina
+   sprendimą **montuotojas ofiso medžiagos netrina, tik žymi**: nuotraukų
+   trynimas susiaurinamas iki „adminas arba įkėlėjas“, `site_file_annotations`
+   pagaliau gauna RLS, o `site_files` skiriamas pagal kelią — `ann_*`
+   prisegtukus valdo montuotojas, visa kita tik adminas.
+
+   `site_files` segtuvas lieka **viešas**: `api/sites.ts:314,340` skaito jį per
+   `getPublicUrl`. Uždaryti galima tik kartu su perėjimu prie pasirašytų
+   nuorodų — atskiras žingsnis su kodo pakeitimu ir preview.
 
    **Migracijos taikomos ranka per SQL editorių.** `supabase_migrations`
    schemos bazėje nėra — visos 32 repozitorijos migracijos buvo sudėtos

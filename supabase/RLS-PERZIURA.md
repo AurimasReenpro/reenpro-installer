@@ -205,6 +205,39 @@ kurių komanda sutampa su montuotojo komanda, tad montuotojas mato tiek pat,
 kiek matė. Našlaitės nuo šiol prieinamos tik adminui — anksčiau jas matė
 visas internetas.
 
+### Įrodymų ir ofiso medžiagos taisyklės (paruošta 2026-08-16)
+
+Produktinis sprendimas: **montuotojas ofiso medžiagos netrina — tik žymi**, ir
+neturi trinti kito montuotojo įrodymų. Dvi migracijos:
+
+**`20260816140000_photo_delete_and_annotation_rules.sql`** — nulinės rizikos,
+kodo nekeičia:
+
+- `photos.ph_delete` (`can_access_site`) ir `storage.p1_sitephotos_delete`
+  (bet kas priskirtas) pašalinamos. Lieka jau egzistavusi teisinga taisyklė:
+  **adminas arba įkėlėjas**. Naujų kurti nereikėjo — jos buvo tik uždengtos.
+- `site_file_annotations` pagaliau gauna RLS: skaito tie, kas mato objektą;
+  rašo adminas ir prie objekto dirbantys; trina tik adminas.
+
+**`20260816150000_lock_site_files_office_material.sql`** — čia guli tikroji
+ofiso medžiaga.
+
+Patikrinta, kad į `site-photos` biuras **nekelia nieko** (administracinėje
+pusėje tokio kodo nėra, visos eilutės priklauso montuotojui). Brėžiniai ir
+dokumentai yra `site_files`, o ten galiojo `ALL TO authenticated USING
+(bucket_id = 'site_files')` — bet kas galėjo viską ištrinti.
+
+Vien atimti montuotojui rašymą neužtenka: į tą patį segtuvą keliami žymėjimų
+prisegtukai (`api/sites.ts:309`), o `removeAttachmentUrl` juos ir trina.
+Todėl skiriama pagal kelio schemą:
+
+| Antras kelio segmentas | Kas valdo |
+|---|---|
+| `ann_*` | adminas ir prie objekto dirbantys |
+| bet kas kita | **tik adminas** |
+
+Skaitymas nekeičiamas — brėžiniai montuotojui reikalingi darbui.
+
 ### 0 etapas — `storage`, `site-photos` (atlikta)
 
 `supabase/migrations/20260816120000_lock_storage_site_photos.sql`. Šalinamos
