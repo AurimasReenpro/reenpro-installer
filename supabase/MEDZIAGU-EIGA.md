@@ -121,6 +121,10 @@ paaiškės ne iš klaidos, o iš nesutampančio likučio po mėnesio.
 
 ## Atsargos
 
+**Sandėlis vienas.** Automobiliuose likučių nesekame, tad `location_id`
+nereikia. Jei kada atsirastų antras sandėlis, laukas pridedamas migracija —
+bet dabar jo dėti nėra prasmės.
+
 **`stock_movements`** — judėjimų žurnalas: `catalog_item_id`, `qty` (su
 ženklu), `type` (`receipt` | `issue` | `return` | `adjustment` | `stocktake`),
 `site_id` (gali būti tuščias), `actor_id`, `created_at`, pastaba.
@@ -149,6 +153,70 @@ Tai užkerta kelią klasikinei situacijai: sandėlys patvirtino dviem objektams,
 o medžiagų užteko vienam. Pigus laukas, didelė nauda.
 
 Perėjimas `išduota` rezervaciją paverčia išdavimu.
+
+## Kai sunaudota ne tai, kas planuota
+
+Trys skirtingi atvejai, ir tik pirmi du yra ta pati sąvoka:
+
+**1. Sunaudota daugiau, nei planuota.** Plane 50 m kabelio, faktas 65 m.
+Tiesiog `qty_actual > qty_planned`. Nieko naujo nereikia.
+
+**2. Sunaudota kataloginė medžiaga, kurios plane nebuvo.** Eilutė su
+`qty_planned = 0`. Medžiaga iš sandėlio, tad likutis mažėja įprastai.
+
+**3. Nupirkta parduotuvėje.** **Tai ne medžiagos sunaudojimas, o išlaida su
+dokumentu**, ir maišyti su pirmais dviem negalima:
+
+| | Iš sandėlio | Pirkta parduotuvėje |
+|---|---|---|
+| Likutis | mažėja | **neliečiamas** — sandėlyje niekada nebuvo |
+| Apskaitoje | nurašymas | **išlaida** |
+| Reikia | kiekio | kiekio, **kainos ir čekio** |
+| Katalogas | privalomas | gali nebūti |
+
+Sudėjus juos į vieną lentelę, sugadinamas ir likutis (nurašoma tai, ko
+sandėlyje nebuvo), ir savikaina (pirkinys dingsta iš išlaidų).
+
+### `site_purchases`
+
+`site_id`, `name` (laisvas tekstas), `catalog_item_id` (neprivalomas),
+`quantity`, `unit`, `price`, `vendor` (neprivalomas), `receipt_photo_id`,
+`created_by`, `created_at`.
+
+**Čekio nuotrauka privaloma.** Be jos tai ne išlaida, o teiginys.
+
+`receipt_photo_id` rodo į esamą **`photos`** lentelę. Tai sąmoningas
+pakartotinis panaudojimas: sunkiausia dalis — įkėlimas neprisijungus su
+pakartotiniais bandymais (`photoOutbox`) — jau parašyta ir išbandyta lauke.
+Čekis yra tokia pat nuotrauka, tik su kita paskirtimi, ir jam savaime
+pritaikomos tos pačios taisyklės, kurias sutvarkėme: montuotojas netrina
+svetimų, biuras mato bet nekeičia.
+
+`stock_movements` pirkinys **neliečia**. Jei prekė vis dėlto pirma pateko į
+sandėlį, tai jau `receipt` judėjimas, ne pirkinys objektui.
+
+Žiniaraštyje pirkiniai rodomi **atskira dalimi** („Pirkta objektui"), ne
+sumaišyti su sandėlio eilutėmis — buhalterijai tai du skirtingi dokumentai.
+
+**Pasikartojantys pirkiniai.** Jei ta pati prekė perkama nuolat, ji turi
+atsidurti kataloge. Bet **automatiškai nekuriama** — kitaip katalogas per
+mėnesį taps šiukšlynu. Inžinierius ar sandėlis mato pasiūlymų sąrašą ir
+nusprendžia pats.
+
+## Priėmimas: priima arba grąžina
+
+Rangos vadovas **fakto neredaguoja**. Du veiksmai:
+
+- **Priima** → `priimta`, keliauja buhalterijai.
+- **Grąžina** → `grazinta_taisyti`, montuotojas gauna pranešimą.
+
+Redagavimo sąmoningai nėra: jei vadovas pats pataisytų kiekius, įrodymas
+nustotų būti montuotojo, ir dingtų atsakomybė. Grąžinimas išlaiko abi puses
+atsakingas.
+
+**Grąžinant priežastis privaloma.** Be jos montuotojas nežino, ką taisyti, ir
+tas pats žiniaraštis grįžta antrą kartą. Priežastis lieka
+`site_material_events` žurnale, tad matyti ir kiek kartų buvo grąžinta.
 
 ## Šablonai pagal sistemos tipą
 
@@ -210,12 +278,20 @@ kur ir dingsta duomenų kokybė.
 
 Rivilės **neintegruojame**. Eksportas duoda 90 % naudos už 10 % rizikos.
 
-## Atviri klausimai
+## Atsakyti klausimai (2026-08-17)
 
-1. Ar sandėlys vienas, ar jų keli (automobiliai kaip atskiri sandėliai)?
-   Nuo to priklauso, ar `stock_movements` reikia `location_id`.
-2. Ar montuotojas gali suvesti medžiagą, kurios nėra kataloge? Jei taip,
-   reikia „laukia patvirtinimo" būsenos katalogo įrašui, kitaip katalogas
-   greitai taps šiukšlynu.
-3. Ar rangos vadovas gali taisyti montuotojo suvestą faktą, ar tik priimti
-   arba grąžinti? Antras variantas švaresnis — įrodymas lieka montuotojo.
+- **Sandėlis vienas**, automobiliuose likučių nesekame → `location_id` nereikia.
+- **Montuotojas gali suvesti nekatalogines medžiagas**; pirktos parduotuvėje
+  eina per `site_purchases` su privaloma čekio nuotrauka.
+- **Rangos vadovas priima arba grąžina**, fakto neredaguoja.
+
+## Likę atviri klausimai
+
+1. **Kas mato pirkinių kainas?** Vakarykštėje gebėjimų lentelėje `can_view_costs()`
+   priskirtas tik adminui, bet rangos vadovas, priimdamas darbą, kainą
+   greičiausiai turi matyti. Verslo sprendimas.
+2. **Ar pirkinys keliauja į atlyginimų kompensaciją?** Jei montuotojas pirko
+   savo pinigais, kažkur turi atsirasti grąžinimas. Algos šiuo metu atjungtos,
+   bet duomenų modelis neturi to užkirsti.
+3. **Ar žiniaraštį galima pateikti be visų kiekių**, ar privalomas pilnas
+   užpildymas? Nuo to priklauso, ar reikia „juodraščio" patikros.
