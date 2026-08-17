@@ -61,30 +61,51 @@ export interface SiteMetrics {
   inverters: number;
 }
 
+/** Minimalus eilutės vaizdas, kurio reikia dydžiams suskaičiuoti. */
+export interface MetricLine {
+  qty_planned: number | null;
+  catalog: { category: string } | null;
+}
+
 /**
  * Ištraukia dydžius, pagal kuriuos skaičiuojami šablono kiekiai.
  *
- * `equipment_details` dalyje objektų yra masyvas, dalyje — tuščias objektas ar
- * senas raktas-reikšmė formatas, todėl naudojamas jau esamas
- * `parseEquipmentDetails`, kuris visus tris atvejus suvienodina.
+ * Modulių ir inverterių kiekis imamas iš ŽINIARAŠČIO eilučių, nes sujungus
+ * įrangą su medžiagomis būtent ten ji nuo šiol ir gyvena.
+ *
+ * Jei žiniaraštyje įrangos dar nėra, krentama atgal į `sites.equipment_details`.
+ * Tas stulpelis po sujungimo nebepildomas, bet senuose objektuose duomenys
+ * tebėra, ir jų atsisakyti be reikalo nėra ko. `parseEquipmentDetails`
+ * suvienodina visus tris ten pasitaikančius formatus.
  */
-export function siteMetricsFrom(site: {
-  kwp?: number | string | null;
-  equipment_details?: unknown;
-}): SiteMetrics {
-  const items = parseEquipmentDetails(site.equipment_details);
+export function siteMetricsFrom(
+  site: { kwp?: number | string | null; equipment_details?: unknown },
+  lines?: MetricLine[],
+): SiteMetrics {
+  const kwpRaw = site.kwp;
+  const kwpNum = kwpRaw == null || kwpRaw === '' ? null : Number(kwpRaw);
+  const kwp = kwpNum != null && Number.isFinite(kwpNum) ? kwpNum : null;
 
-  const sumBy = (raktas: string) => items
+  const sumLines = (raktas: string) => (lines ?? [])
+    .filter((l) => (l.catalog?.category ?? '').trim().toLowerCase().includes(raktas))
+    .reduce((sum, l) => sum + (l.qty_planned ?? 0), 0);
+
+  const panelsFromLines    = sumLines(MODULIU_KATEGORIJA);
+  const invertersFromLines = sumLines(INVERTERIO_KATEGORIJA);
+
+  if (panelsFromLines > 0 || invertersFromLines > 0) {
+    return { kwp, panels: panelsFromLines, inverters: invertersFromLines };
+  }
+
+  const items = parseEquipmentDetails(site.equipment_details);
+  const sumItems = (raktas: string) => items
     .filter((i) => i.category.trim().toLowerCase().includes(raktas))
     .reduce((sum, i) => sum + (Number.isFinite(i.quantity) ? i.quantity : 0), 0);
 
-  const kwpRaw = site.kwp;
-  const kwp = kwpRaw == null || kwpRaw === '' ? null : Number(kwpRaw);
-
   return {
-    kwp: kwp != null && Number.isFinite(kwp) ? kwp : null,
-    panels:    sumBy(MODULIU_KATEGORIJA),
-    inverters: sumBy(INVERTERIO_KATEGORIJA),
+    kwp,
+    panels:    sumItems(MODULIU_KATEGORIJA),
+    inverters: sumItems(INVERTERIO_KATEGORIJA),
   };
 }
 

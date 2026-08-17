@@ -267,6 +267,7 @@ export async function applyTemplateToList(
   listId: string,
   templateId: string,
   site: { kwp?: number | string | null; equipment_details?: unknown },
+  esamosEilutes?: MaterialLine[],
 ): Promise<{ pridėta: number; beKiekio: number }> {
   const { data: tLines, error } = await supabase
     .from('material_template_lines')
@@ -278,7 +279,9 @@ export async function applyTemplateToList(
     .order('sort_order');
   if (error) throw error;
 
-  const metrics = siteMetricsFrom(site);
+  // Dydžiai imami iš jau esamų žiniaraščio eilučių: sujungus įrangą su
+  // medžiagomis, moduliai ir inverteriai gyvena būtent ten.
+  const metrics = siteMetricsFrom(site, esamosEilutes);
   const eilutes = (tLines ?? []).flatMap((t) => {
     const catalog = t.catalog as unknown as { id: string; unit: string } | null;
     if (!catalog) return [];

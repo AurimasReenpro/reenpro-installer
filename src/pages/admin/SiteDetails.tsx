@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Cpu, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { Info, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { getSiteById } from '../../api/sites';
-import { parseEquipmentDetails } from '../../types/equipment.types';
 import { isSiteDraft } from '../../lib/siteDraft';
 import ImageAnnotator from '../../components/shared/ImageAnnotatorLazy';
 import ImageLightbox from '../../components/shared/ImageLightbox';
 import { AdminEmptyState, AdminPanelSkeleton } from '../../components/admin/AdminStates';
 import SiteDetailsHeader from './site-details/SiteDetailsHeader';
 import InfoTab from './site-details/InfoTab';
-import EquipmentTab from './site-details/EquipmentTab';
 import BlueprintsTab from './site-details/BlueprintsTab';
 import FilesTab from './site-details/FilesTab';
 import ChecklistTab from './site-details/ChecklistTab';
@@ -22,8 +20,9 @@ import type { SiteWithTeam, TabId } from './site-details/types';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'info', label: 'Objekto info', icon: Info },
-  { id: 'equip', label: 'Įranga', icon: Cpu },
-  { id: 'materials', label: 'Medžiagos', icon: FileSpreadsheet },
+  // Įranga ir medžiagos — vienas žiniaraštis. Anksčiau tai buvo du skirtukai
+  // apie tą patį; įranga perkelta į eilutes migracija 20260817140000.
+  { id: 'materials', label: 'Žiniaraštis', icon: FileSpreadsheet },
   { id: 'blueprints', label: 'Brėžiniai', icon: DraftingCompass },
   { id: 'files', label: 'Failai', icon: FolderOpen },
   { id: 'check', label: 'Kontrolinis sąrašas', icon: ListChecks },
@@ -40,7 +39,6 @@ const TAB_MOTION = {
 export default function SiteDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabId>('info');
   // Shared annotation/lightbox state, triggered by both the Blueprints and Files tabs.
@@ -54,8 +52,6 @@ export default function SiteDetails() {
     queryFn: () => getSiteById(id!) as unknown as Promise<SiteWithTeam>,
     enabled: !!id,
   });
-
-  const currentEquipment = parseEquipmentDetails(site?.equipment_details);
 
   if (siteLoading) {
     return (
@@ -128,16 +124,6 @@ export default function SiteDetails() {
         {activeTab === 'info' && (
           <motion.div key="info" {...TAB_MOTION}>
             <InfoTab site={site} siteId={id!} />
-          </motion.div>
-        )}
-
-        {activeTab === 'equip' && (
-          <motion.div key="equip" {...TAB_MOTION}>
-            <EquipmentTab
-              siteId={id!}
-              currentEquipment={currentEquipment}
-              onSaved={() => void queryClient.invalidateQueries({ queryKey: ['admin_site', id] })}
-            />
           </motion.div>
         )}
 

@@ -27,6 +27,39 @@ describe('siteMetricsFrom', () => {
   it('treats a missing kwp as unknown, not zero', () => {
     expect(siteMetricsFrom({ kwp: null, equipment_details: null }).kwp).toBeNull();
   });
+
+  // Sujungus iranga su medziagomis, iranga gyvena ziniarastyje, o ne jsonb.
+  it('prefers material-list lines over the legacy jsonb', () => {
+    const m = siteMetricsFrom(
+      {
+        kwp: 10,
+        // Senas saltinis sako 4 modulius — ziniarastis turi nusverti.
+        equipment_details: [
+          { category: 'Moduliai', model: 'Sena', quantity: 4, unit: 'vnt.', notes: '' },
+        ],
+      },
+      [
+        { qty_planned: 25, catalog: { category: 'Moduliai' } },
+        { qty_planned: 2,  catalog: { category: 'Inverteris' } },
+        { qty_planned: 80, catalog: { category: 'Kabeliai' } },
+      ],
+    );
+    expect(m).toEqual({ kwp: 10, panels: 25, inverters: 2 });
+  });
+
+  it('falls back to the jsonb when the list has no equipment yet', () => {
+    const m = siteMetricsFrom(
+      {
+        kwp: 5,
+        equipment_details: [
+          { category: 'Moduliai', model: 'P7', quantity: 12, unit: 'vnt.', notes: '' },
+        ],
+      },
+      // Ziniarastyje tik medziagos — irangos nera, tad krentam atgal.
+      [{ qty_planned: 100, catalog: { category: 'Kabeliai' } }],
+    );
+    expect(m.panels).toBe(12);
+  });
 });
 
 describe('resolveTemplateQty', () => {

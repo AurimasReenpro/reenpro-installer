@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, Package, FileSpreadsheet, Info } from 'lucide-react';
+import { Loader2, Plus, Trash2, Package, FileSpreadsheet, Info, Search, ChevronRight } from 'lucide-react';
 import {
   getSiteMaterialList, ensureSiteMaterialList, getMaterialCatalog, getMaterialTemplates,
   addMaterialLine, updateMaterialLine, deleteMaterialLine, applyTemplateToList,
@@ -16,6 +16,9 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
   const [naujasKatalogas, setNaujasKatalogas] = useState('');
   const [naujasKiekis, setNaujasKiekis] = useState('');
   const [sablonas, setSablonas] = useState('');
+  const [rusis, setRusis] = useState<'all' | 'equipment' | 'material'>('all');
+  const [paieska, setPaieska] = useState('');
+  const [suskleistos, setSuskleistos] = useState<Set<string>>(new Set());
 
   const { data: list, isLoading } = useQuery({
     queryKey: ['site_material_list', siteId],
@@ -27,6 +30,9 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
     queryKey: ['material_catalog'],
     queryFn: getMaterialCatalog,
   });
+
+  /** Katalogo įrašo rūšis pagal ID — reikia eilutėms suskirstyti. */
+  const katalogoRusys = new Map((katalogas ?? []).map((k) => [k.id, k.kind]));
 
   const { data: sablonai } = useQuery({
     queryKey: ['material_templates'],
@@ -44,7 +50,7 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
   const isSablono = useMutation({
     mutationFn: async () => {
       const l = list ?? await ensureSiteMaterialList(siteId);
-      return applyTemplateToList(l.id, sablonas, site);
+      return applyTemplateToList(l.id, sablonas, site, l.lines);
     },
     onSuccess: (r) => {
       void atnaujinti();
@@ -103,9 +109,31 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
     );
   }
 
-  const eilutes: MaterialLine[] = list?.lines ?? [];
+  const visosEilutes: MaterialLine[] = list?.lines ?? [];
   const galimaPridėti = naujasKatalogas !== '' || naujasVardas.trim() !== '';
-  const beKiekio = eilutes.filter((l) => l.qty_planned == null).length;
+  const beKiekio = visosEilutes.filter((l) => l.qty_planned == null).length;
+
+  // Rūšis nustatoma pagal katalogo įrašą; ranka įvestos eilutės laikomos
+  // medžiagomis — įrangos be katalogo įrašo praktiškai nebūna.
+  const eiluteYraIranga = (l: MaterialLine) => katalogoRusys.get(l.catalog_item_id ?? '') === 'equipment';
+
+  const eilutes = visosEilutes.filter((l) => {
+    const pagalRusi =
+      rusis === 'all' ||
+      (rusis === 'equipment' ? eiluteYraIranga(l) : !eiluteYraIranga(l));
+    const p = paieska.trim().toLowerCase();
+    const pagalPaieska = !p
+      || lineLabel(l).toLowerCase().includes(p)
+      || (l.catalog?.code ?? '').toLowerCase().includes(p);
+    return pagalRusi && pagalPaieska;
+  });
+
+  // Grupuojama pagal kategoriją: su 60 eilučių matai 6 antraštes, ne 60 eilučių.
+  const grupes = new Map<string, MaterialLine[]>();
+  for (const l of eilutes) {
+    const k = l.catalog?.category ?? 'Be kategorijos';
+    grupes.set(k, [...(grupes.get(k) ?? []), l]);
+  }
 
   return (
     <div className="space-y-5">
@@ -114,7 +142,7 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
           <FileSpreadsheet size={18} className="text-primary" />
           <h3 className="font-semibold text-[15px] text-text">Medžiagų žiniaraštis</h3>
           <span className="ml-auto text-[12px] text-subtle">
-            {eilutes.length} eilut{eilutes.length === 1 ? 'ė' : 'ės'}
+            {visosEilutes.length} eilut{visosEilutes.length === 1 ? 'ė' : 'ės'}
             {beKiekio > 0 && <span className="text-warning font-semibold"> · {beKiekio} be kiekio</span>}
           </span>
         </div>
@@ -134,52 +162,101 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
           </div>
         ) : (
           <>
-            {eilutes.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
-                  <thead>
-                    <tr className="border-b border-border bg-surface-2/60 text-[11px] uppercase tracking-wider text-subtle">
-                      <th className="text-left font-bold px-5 py-2.5">Medžiaga</th>
-                      <th className="text-left font-bold px-3 py-2.5 w-[110px]">Kodas</th>
-                      <th className="text-right font-bold px-3 py-2.5 w-[130px]">Planuojama</th>
-                      <th className="text-left font-bold px-3 py-2.5 w-[70px]">Vnt.</th>
-                      <th className="w-[52px]" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eilutes.map((l) => (
-                      <tr key={l.id} className="border-b border-border/60 last:border-none hover:bg-surface-2/40 transition-colors">
-                        <td className="px-5 py-2.5 text-text">{lineLabel(l)}</td>
-                        <td className="px-3 py-2.5 text-subtle tabular-nums">{l.catalog?.code ?? '—'}</td>
-                        <td className="px-3 py-2.5">
-                          <input
-                            type="text"
-                            defaultValue={l.qty_planned == null ? '' : String(l.qty_planned)}
-                            placeholder="—"
-                            onBlur={(e) => {
-                              const v = e.target.value;
-                              const dabar = l.qty_planned == null ? '' : String(l.qty_planned);
-                              if (v !== dabar) keistiKieki.mutate({ id: l.id, v });
-                            }}
-                            className="w-full h-[32px] px-2 text-right tabular-nums bg-surface-2 border border-border rounded-input text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5 text-subtle">{l.unit}</td>
-                        <td className="px-3 py-2.5">
-                          <button
-                            onClick={() => trinti.mutate(l.id)}
-                            title="Pašalinti eilutę"
-                            className="w-7 h-7 flex items-center justify-center rounded-btn text-subtle hover:text-danger hover:bg-danger-bg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Filtras ir paieška — tas pats raštas kaip Kataloge. */}
+            {visosEilutes.length > 0 && (
+              <div className="px-5 py-3 border-b border-border flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-card bg-surface-2 p-1 shrink-0">
+                  {([['all', 'Visi'], ['equipment', 'Įranga'], ['material', 'Medžiagos']] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => setRusis(id)}
+                      className={`h-[28px] px-3 rounded-btn text-[12px] font-semibold transition-colors cursor-pointer ${
+                        rusis === id ? 'bg-surface text-primary dark:text-primary-ink shadow-sm' : 'text-subtle hover:text-text'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative flex-1 min-w-[160px]">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle" />
+                  <input
+                    type="text"
+                    value={paieska}
+                    onChange={(e) => setPaieska(e.target.value)}
+                    placeholder="Ieškoti eilutės ar kodo..."
+                    className="w-full h-[32px] pl-8 pr-2 bg-surface-2 border border-border rounded-input text-[13px] text-text placeholder-subtle focus:outline-none focus:border-primary"
+                  />
+                </div>
               </div>
             )}
+
+            {eilutes.length > 0 ? (
+              <div>
+                {[...grupes.entries()].map(([kategorija, grupesEilutes]) => {
+                  const suskleista = suskleistos.has(kategorija);
+                  return (
+                    <div key={kategorija} className="border-b border-border last:border-none">
+                      <button
+                        onClick={() => setSuskleistos((s) => {
+                          const n = new Set(s);
+                          if (n.has(kategorija)) n.delete(kategorija); else n.add(kategorija);
+                          return n;
+                        })}
+                        className="w-full flex items-center gap-2 px-5 py-2 bg-surface-2/50 hover:bg-surface-2 transition-colors cursor-pointer text-left"
+                      >
+                        <ChevronRight size={14} className={`text-subtle transition-transform ${suskleista ? '' : 'rotate-90'}`} />
+                        <span className="text-[12px] font-bold text-muted uppercase tracking-wider">{kategorija}</span>
+                        <span className="ml-auto text-[12px] text-subtle">{grupesEilutes.length}</span>
+                      </button>
+
+                      {!suskleista && (
+                        <table className="w-full text-[13px]">
+                          <tbody>
+                            {grupesEilutes.map((l) => (
+                              <tr key={l.id} className="border-t border-border/50 hover:bg-surface-2/40 transition-colors">
+                                <td className="pl-11 pr-3 py-1.5 text-text">
+                                  {lineLabel(l)}
+                                  {eiluteYraIranga(l) && (
+                                    <span className="ml-2 text-[10px] font-bold text-subtle uppercase">įranga</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-1.5 text-subtle tabular-nums w-[110px]">{l.catalog?.code ?? '—'}</td>
+                                <td className="px-3 py-1 w-[120px]">
+                                  <input
+                                    type="text"
+                                    defaultValue={l.qty_planned == null ? '' : String(l.qty_planned)}
+                                    placeholder="—"
+                                    onBlur={(e) => {
+                                      const v = e.target.value;
+                                      const dabar = l.qty_planned == null ? '' : String(l.qty_planned);
+                                      if (v !== dabar) keistiKieki.mutate({ id: l.id, v });
+                                    }}
+                                    className="w-full h-[30px] px-2 text-right tabular-nums bg-surface-2 border border-border rounded-input text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                  />
+                                </td>
+                                <td className="px-3 py-1.5 text-subtle w-[60px]">{l.unit}</td>
+                                <td className="px-3 py-1.5 w-[48px]">
+                                  <button
+                                    onClick={() => trinti.mutate(l.id)}
+                                    title="Pašalinti eilutę"
+                                    className="w-7 h-7 flex items-center justify-center rounded-btn text-subtle hover:text-danger hover:bg-danger-bg transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : visosEilutes.length > 0 ? (
+              <p className="px-5 py-6 text-[13px] text-subtle italic">Pagal filtrą nieko nerasta.</p>
+            ) : null}
 
             {/* Nauja eilutė */}
             <div className="px-5 py-3.5 border-t border-border bg-surface-2/30 flex flex-wrap items-end gap-2">
