@@ -27,7 +27,7 @@ export interface SiteWithTeam {
   roof_angle: string | null;
 }
 
-export type TabId = 'info' | 'equip' | 'blueprints' | 'files' | 'check' | 'history';
+export type TabId = 'info' | 'equip' | 'materials' | 'blueprints' | 'files' | 'check' | 'history';
 
 /** One row in the PV string-parameters table (stored as `sites.stringing_details`). */
 export interface StringRow {

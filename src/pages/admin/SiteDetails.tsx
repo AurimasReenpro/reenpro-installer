@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Cpu, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle } from 'lucide-react';
+import { Info, Cpu, DraftingCompass, FolderOpen, ListChecks, History, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { getSiteById } from '../../api/sites';
 import { parseEquipmentDetails } from '../../types/equipment.types';
 import { isSiteDraft } from '../../lib/siteDraft';
@@ -15,6 +15,7 @@ import EquipmentTab from './site-details/EquipmentTab';
 import BlueprintsTab from './site-details/BlueprintsTab';
 import FilesTab from './site-details/FilesTab';
 import ChecklistTab from './site-details/ChecklistTab';
+import MaterialsTab from './site-details/MaterialsTab';
 import AuditLogTab from './site-details/AuditLogTab';
 import TimeEntriesCard from './site-details/TimeEntriesCard';
 import type { SiteWithTeam, TabId } from './site-details/types';
@@ -22,6 +23,7 @@ import type { SiteWithTeam, TabId } from './site-details/types';
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'info', label: 'Objekto info', icon: Info },
   { id: 'equip', label: 'Įranga', icon: Cpu },
+  { id: 'materials', label: 'Medžiagos', icon: FileSpreadsheet },
   { id: 'blueprints', label: 'Brėžiniai', icon: DraftingCompass },
   { id: 'files', label: 'Failai', icon: FolderOpen },
   { id: 'check', label: 'Kontrolinis sąrašas', icon: ListChecks },
@@ -136,6 +138,12 @@ export default function SiteDetails() {
               currentEquipment={currentEquipment}
               onSaved={() => void queryClient.invalidateQueries({ queryKey: ['admin_site', id] })}
             />
+          </motion.div>
+        )}
+
+        {activeTab === 'materials' && (
+          <motion.div key="materials" {...TAB_MOTION}>
+            <MaterialsTab site={site} siteId={id!} />
           </motion.div>
         )}
 

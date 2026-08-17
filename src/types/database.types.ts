@@ -133,6 +133,10 @@ export type Database = {
           specifications: string | null
           capacity_kwh: number | null
           created_at: string
+          unit: string
+          code: string | null
+          kind: string
+          is_active: boolean
         }
         Insert: {
           id?: string
@@ -142,6 +146,10 @@ export type Database = {
           specifications?: string | null
           capacity_kwh?: number | null
           created_at?: string
+          unit?: string
+          code?: string | null
+          kind?: string
+          is_active?: boolean
         }
         Update: {
           id?: string
@@ -151,6 +159,154 @@ export type Database = {
           specifications?: string | null
           capacity_kwh?: number | null
           created_at?: string
+          unit?: string
+          code?: string | null
+          kind?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      material_templates: {
+        Row: {
+          id: string
+          name: string
+          site_type: string | null
+          system_type: string | null
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          site_type?: string | null
+          system_type?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          site_type?: string | null
+          system_type?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      material_template_lines: {
+        Row: {
+          id: string
+          template_id: string
+          catalog_item_id: string
+          qty: number
+          basis: string
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          catalog_item_id: string
+          qty: number
+          basis?: string
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          template_id?: string
+          catalog_item_id?: string
+          qty?: number
+          basis?: string
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      site_material_lists: {
+        Row: {
+          id: string
+          site_id: string
+          status: string
+          version: number
+          template_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          status?: string
+          version?: number
+          template_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          status?: string
+          version?: number
+          template_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_material_lines: {
+        Row: {
+          id: string
+          list_id: string
+          catalog_item_id: string | null
+          name: string | null
+          unit: string
+          qty_planned: number | null
+          qty_issued: number | null
+          qty_actual: number | null
+          qty_returned: number | null
+          note: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          list_id: string
+          catalog_item_id?: string | null
+          name?: string | null
+          unit: string
+          qty_planned?: number | null
+          qty_issued?: number | null
+          qty_actual?: number | null
+          qty_returned?: number | null
+          note?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          list_id?: string
+          catalog_item_id?: string | null
+          name?: string | null
+          unit?: string
+          qty_planned?: number | null
+          qty_issued?: number | null
+          qty_actual?: number | null
+          qty_returned?: number | null
+          note?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
