@@ -20,6 +20,19 @@ export interface EquipmentItem {
   capacity_kwh?: number;
 }
 
+/**
+ * Katalogo rūšis. Įranga ir medžiagos gyvena VIENOJE lentelėje — du katalogai
+ * reikštų, kad niekas nežino, į kurį vesti. Skiriasi tik šiuo lauku ir tuo,
+ * kaip filtruojama sąsajoje.
+ */
+export const CATALOG_KINDS = ['equipment', 'material'] as const;
+export type CatalogKind = (typeof CATALOG_KINDS)[number];
+
+export const CATALOG_KIND_LABELS: Record<CatalogKind, string> = {
+  equipment: 'Įranga',
+  material:  'Medžiaga',
+};
+
 /** One row in the central equipment_catalog table */
 export interface CatalogItem {
   id: string;
@@ -30,6 +43,13 @@ export interface CatalogItem {
   /** Base battery capacity per unit (kWh) — only for energy-storage items. */
   capacity_kwh: number | null;
   created_at: string;
+  /** Mato vienetas. Be jo žiniaraščio kiekiai beprasmiai. */
+  unit: string;
+  /** Rivilės prekės kodas — be jo nurašymo eksportas lieka rankinis. */
+  code: string | null;
+  kind: CatalogKind;
+  /** Neaktyvūs nerodomi rinkikliuose, bet senose eilutėse lieka. */
+  is_active: boolean;
 }
 
 /** Canonical name for the energy-storage / battery category. */

@@ -9,12 +9,14 @@ import {
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import {
-  getCatalogItems, createCatalogItem, deleteCatalogItem,
+  getCatalogItems, createCatalogItem, updateCatalogItem, deleteCatalogItem,
   getEquipmentCategories, createEquipmentCategory,
   updateEquipmentCategory, deleteEquipmentCategory,
 } from '../../api/catalog';
-import type { CatalogItem, EquipmentCategoryDef } from '../../types/equipment.types';
-import { isBatteryCategory } from '../../types/equipment.types';
+import type { CatalogItem, CatalogKind, EquipmentCategoryDef } from '../../types/equipment.types';
+import {
+  isBatteryCategory, CATALOG_KINDS, CATALOG_KIND_LABELS, EQUIPMENT_UNITS,
+} from '../../types/equipment.types';
 
 // ── Icon fallback map (icons are a UI concern, not stored in DB) ─────────────
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -91,7 +93,23 @@ interface NewItemForm {
   model: string;
   specifications: string;
   capacity_kwh: string;
+  unit: string;
+  code: string;
+  kind: CatalogKind;
 }
+
+const TUSCIA_FORMA: NewItemForm = {
+  category: '', brand: '', model: '', specifications: '', capacity_kwh: '',
+  unit: 'vnt.', code: '', kind: 'material',
+};
+
+/** Rūšies filtras: viena vieta, du rodiniai. */
+const KIND_FILTRAI = [
+  { id: 'all',       label: 'Visi'      },
+  { id: 'equipment', label: 'Įranga'    },
+  { id: 'material',  label: 'Medžiagos' },
+] as const;
+type KindFiltras = (typeof KIND_FILTRAI)[number]['id'];
 
 export default function EquipmentCatalog() {
   const queryClient = useQueryClient();
@@ -101,7 +119,8 @@ export default function EquipmentCatalog() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('Visos');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<NewItemForm>({ category: '', brand: '', model: '', specifications: '', capacity_kwh: '' });
+  const [form, setForm] = useState<NewItemForm>(TUSCIA_FORMA);
+  const [kindFiltras, setKindFiltras] = useState<KindFiltras>('all');
 
   // Category management state
   const [showCatMgmt, setShowCatMgmt] = useState(false);
@@ -130,6 +149,11 @@ export default function EquipmentCatalog() {
         brand: form.brand.trim(),
         model: form.model.trim(),
         specifications: form.specifications.trim() || null,
+        unit: form.unit.trim() || 'vnt.',
+        // Tuščias kodas rašomas kaip NULL, ne "" — unikalumo indeksas
+        // netikrina NULL reikšmių, tad kelis įrašus be kodo turėti galima.
+        code: form.code.trim() || null,
+        kind: form.kind,
       };
       // Only attach capacity_kwh when it's an energy-storage item with a value —
       // omitting the key entirely keeps inserts working even if the column
@@ -140,10 +164,10 @@ export default function EquipmentCatalog() {
       );
     },
     onSuccess: () => {
-      toast.success('Įranga pridėta į katalogą!');
+      toast.success('Įrašas pridėtas į katalogą!');
       void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] });
       setShowForm(false);
-      setForm({ category: '', brand: '', model: '', specifications: '', capacity_kwh: '' });
+      setForm(TUSCIA_FORMA);
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
@@ -151,7 +175,7 @@ export default function EquipmentCatalog() {
   const deleteMutation = useMutation({
     mutationFn: deleteCatalogItem,
     onSuccess: () => {
-      toast.success('Įranga ištrinta iš katalogo.');
+      toast.success('Įrašas ištrintas iš katalogo.');
       void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] });
     },
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
@@ -225,15 +249,24 @@ export default function EquipmentCatalog() {
 
   const catMap = Object.fromEntries(categories.map(c => [c.name, c]));
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateCatalogItem>[1] }) =>
+      updateCatalogItem(id, patch),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] }),
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
+  });
+
   const filtered = items.filter((item) => {
     const matchesSearch =
       !search ||
       item.model.toLowerCase().includes(search.toLowerCase()) ||
       item.brand.toLowerCase().includes(search.toLowerCase()) ||
       item.category.toLowerCase().includes(search.toLowerCase()) ||
-      (item.specifications ?? '').toLowerCase().includes(search.toLowerCase());
+      (item.specifications ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (item.code ?? '').toLowerCase().includes(search.toLowerCase());
     const matchesCategory = filterCategory === 'Visos' || item.category === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesKind = kindFiltras === 'all' || item.kind === kindFiltras;
+    return matchesSearch && matchesCategory && matchesKind;
   });
 
   const grouped = catNames.reduce<Record<string, CatalogItem[]>>((acc, name) => {
@@ -255,7 +288,7 @@ export default function EquipmentCatalog() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-text flex items-center gap-2">
             <Package className="w-6 h-6 text-primary dark:text-primary-ink" />
-            Įrangos katalogas
+            Katalogas
           </h1>
           <p className="text-[14px] text-muted mt-0.5">
             {items.length} įrengini{items.length === 1 ? 's' : 'ų'} kataloge
@@ -270,11 +303,20 @@ export default function EquipmentCatalog() {
             Kategorijos
           </button>
           <button
-            onClick={() => { setForm({ category: defaultCatForForm, brand: '', model: '', specifications: '', capacity_kwh: '' }); setShowForm(true); }}
+            onClick={() => {
+              // Rūšis parenkama pagal aktyvų filtrą — jei žiūri medžiagas,
+              // greičiausiai medžiagą ir pridedi.
+              setForm({
+                ...TUSCIA_FORMA,
+                category: defaultCatForForm,
+                kind: kindFiltras === 'equipment' ? 'equipment' : 'material',
+              });
+              setShowForm(true);
+            }}
             className="flex items-center gap-2 rounded-card bg-primary hover:opacity-90 text-white font-medium px-4 py-2 transition-all shadow-sm cursor-pointer"
           >
             <Plus size={16} />
-            Pridėti įrangą
+            Pridėti
           </button>
         </div>
       </div>
@@ -344,6 +386,46 @@ export default function EquipmentCatalog() {
                     required
                     className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                   />
+                </div>
+
+                {/* Rūšis, matas ir Rivilės kodas */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Rūšis</label>
+                    <select
+                      value={form.kind}
+                      onChange={(e) => setForm(f => ({ ...f, kind: e.target.value as CatalogKind }))}
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                    >
+                      {CATALOG_KINDS.map((k) => (
+                        <option key={k} value={k}>{CATALOG_KIND_LABELS[k]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Matas</label>
+                    <input
+                      type="text"
+                      list="catalog-units"
+                      value={form.unit}
+                      onChange={(e) => setForm(f => ({ ...f, unit: e.target.value }))}
+                      placeholder="vnt."
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    />
+                    <datalist id="catalog-units">
+                      {EQUIPMENT_UNITS.map((u) => <option key={u} value={u} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Rivilės kodas</label>
+                    <input
+                      type="text"
+                      value={form.code}
+                      onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))}
+                      placeholder="neprivalomas"
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    />
+                  </div>
                 </div>
 
                 {/* Specifications */}
@@ -562,13 +644,30 @@ export default function EquipmentCatalog() {
 
       {/* ── Search + Filter ── */}
       <div className="flex gap-3 flex-wrap">
+        {/* Įranga ir medžiagos gyvena viename kataloge — skiriasi tik rodinys. */}
+        <div className="inline-flex rounded-card bg-surface-2 p-1 shrink-0">
+          {KIND_FILTRAI.map((k) => (
+            <button
+              key={k.id}
+              onClick={() => setKindFiltras(k.id)}
+              className={`h-[32px] px-3.5 rounded-btn text-[13px] font-semibold transition-colors cursor-pointer ${
+                kindFiltras === k.id
+                  ? 'bg-surface text-primary dark:text-primary-ink shadow-sm'
+                  : 'text-subtle hover:text-text'
+              }`}
+            >
+              {k.label}
+            </button>
+          ))}
+        </div>
+
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle dark:text-subtle" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ieškoti modelio, gamintojo..."
+            placeholder="Ieškoti modelio, gamintojo, kodo..."
             className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border/50 dark:border-white/10 rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
@@ -602,7 +701,7 @@ export default function EquipmentCatalog() {
               onClick={() => setShowForm(true)}
               className="mt-3 text-primary dark:text-primary-ink font-semibold text-[14px] hover:underline cursor-pointer"
             >
-              Pridėti pirmą įrangą →
+              Pridėti pirmą įrašą →
             </button>
           )}
         </div>
@@ -636,7 +735,9 @@ export default function EquipmentCatalog() {
                     <tr className="border-b border-border bg-surface-2/50 dark:bg-surface-2">
                       <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider">Gamintojas</th>
                       <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider">Modelis</th>
-                      <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider hidden sm:table-cell">Specifikacijos</th>
+                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[130px]">Rivilės kodas</th>
+                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[90px]">Vnt.</th>
+                      <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider hidden lg:table-cell">Specifikacijos</th>
                       <th className="py-2.5 px-5 w-12" />
                     </tr>
                   </thead>
@@ -649,12 +750,38 @@ export default function EquipmentCatalog() {
                         <td className="py-3 px-5 text-[13px] text-text">
                           {item.model}
                           {item.capacity_kwh != null && (
-                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1D4ED8] border border-[#2563EB]/30 align-middle">
+                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-info-bg text-info border border-info/30 align-middle">
                               <BatteryCharging size={11} /> {item.capacity_kwh} kWh
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-5 text-[13px] text-muted dark:text-subtle hidden sm:table-cell">
+                        {/* Kodas ir matas redaguojami vietoje: seni įrašai jų
+                            neturi, o be kodo nurašymo eksportas lieka rankinis.
+                            Atskira forma tokiam užpildymui būtų per lėta. */}
+                        <td className="py-2 px-3">
+                          <input
+                            type="text"
+                            defaultValue={item.code ?? ''}
+                            placeholder="—"
+                            onBlur={(e) => {
+                              const v = e.target.value.trim() || null;
+                              if (v !== (item.code ?? null)) updateMutation.mutate({ id: item.id, patch: { code: v } });
+                            }}
+                            className="w-full h-[30px] px-2 tabular-nums bg-surface-2 border border-border rounded-input text-[12px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <input
+                            type="text"
+                            defaultValue={item.unit}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim() || 'vnt.';
+                              if (v !== item.unit) updateMutation.mutate({ id: item.id, patch: { unit: v } });
+                            }}
+                            className="w-full h-[30px] px-2 bg-surface-2 border border-border rounded-input text-[12px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                          />
+                        </td>
+                        <td className="py-3 px-5 text-[13px] text-muted dark:text-subtle hidden lg:table-cell">
                           {item.specifications || <span className="text-subtle dark:text-muted">—</span>}
                         </td>
                         <td className="py-3 px-5 text-right">

@@ -11,16 +11,33 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
     .order('model', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  // `kind` bazėje yra `text` su CHECK apribojimu, tad tipas siaurinamas čia.
+  return (data ?? []) as CatalogItem[];
 }
 
 // ── Create a catalog item ────────────────────────────────────────────────────
 // capacity_kwh is OPTIONAL in the payload: it's only sent when a value is given,
 // so adding non-battery items still works before the capacity_kwh column exists.
 export async function createCatalogItem(
-  item: Omit<CatalogItem, 'id' | 'created_at' | 'capacity_kwh'> & { capacity_kwh?: number | null }
+  item: Omit<CatalogItem, 'id' | 'created_at' | 'capacity_kwh' | 'unit' | 'code' | 'kind' | 'is_active'>
+    & { capacity_kwh?: number | null; unit?: string; code?: string | null; kind?: CatalogItem['kind'] }
 ): Promise<void> {
   const { error } = await supabase.from('equipment_catalog').insert(item);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Atnaujina katalogo įrašą.
+ *
+ * Reikalinga pirmiausia `unit` ir `code` užpildymui: seni įrašai jų neturi, o
+ * be Rivilės kodo nurašymo eksportas negali būti savarankiškas dokumentas.
+ */
+export async function updateCatalogItem(
+  id: string,
+  patch: Partial<Pick<CatalogItem, 'category' | 'brand' | 'model' | 'specifications'
+    | 'capacity_kwh' | 'unit' | 'code' | 'kind' | 'is_active'>>,
+): Promise<void> {
+  const { error } = await supabase.from('equipment_catalog').update(patch).eq('id', id);
   if (error) throw new Error(error.message);
 }
 

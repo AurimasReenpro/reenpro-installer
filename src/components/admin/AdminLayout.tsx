@@ -176,7 +176,7 @@ export default function AdminLayout() {
     { name: 'Tvarkaraštis', path: '/admin/schedule', icon: 'schedule', end: false },
     { name: 'Montuotojai', path: '/admin/installers', icon: 'group', end: false },
     { name: 'Kontroliniai sąrašai', path: '/admin/checklists', icon: 'fact_check', end: false },
-    { name: 'Įrangos katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
+    { name: 'Katalogas', path: '/admin/catalog', icon: 'catalog', end: false },
     // Atlyginimai laikinai atjungti (2026-08-14) — žr. App.tsx.
     { name: 'Ataskaitos', path: '/admin/reports', icon: 'bar_chart', end: false },
     { name: 'Importas', path: '/admin/import', icon: 'upload_file', end: false, className: 'mt-4', comingSoon: true },
