@@ -81,6 +81,38 @@ prasilenktų. Montuotojo pridėta medžiaga, kurios plane nebuvo, yra eilutė su
 `unit` kopijuojamas į eilutę sąmoningai: pakeitus katalogą, seni žiniaraščiai
 turi likti tokie, kokie buvo pasirašyti.
 
+### `qty_planned = NULL` nėra tas pats, kas `0`
+
+| Reikšmė | Prasmė |
+|---|---|
+| `0` | planuota nenaudoti; montuotojas pridėjo pats |
+| `NULL` | **reikės, bet kiek — dar nežinome** |
+| skaičius | suplanuotas kiekis |
+
+Dalies medžiagų kiekio iš anksto suvesti neįmanoma. Tipinis pavyzdys — **DC
+kabelis**: kiek jo reikės, paaiškėja tik ant stogo. Inžinierius įrašo eilutę
+be kiekio, ir tai teisinga būsena, ne neužbaigtas darbas.
+
+Iš to seka dvi taisyklės:
+
+- **Pateikti žiniaraštį su tuščiais kiekiais galima.** Tai normalu.
+- **Užbaigti fakto su tuščiais `qty_actual` negalima.** Būtent tokioms
+  eilutėms faktas ir yra vienintelis kiekio šaltinis, tad `faktas_suvestas`
+  perėjimas jų reikalauja visose eilutėse — įskaitant tas, kur planas buvo
+  tuščias.
+
+Tai kartu paaiškina, kodėl `qty_issued` ir `qty_actual` yra atskiri stulpeliai.
+Kabelio sandėlys išduoda **visą ritę**, o sunaudojami 80 metrų. Tada:
+
+```
+qty_issued  = 300   (rite)
+qty_actual  =  80   (sunaudota)
+grąžinama   = 220   → `return` judėjimas atgal į sandėlį
+```
+
+Be atskirų stulpelių nurašytum visą ritę, ir likutis pradėtų meluoti nuo
+pirmo objekto.
+
 **`site_material_events`** — perėjimų žurnalas: iš kokios būsenos, į kokią,
 kas, kada, komentaras. **Niekada nekeičiamas, tik pildomas.**
 
@@ -181,7 +213,14 @@ sandėlyje nebuvo), ir savikaina (pirkinys dingsta iš išlaidų).
 
 `site_id`, `name` (laisvas tekstas), `catalog_item_id` (neprivalomas),
 `quantity`, `unit`, `price`, `vendor` (neprivalomas), `receipt_photo_id`,
-`created_by`, `created_at`.
+**`paid_by`**, `created_by`, `created_at`.
+
+**`paid_by`** (`company` | `employee`) būtinas, nes ne viskas perkama įmonės
+sąskaita. Pirkinys už savo pinigus yra ne tik išlaida objektui, bet ir skola
+žmogui — o be šio lauko atskirti neįmanoma ir kompensacija tyliai pasimestų.
+
+Kompensacijos apskaitos kol kas nedarome (algos atjungtos), bet laukas dedamas
+iš karto: pridėti jį vėliau reikštų perrašinėti jau surinktus čekius.
 
 **Čekio nuotrauka privaloma.** Be jos tai ne išlaida, o teiginys.
 
@@ -255,6 +294,16 @@ kainuoja RLS sudėtingumą, o politikų jau dabar 126.
 | Montuotojai | `installer` | jau yra |
 | Buhalterija | **nereikia** | gauna eksportą, ne prieigą |
 
+**Kainas mato:** adminas, rangos vadovas ir buhalterija. Kadangi buhalterija
+paskyros neturi, **nurašymo eksportas privalo turėti kainas** — kitaip jai
+tektų prašyti jų atskirai, ir eksportas nustotų būti savarankiškas dokumentas.
+
+`can_view_costs()` = `is_admin() OR work_role = 'site_manager'`.
+
+Projektų vadovas ir inžinierius kainų nemato. Jei paaiškės, kad planuojant to
+reikia, taisoma **viena funkcija**, ne politikų rinkinys — dėl to predikatai ir
+naudojami.
+
 Teisės remiasi `work_role`, ne `role`, ir eina per gebėjimų predikatus
 (`can_approve_materials()`, `can_issue_stock()`…), ne per vaidmenų vardus
 politikose. Žr. `RLS-PERZIURA.md`.
@@ -285,13 +334,20 @@ Rivilės **neintegruojame**. Eksportas duoda 90 % naudos už 10 % rizikos.
   eina per `site_purchases` su privaloma čekio nuotrauka.
 - **Rangos vadovas priima arba grąžina**, fakto neredaguoja.
 
+Antra dalis (2026-08-17):
+
+- **Kainas mato** adminas, rangos vadovas ir buhalterija (per eksportą).
+- **Ne viskas perkama įmonės sąskaita** → `site_purchases.paid_by`.
+- **Žiniaraštį galima pateikti be visų kiekių** (DC kabelis), bet faktas
+  privalo būti užpildytas visose eilutėse.
+
 ## Likę atviri klausimai
 
-1. **Kas mato pirkinių kainas?** Vakarykštėje gebėjimų lentelėje `can_view_costs()`
-   priskirtas tik adminui, bet rangos vadovas, priimdamas darbą, kainą
-   greičiausiai turi matyti. Verslo sprendimas.
-2. **Ar pirkinys keliauja į atlyginimų kompensaciją?** Jei montuotojas pirko
-   savo pinigais, kažkur turi atsirasti grąžinimas. Algos šiuo metu atjungtos,
-   bet duomenų modelis neturi to užkirsti.
-3. **Ar žiniaraštį galima pateikti be visų kiekių**, ar privalomas pilnas
-   užpildymas? Nuo to priklauso, ar reikia „juodraščio" patikros.
+1. **Ar kompensacija montuotojui skaičiuojama programoje, ar tik pažymima?**
+   `paid_by = 'employee'` faktą užfiksuoja, bet kas toliau — ar programa
+   sumuoja skolą žmogui, ar tai perima buhalterija iš eksporto? Skubos nėra:
+   laukas jau bus, tad sprendimą galima priimti ir vėliau.
+2. **Ar sandėlys gali išduoti daugiau, nei suplanuota** (visa ritė vietoj
+   80 m), ar išdavimas turi atitikti planą? Faktinis kabelio srautas siūlo
+   pirmą variantą, ir modelis jam paruoštas, bet tai verta patvirtinti su
+   sandėliu.
