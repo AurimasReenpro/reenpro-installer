@@ -141,8 +141,24 @@ Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
    tyliai praleidžiamos — įskaitant 2d, kuris turėjo įrodyti profilių skylę.
    Ankstesnė prognozė „2d kris“ buvo klaidinga: jis praleidžiamas. Skaitant to
    testo išvestį, **`[SKIP]` yra tokia pat svarbi eilutė kaip `[FAIL]`.**
-5. **Pranešimas apie naują versiją** — dabar montuotojas gali savaitę dirbti su
-   sena, nes service worker atiduoda iš talpyklos.
+5. ~~Pranešimas apie naują versiją~~ — padaryta 2026-08-16, `src/lib/swUpdate.ts`.
+
+   Priežastis buvo ne talpykla, o eiliškumas: `skipWaiting` + `clientsClaim`
+   naują apvalkalą įjungia iš karto, bet **jau įkelto puslapio JavaScript
+   nepakeičia**. Todėl pirmas apsilankymas po diegimo visada rodydavo seną
+   versiją, o PWA laikant atidarytą — ir daug ilgiau.
+
+   Dabar per `controllerchange` parodomas pranešimas su mygtuku „Atnaujinti“.
+   **Sąmoningai ne automatinis perkrovimas:** montuotojas gali pildyti formą,
+   ir tylus perkrovimas ją nušluotų. Papildomai `registration.update()`
+   kviečiamas kas 30 min ir grįžus į programą, nes naršyklė pati tikrina tik
+   naršant.
+
+   Pirmojo SW diegimo atveju pranešimas NErodomas — tikrinama, ar puslapį jau
+   valdė SW, kai jis atsidarė.
+
+   **Veikia nuo KITO diegimo.** Žmonės, kurių naršyklėje sukasi senas kodas,
+   šio klausytojo neturi, tad apie patį šį išleidimą pranešimo negaus.
 6. ~~Gilesnių ekranų apžiūra po spalvų pakeitimo~~ — padaryta 2026-08-14.
    Ataskaitos buvo švarios; Objekto kortelėje ir Atlyginimuose likę kietai
    įrašyti šviesios temos atspalviai perkelti į tokenus. Pridėtas
