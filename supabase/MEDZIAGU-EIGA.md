@@ -237,14 +237,18 @@ sandėlyje nebuvo), ir savikaina (pirkinys dingsta iš išlaidų).
 
 `site_id`, `name` (laisvas tekstas), `catalog_item_id` (neprivalomas),
 `quantity`, `unit`, `price`, `vendor` (neprivalomas), `receipt_photo_id`,
-**`paid_by`**, `created_by`, `created_at`.
+`created_by`, `created_at`.
 
-**`paid_by`** (`company` | `employee`) būtinas, nes ne viskas perkama įmonės
-sąskaita. Pirkinys už savo pinigus yra ne tik išlaida objektui, bet ir skola
-žmogui — o be šio lauko atskirti neįmanoma ir kompensacija tyliai pasimestų.
+**Visi pirkiniai — įmonės sąskaita.** Montuotojas savo pinigais įrangos
+neperka; tai įmonės taisyklė, ne techninis apribojimas.
 
-Kompensacijos apskaitos kol kas nedarome (algos atjungtos), bet laukas dedamas
-iš karto: pridėti jį vėliau reikštų perrašinėti jau surinktus čekius.
+Todėl **`paid_by` lauko nėra**, nors ankstesnėje šio dokumento redakcijoje jis
+buvo numatytas. Sąmoningas sprendimas: laukas su pasirinkimu „savo / įmonės"
+tokį pirkimą įteisintų ir po metų turėtume duomenų, kurių pagal taisyklę
+neturėtų būti. Kompensacijų apskaitos taip pat nereikia.
+
+**Čekio nuotrauka vis tiek privaloma** — bet ne kompensacijai, o buhalterijai:
+be dokumento išlaidos nenurašysi.
 
 **Čekio nuotrauka privaloma.** Be jos tai ne išlaida, o teiginys.
 
@@ -370,18 +374,21 @@ Trečia dalis (2026-08-17):
 - **Išduoti daugiau, nei suplanuota, galima** — ritės nepjaustome.
 - Skirtumas tarp išduota ir sunaudota lieka **atviru likučiu**, kol sandėlys
   užfiksuoja grąžinimą. Automatiškai neįrašinėjame.
+- **Montuotojas savo pinigais neperka.** `paid_by` lauko nereikia,
+  kompensacijų apskaitos taip pat.
 
 ## Likęs atviras klausimas
 
-**Kai montuotojas perka savo pinigais — kaip jis tuos pinigus atgauna?**
+**Kas fiziškai perka, kai medžiagos pritrūksta objekte?**
 
-`paid_by = 'employee'` faktą užfiksuoja, bet neaišku, kas vyksta toliau:
+Nusprendus, kad montuotojas savo pinigais neperka, lieka du keliai, ir jie
+duoda skirtingus duomenų srautus:
 
-- **A.** Programa sumuoja skolą žmogui ir žymi, kada grąžinta. Reikia atskiros
-  apskaitos ir „grąžinta" būsenos.
-- **B.** Programa tik užfiksuoja faktą su čekiu, o pinigus tvarko buhalterija
-  už programos ribų.
+- **Montuotojas turi įmonės kortelę.** Tada `site_purchases` kuria jis, ir
+  eilutė iškart pririšama prie objekto — prekė į sandėlį nepatenka niekada.
+- **Perka biuras arba sandėlys.** Tada prekė pirmiausia patenka į sandėlį
+  (`receipt` judėjimas) ir išduodama įprastai. `site_purchases` tokiu atveju
+  montuotojui apskritai nereikalingas.
 
-**B paprastesnis, ir greičiausiai jo užtenka.** Sprendimo skuba nedidelė —
-`paid_by` laukas jau bus, tad pasirinkti galima ir po pirmo etapo, nieko
-neperrašinėjant.
+Nuo to priklauso, ar mobiliojoje dalyje pirkinio forma iš viso reikalinga.
+Sprendimo skuba nedidelė — tai 2 etapo klausimas, ne 1.
