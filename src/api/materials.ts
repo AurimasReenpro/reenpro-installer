@@ -167,6 +167,91 @@ export async function getMaterialTemplates(): Promise<MaterialTemplate[]> {
   return data ?? [];
 }
 
+/** Visi šablonai, įskaitant neaktyvius — valdymo ekranui. */
+export async function getAllMaterialTemplates(): Promise<MaterialTemplate[]> {
+  const { data, error } = await supabase
+    .from('material_templates')
+    .select('id, name, site_type, system_type, is_active')
+    .order('is_active', { ascending: false })
+    .order('name');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createMaterialTemplate(
+  input: { name: string; site_type?: string | null; system_type?: string | null },
+): Promise<MaterialTemplate> {
+  const { data, error } = await supabase
+    .from('material_templates')
+    .insert(input)
+    .select('id, name, site_type, system_type, is_active')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMaterialTemplate(
+  id: string,
+  patch: Partial<Pick<MaterialTemplate, 'name' | 'site_type' | 'system_type' | 'is_active'>>,
+): Promise<void> {
+  const { error } = await supabase.from('material_templates').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteMaterialTemplate(id: string): Promise<void> {
+  const { error } = await supabase.from('material_templates').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ── Šablono eilutės ──────────────────────────────────────────────────────────
+
+export interface TemplateLine {
+  id: string;
+  template_id: string;
+  catalog_item_id: string;
+  qty: number;
+  basis: TemplateBasis;
+  sort_order: number;
+  catalog: { brand: string; model: string; unit: string; kind: string } | null;
+}
+
+export async function getTemplateLines(templateId: string): Promise<TemplateLine[]> {
+  const { data, error } = await supabase
+    .from('material_template_lines')
+    .select(`
+      id, template_id, catalog_item_id, qty, basis, sort_order,
+      catalog:equipment_catalog(brand, model, unit, kind)
+    `)
+    .eq('template_id', templateId)
+    .order('sort_order')
+    .order('created_at');
+  if (error) throw error;
+  return (data ?? []) as unknown as TemplateLine[];
+}
+
+export async function addTemplateLine(
+  templateId: string,
+  input: { catalog_item_id: string; qty: number; basis: TemplateBasis },
+): Promise<void> {
+  const { error } = await supabase
+    .from('material_template_lines')
+    .insert({ template_id: templateId, ...input });
+  if (error) throw error;
+}
+
+export async function updateTemplateLine(
+  id: string,
+  patch: Partial<{ qty: number; basis: TemplateBasis }>,
+): Promise<void> {
+  const { error } = await supabase.from('material_template_lines').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTemplateLine(id: string): Promise<void> {
+  const { error } = await supabase.from('material_template_lines').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /**
  * Sugeneruoja žiniaraščio eilutes iš šablono.
  *

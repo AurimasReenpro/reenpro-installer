@@ -8,6 +8,7 @@ import {
   Pencil, Settings2, Check,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
+import MaterialTemplatesPanel from './MaterialTemplatesPanel';
 import {
   getCatalogItems, createCatalogItem, updateCatalogItem, deleteCatalogItem,
   getEquipmentCategories, createEquipmentCategory,
@@ -121,6 +122,7 @@ export default function EquipmentCatalog() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewItemForm>(TUSCIA_FORMA);
   const [kindFiltras, setKindFiltras] = useState<KindFiltras>('all');
+  const [rodinys, setRodinys] = useState<'catalog' | 'templates'>('catalog');
 
   // Category management state
   const [showCatMgmt, setShowCatMgmt] = useState(false);
@@ -291,10 +293,13 @@ export default function EquipmentCatalog() {
             Katalogas
           </h1>
           <p className="text-[14px] text-muted mt-0.5">
-            {items.length} įrengini{items.length === 1 ? 's' : 'ų'} kataloge
+            {rodinys === 'catalog'
+              ? `${items.length} įraš${items.length === 1 ? 'as' : 'ai'} kataloge`
+              : 'Šablonai užpildo objekto žiniaraštį vienu paspaudimu'}
           </p>
         </div>
         <div className="flex gap-2">
+          {rodinys === 'catalog' && (
           <button
             onClick={() => setShowCatMgmt(true)}
             className="flex items-center gap-2 h-[40px] px-4 rounded-card border border-border text-muted font-medium text-[14px] bg-surface hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
@@ -302,6 +307,8 @@ export default function EquipmentCatalog() {
             <Settings2 size={15} />
             Kategorijos
           </button>
+          )}
+          {rodinys === 'catalog' && (
           <button
             onClick={() => {
               // Rūšis parenkama pagal aktyvų filtrą — jei žiūri medžiagas,
@@ -318,8 +325,27 @@ export default function EquipmentCatalog() {
             <Plus size={16} />
             Pridėti
           </button>
+          )}
         </div>
       </div>
+
+      {/* Katalogas ir šablonai — vienoje vietoje: abu yra atmintinė
+          medžiagoms, tad jų neverta skirstyti po meniu punktus. */}
+      <div className="inline-flex rounded-card bg-surface-2 p-1">
+        {([['catalog', 'Katalogas'], ['templates', 'Šablonai']] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setRodinys(id)}
+            className={`h-[34px] px-4 rounded-btn text-[13px] font-semibold transition-colors cursor-pointer ${
+              rodinys === id ? 'bg-surface text-primary dark:text-primary-ink shadow-sm' : 'text-subtle hover:text-text'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {rodinys === 'templates' && <MaterialTemplatesPanel />}
 
       {/* ── Add Equipment Modal ── */}
       <AnimatePresence>
@@ -642,6 +668,8 @@ export default function EquipmentCatalog() {
         )}
       </AnimatePresence>
 
+      {rodinys === 'catalog' && (
+      <>
       {/* ── Search + Filter ── */}
       <div className="flex gap-3 flex-wrap">
         {/* Įranga ir medžiagos gyvena viename kataloge — skiriasi tik rodinys. */}
@@ -801,6 +829,8 @@ export default function EquipmentCatalog() {
             );
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   );
