@@ -86,6 +86,17 @@ npx wrangler@4.120.0 versions upload
 Diegimas sustoja ties Preview ir laukia žmogaus patvirtinimo. Versijos ID
 `versions deploy` komandai reikia **viso**, ne sutrumpinto.
 
+## Medžiagų eiga
+
+Kitas didelis darbas: medžiagų žiniaraštis, atsargos, fakto suvedimas ir
+priėmimas. Sprendimas su duomenų modeliu, būsenomis ir etapais —
+`supabase/MEDZIAGU-EIGA.md`. **Perskaityti prieš pradedant.**
+
+Trumpai: Asana lieka pre-sale daliai, Rivilė lieka apskaitos tiesa (gyvo
+sinchronizavimo nedarome), o medžiagoms programoje šiandien nėra beveik nieko —
+įranga guli `sites.equipment_details` jsonb lauke, o `equipment_catalog` neturi
+nei mato vieneto, nei prekės kodo.
+
 ## Kas dar nepadaryta
 
 1. **Antras, viešas adresas montuotojams** — be Access. Jie neturi Microsoft
