@@ -71,7 +71,7 @@ tiesiai.
 šablonas, iš kurio sugeneruota.
 
 **`site_material_lines`** — `catalog_item_id`, `unit` (momentinė kopija),
-`qty_planned`, `qty_reserved`, `qty_issued`, `qty_actual`, pastaba.
+`qty_planned`, `qty_issued`, `qty_actual`, `qty_returned`, pastaba.
 
 Planas ir faktas **vienoje eilutėje**, ne dviejose lentelėse. Visa vertė yra
 nuokrypis; atskyrus jį reikėtų kaskart skaičiuoti per jungimą, o duomenys
@@ -105,13 +105,13 @@ Tai kartu paaiškina, kodėl `qty_issued` ir `qty_actual` yra atskiri stulpeliai
 Kabelio sandėlys išduoda **visą ritę**, o sunaudojami 80 metrų. Tada:
 
 ```
-qty_issued  = 300   (rite)
-qty_actual  =  80   (sunaudota)
-grąžinama   = 220   → `return` judėjimas atgal į sandėlį
+qty_issued   = 300   (ritė)
+qty_actual   =  80   (sunaudota)
+qty_returned = 220   (grąžinta į sandėlį)
 ```
 
-Be atskirų stulpelių nurašytum visą ritę, ir likutis pradėtų meluoti nuo
-pirmo objekto.
+Sudėjus išduota ir sunaudota į vieną stulpelį, nurašytum visą ritę — ir
+nurašymo aktas, keliaujantis buhalterijai, būtų neteisingas.
 
 ### Išduoti galima daugiau, nei suplanuota
 
@@ -119,23 +119,9 @@ Patvirtinta 2026-08-17: jei sandėlyje yra ritė, jos nepjaustysime iki
 nelogiško kiekio — išduodama visa. Todėl `qty_issued > qty_planned` yra
 **normalu, ne klaida**, ir jokios patikros to riboti neturi.
 
-### Likutis, kuris dar negrįžo
-
-Iš to seka spraga, kurią verta įvardyti iš karto. Automobiliuose likučių
-nesekame, tad `qty_issued − qty_actual` skirtumas nėra nei sunaudotas, nei
-grąžintas — jis kažkur pakeliui.
-
-Sprendimas: tas skirtumas laikomas **atviru likučiu objektui**, kol sandėlys
-užfiksuoja `return` judėjimą. Iki tol žurnalas rodo tiesą — „išduota, dar
-negrąžinta" — o ne apsimeta, kad ritė jau lentynoje.
-
-Šalutinė nauda: iš to savaime gaunasi sąrašas **„kas išduota ir negrįžo"**,
-kurio sandėlys dabar neturi. Tai bene naudingiausias vienas rodinys visoje
-atsargų dalyje, ir jis nieko papildomo nekainuoja.
-
-Automatiškai grąžinimo **neįrašinėjame**. Prielaida „tikriausiai parvežė"
-sugadintų likutį tyliai, o būtent tyliai gendantis skaičius yra blogiausia,
-kas gali nutikti sandėlio apskaitoje.
+Grąžinimo automatiškai **neįrašinėjame**. Prielaida „tikriausiai parvežė"
+meluotų tyliai, o tyliai gendantis skaičius yra blogiausia, kas gali nutikti.
+Kol sandėlys neužfiksavo, likutis kabo prie objekto ir matosi sąraše.
 
 **`site_material_events`** — perėjimų žurnalas: iš kokios būsenos, į kokią,
 kas, kada, komentaras. **Niekada nekeičiamas, tik pildomas.**
@@ -175,40 +161,57 @@ Programoje jau yra `photoOutbox` su IndexedDB eile — medžiagos turi eiti tuo
 pačiu keliu. Padarius paprasta užklausa, duomenys tyliai dings, ir tai
 paaiškės ne iš klaidos, o iš nesutampančio likučio po mėnesio.
 
-## Atsargos
+## Atsargų programoje NĖRA
 
-**Sandėlis vienas.** Automobiliuose likučių nesekame, tad `location_id`
-nereikia. Jei kada atsirastų antras sandėlis, laukas pridedamas migracija —
-bet dabar jo dėti nėra prasmės.
+Svarbiausias ir maloniausias sprendimas visame dokumente.
 
-**`stock_movements`** — judėjimų žurnalas: `catalog_item_id`, `qty` (su
-ženklu), `type` (`receipt` | `issue` | `return` | `adjustment` | `stocktake`),
-`site_id` (gali būti tuščias), `actor_id`, `created_at`, pastaba.
+**Likučius seka Rivilė. Mūsų programa tik užfiksuoja, ar sandėlys patvirtino,
+kad medžiagų turime.** Sandėlininkas žiūri į Rivilę, o programoje paspaudžia
+„patvirtinu" arba „trūksta".
 
-Likutis skaičiuojamas kaip `SUM(qty)`, **ne laikomas stulpelyje**.
+Ankstesnė šio dokumento redakcija numatė `stock_movements` žurnalą su
+rezervacijomis, gavimais ir inventorizacijomis. **To nebereikia nė vieno.**
 
-Priežastis praktinė: turint `stock_qty` stulpelį, į klausimą „kodėl skaičius
-neteisingas" atsakyti neįmanoma, o lygiagretūs atnaujinimai tyliai praranda
-duomenis. Su žurnalu kiekvienas pokytis turi priežastį ir autorių, o likutį
-galima perskaičiuoti. Sandėlyje pirmas klausimas visada yra „kas įvyko", ir
-žurnalas į jį atsako.
+Kodėl tai teisinga, o ne tingu: vakar buvo įspėta, kad du likučių šaltiniai
+neišvengiamai prasilenks ir niekas nežinos, kuriuo tikėti. Nusprendus, kad
+šaltinis vienas, rizika dingsta kartu su visa posisteme. Mažiau kodo ir
+mažiau melo — retas derinys.
 
-Apimtis maža — sumavimas bus greitas dar daugelį metų. Prireikus pridedamas
-momentinis vaizdas.
+Kartu atkrenta ir klausimas apie prekių gavimo fiksavimą: jei likutį veda
+Rivilė, mūsų programai nebėra ko vesti į minusą.
 
-### Rezervacija atskirai nuo išdavimo
+### Ko sąmoningai NEMODELIUOJAME
 
-Patvirtinus žiniaraštį medžiagos **rezervuojamos**, o ne išduodamos.
-Fiziškai jos dar sandėlyje, bet kitam objektui jau nepažadamos.
+- Likučių, rezervacijų, inventorizacijų — **Rivilė**.
+- Tiekimo pirkimų: užsakymų, tiekėjų, sąskaitų, pristatymo terminų. Užsakyta
+  iš anksto — tiekimas nuperka, medžiaga išduodama įprasta tvarka.
+- Sandėlio vietų. Sandėlis vienas, automobiliuose likučių nesekame.
+
+Tiekimo darbas eigoje vis tiek matomas — per `trūksta` būseną su laukiama
+data. Fiksuojamas **rezultatas ir terminas**, ne pats pirkimo procesas.
+
+### Ką programa vis dėlto žino apie kiekius
+
+Tik tai, kas susiję su **konkrečiu objektu**, ne su sandėliu:
+
+| Stulpelis | Prasmė |
+|---|---|
+| `qty_planned` | kiek numatyta (gali būti `NULL`) |
+| `qty_issued` | kiek sandėlys išdavė šiam objektui |
+| `qty_actual` | kiek montuotojas sunaudojo |
+| `qty_returned` | kiek grąžinta į sandėlį |
+
+Tai objekto duomenys, ne atsargų apskaita, tad su Rivile jie nesivaržo.
+
+Iš jų vis tiek gaunasi tas naudingas rodinys **„išduota ir dar negrįžo"**:
 
 ```
-laisva = turima − rezervuota
+qty_issued − qty_actual − qty_returned
 ```
 
-Tai užkerta kelią klasikinei situacijai: sandėlys patvirtino dviem objektams,
-o medžiagų užteko vienam. Pigus laukas, didelė nauda.
-
-Perėjimas `išduota` rezervaciją paverčia išdavimu.
+Ritės atveju: išduota 300, sunaudota 80, grąžinta 220 → nulis. Kol grąžinimas
+neužfiksuotas, likutis kabo prie objekto ir matosi. Automatiškai jo
+neįrašinėjame — prielaida „turbūt parvežė" meluotų tyliai.
 
 ## Kai sunaudota ne tai, kas planuota
 
@@ -218,7 +221,7 @@ Trys skirtingi atvejai, ir tik pirmi du yra ta pati sąvoka:
 Tiesiog `qty_actual > qty_planned`. Nieko naujo nereikia.
 
 **2. Sunaudota kataloginė medžiaga, kurios plane nebuvo.** Eilutė su
-`qty_planned = 0`. Medžiaga iš sandėlio, tad likutis mažėja įprastai.
+`qty_planned = 0`. Medžiaga iš sandėlio, tad nurašoma įprastai.
 
 **3. Nupirkta parduotuvėje.** **Tai ne medžiagos sunaudojimas, o išlaida su
 dokumentu**, ir maišyti su pirmais dviem negalima:
@@ -240,7 +243,15 @@ sandėlyje nebuvo), ir savikaina (pirkinys dingsta iš išlaidų).
 `created_by`, `created_at`.
 
 **Visi pirkiniai — įmonės sąskaita.** Montuotojas savo pinigais įrangos
-neperka; tai įmonės taisyklė, ne techninis apribojimas.
+neperka; tai įmonės taisyklė, ne techninis apribojimas. Montuotojas turi
+**įmonės kortelę**, tad pirkti objekte gali pats.
+
+**`site_purchases` skirtas TIK šiam atvejui:** montuotojas objekte nuperka
+trūkstamą detalę įmonės kortele. Prekė į sandėlį nepatenka niekada, tad
+sandėlio eilutėse jos nėra.
+
+Vadinasi, mobiliojoje dalyje pirkinio forma **reikalinga** — su čekio
+nuotrauka, einančia per tą patį `photoOutbox` kelią kaip ir visos kitos.
 
 Todėl **`paid_by` lauko nėra**, nors ankstesnėje šio dokumento redakcijoje jis
 buvo numatytas. Sąmoningas sprendimas: laukas su pasirinkimu „savo / įmonės"
@@ -259,8 +270,8 @@ pakartotiniais bandymais (`photoOutbox`) — jau parašyta ir išbandyta lauke.
 pritaikomos tos pačios taisyklės, kurias sutvarkėme: montuotojas netrina
 svetimų, biuras mato bet nekeičia.
 
-`stock_movements` pirkinys **neliečia**. Jei prekė vis dėlto pirma pateko į
-sandėlį, tai jau `receipt` judėjimas, ne pirkinys objektui.
+Jei prekė vis dėlto pirma pateko į sandėlį, tai nebe pirkinys objektui, o
+įprastas išdavimas — ir Rivilėje ji atsiduria kaip visos kitos.
 
 Žiniaraštyje pirkiniai rodomi **atskira dalimi** („Pirkta objektui"), ne
 sumaišyti su sandėlio eilutėmis — buhalterijai tai du skirtingi dokumentai.
@@ -341,19 +352,20 @@ politikose. Žr. `RLS-PERZIURA.md`.
 Ne visa grandinė iš karto.
 
 **1. Katalogas ir žiniaraštis.** `unit`, `code`, eilutės, šablonai su `basis`.
-Be eigos ir be atsargų. Jau naudinga: inžinierius nustoja dirbti Excelyje.
+Be eigos. Jau naudinga: inžinierius nustoja dirbti Excelyje.
 
-**2. Fakto suvedimas mobiliojoje dalyje** su offline eile. **Čia didžiausia
-grąža** — miršta popierinis žingsnis „montuotojai ranka pakoreguoja MŽ lape",
-kur ir dingsta duomenų kokybė.
+**2. Fakto suvedimas mobiliojoje dalyje** su offline eile, kartu su pirkinių
+forma ir čekio nuotrauka. **Čia didžiausia grąža** — miršta popierinis
+žingsnis „montuotojai ranka pakoreguoja MŽ lape", kur ir dingsta duomenų
+kokybė.
 
 **3. Būsenos, perėjimai ir pranešimai.** Outlook išnyksta iš grandinės.
 
-**4. Atsargos ir rezervacijos.**
+**4. Nurašymo eksportas** su Rivilės kodais (PDF aktas + CSV su kainomis).
 
-**5. Nurašymo eksportas** su Rivilės kodais (PDF aktas + CSV).
-
-Rivilės **neintegruojame**. Eksportas duoda 90 % naudos už 10 % rizikos.
+Etapų buvo penki: ketvirtasis buvo „atsargos ir rezervacijos", ir jis
+**atkrito visas**, likučius palikus Rivilei. Rivilės **neintegruojame** —
+eksportas duoda 90 % naudos už 10 % rizikos.
 
 ## Atsakyti klausimai (2026-08-17)
 
@@ -377,18 +389,18 @@ Trečia dalis (2026-08-17):
 - **Montuotojas savo pinigais neperka.** `paid_by` lauko nereikia,
   kompensacijų apskaitos taip pat.
 
-## Likęs atviras klausimas
+Ketvirta dalis (2026-08-17):
 
-**Kas fiziškai perka, kai medžiagos pritrūksta objekte?**
+- **Montuotojas turi įmonės kortelę** → `site_purchases` kuria jis,
+  mobiliojoje dalyje reikia pirkinio formos su čekiu.
+- **Tiekimo pirkimų nemodeliuojame.** Užsakyta iš anksto — išduodama įprasta
+  tvarka.
+- **Likučius seka Rivilė; programa tik fiksuoja sandėlio patvirtinimą.**
+  Tai panaikino visą atsargų posistemę: nebereikia nei `stock_movements`
+  žurnalo, nei rezervacijų, nei prekių gavimo fiksavimo, nei viso 4 etapo.
 
-Nusprendus, kad montuotojas savo pinigais neperka, lieka du keliai, ir jie
-duoda skirtingus duomenų srautus:
+## Atvirų klausimų nebeliko
 
-- **Montuotojas turi įmonės kortelę.** Tada `site_purchases` kuria jis, ir
-  eilutė iškart pririšama prie objekto — prekė į sandėlį nepatenka niekada.
-- **Perka biuras arba sandėlys.** Tada prekė pirmiausia patenka į sandėlį
-  (`receipt` judėjimas) ir išduodama įprastai. `site_purchases` tokiu atveju
-  montuotojui apskritai nereikalingas.
-
-Nuo to priklauso, ar mobiliojoje dalyje pirkinio forma iš viso reikalinga.
-Sprendimo skuba nedidelė — tai 2 etapo klausimas, ne 1.
+Viskas, ko reikia 1 ir 2 etapui, sutarta. Prie likusių sprendimų
+(pranešimų kanalai, eksporto formatas Rivilei) grįžtama atitinkamuose
+etapuose — jie nekeičia duomenų modelio, tad pradžios neblokuoja.
