@@ -10,7 +10,9 @@ import {
   getTemplateLines, addTemplateLine, updateTemplateLine, deleteTemplateLine,
   getMaterialCatalog, catalogItemLabel,
 } from '../../api/materials';
-import { TEMPLATE_BASES, BASIS_LABELS, type TemplateBasis } from '../../lib/materialTemplates';
+import {
+  TEMPLATE_BASES, BASIS_LABELS, BASIS_HINTS, basisExample, type TemplateBasis,
+} from '../../lib/materialTemplates';
 
 /** Vieno šablono eilutės — atskiras komponentas, kad užklausa keltųsi tik išskleidus. */
 function TemplateLines({ templateId }: { templateId: string }) {
@@ -66,13 +68,21 @@ function TemplateLines({ templateId }: { templateId: string }) {
 
   return (
     <div className="border-t border-border">
+      {/* Eilutė skaitosi kaip formulė: kiekis × pagrindas. Be šio paaiškinimo
+          „Už kWp" niekam nieko nesako. */}
+      <p className="px-5 py-2.5 text-[12px] text-muted bg-info-bg/40 border-b border-border">
+        Kiekvienos eilutės kiekis skaitomas kaip <span className="font-semibold">skaičius × pagrindas</span>.
+        Pvz. <span className="font-semibold">12 × objekto galią (kWp)</span> reiškia, kad 5,55 kWp
+        objektui bus įrašyta 66,6.
+      </p>
+
       {(lines ?? []).length > 0 ? (
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b border-border bg-surface-2/40 text-[11px] uppercase tracking-wider text-subtle">
               <th className="text-left font-bold px-5 py-2">Įrašas</th>
               <th className="text-right font-bold px-3 py-2 w-[110px]">Kiekis</th>
-              <th className="text-left font-bold px-3 py-2 w-[150px]">Skaičiuoti</th>
+              <th className="text-left font-bold px-3 py-2 w-[200px]">Kiekis skaičiuojamas</th>
               <th className="text-left font-bold px-3 py-2 w-[70px]">Vnt.</th>
               <th className="w-[52px]" />
             </tr>
@@ -155,11 +165,12 @@ function TemplateLines({ templateId }: { templateId: string }) {
             className="w-full h-[34px] px-2 text-right tabular-nums bg-surface border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary"
           />
         </div>
-        <div className="w-[150px]">
-          <label className="block text-[11px] font-semibold text-subtle mb-1">Skaičiuoti</label>
+        <div className="w-[210px]">
+          <label className="block text-[11px] font-semibold text-subtle mb-1">Kiekis skaičiuojamas</label>
           <select
             value={basis}
             onChange={(e) => setBasis(e.target.value as TemplateBasis)}
+            title={BASIS_HINTS[basis]}
             className="w-full h-[34px] px-2 bg-surface border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary cursor-pointer"
           >
             {TEMPLATE_BASES.map((b) => <option key={b} value={b}>{BASIS_LABELS[b]}</option>)}
@@ -173,6 +184,17 @@ function TemplateLines({ templateId }: { templateId: string }) {
           {prideti.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           Pridėti
         </button>
+
+        {/* Gyvas pavyzdys su įvestu skaičiumi — greičiausias būdas suprasti,
+            ką pasirinkimas padarys, nepridėjus eilutės ir netikrinant. */}
+        {kiekis.trim() !== '' && Number.isFinite(Number(kiekis.replace(',', '.'))) && (
+          <p className="w-full text-[12px] text-muted -mt-0.5">
+            {BASIS_HINTS[basis]}{' '}
+            <span className="font-semibold text-text">
+              {basisExample(Number(kiekis.replace(',', '.')), basis)}
+            </span>
+          </p>
+        )}
       </div>
     </div>
   );

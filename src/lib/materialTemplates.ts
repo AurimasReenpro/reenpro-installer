@@ -13,12 +13,43 @@ import { parseEquipmentDetails } from '../types/equipment.types';
 export const TEMPLATE_BASES = ['fixed', 'per_kwp', 'per_panel', 'per_inverter'] as const;
 export type TemplateBasis = (typeof TEMPLATE_BASES)[number];
 
+/**
+ * Užrašai sudėti taip, kad eilutė skaitytųsi kaip formulė: kiekio stulpelis
+ * plius šis tekstas duoda „12 × objekto galią (kWp)“. Ankstesni trumpiniai
+ * („Už kWp“) nepasakė, kad tai daugyba, ir buvo nesuprantami.
+ */
 export const BASIS_LABELS: Record<TemplateBasis, string> = {
-  fixed:        'Fiksuotas',
-  per_kwp:      'Už kWp',
-  per_panel:    'Už modulį',
-  per_inverter: 'Už inverterį',
+  fixed:        'tiek, kiek nurodyta',
+  per_kwp:      '× objekto galią (kWp)',
+  per_panel:    '× modulių skaičių',
+  per_inverter: '× inverterių skaičių',
 };
+
+/** Trumpas paaiškinimas, ką reikšmė daro. Rodomas prie pasirinkimo. */
+export const BASIS_HINTS: Record<TemplateBasis, string> = {
+  fixed:        'Kiekis nesikeičia, koks objektas bebūtų.',
+  per_kwp:      'Kiekis dauginamas iš objekto galios kilovatais.',
+  per_panel:    'Kiekis dauginamas iš objekto modulių skaičiaus.',
+  per_inverter: 'Kiekis dauginamas iš objekto inverterių skaičiaus.',
+};
+
+/**
+ * Pavyzdys žmogui: „12 × objekto galią (kWp) → 5,55 kWp objektui bus 66,6“.
+ * Rodomas prie formos, kad nereikėtų spėlioti, ką pasirinkimas reiškia.
+ */
+export function basisExample(qty: number, basis: TemplateBasis): string {
+  if (!Number.isFinite(qty)) return '';
+  if (basis === 'fixed') return `Bus visada ${qty}.`;
+
+  const pvz: Record<Exclude<TemplateBasis, 'fixed'>, { tekstas: string; reiksme: number }> = {
+    per_kwp:      { tekstas: '5,55 kWp objektui', reiksme: 5.55 },
+    per_panel:    { tekstas: '10 modulių objektui', reiksme: 10 },
+    per_inverter: { tekstas: '2 inverterių objektui', reiksme: 2 },
+  };
+  const p = pvz[basis];
+  const rezultatas = Math.round(qty * p.reiksme * 100) / 100;
+  return `Pvz.: ${p.tekstas} bus ${String(rezultatas).replace('.', ',')}.`;
+}
 
 /** Kategorijų vardai, pagal kuriuos atpažįstami moduliai ir inverteriai. */
 const MODULIU_KATEGORIJA   = 'moduliai';

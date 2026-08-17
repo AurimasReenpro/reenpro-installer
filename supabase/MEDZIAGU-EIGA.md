@@ -403,6 +403,26 @@ Ketvirta dalis (2026-08-17):
   Tai panaikino visą atsargų posistemę: nebereikia nei `stock_movements`
   žurnalo, nei rezervacijų, nei prekių gavimo fiksavimo, nei viso 4 etapo.
 
+## Laukia 2 etape
+
+**Katalogo importas iš Rivilės.** Planuojama išsieksportuoti medžiagų sąrašą
+ir įkelti iš karto, o ne vesti po vieną. Tai keičia `code` lauko svarbą:
+importas turi remtis juo kaip raktu (yra — atnaujinam, nėra — kuriam), kitaip
+pakartotinis įkėlimas pridurs dublikatus. Dalinis unikalumo indeksas tam jau
+paruoštas.
+
+Prieš darant reikia pamatyti **tikrą eksporto failą** — stulpelių vardus,
+skyriklį ir koduotę. Formato spėlioti neverta.
+
+**Objekto kortelės „Įranga" ir „Medžiagos" sujungimas.** Dabar tai du
+skirtukai apie tą patį — kas patenka į objektą. Įranga guli
+`sites.equipment_details` jsonb lauke, medžiagos — `site_material_lines`.
+Sujungus, įrangos eilutės pereitų į tą patį žiniaraštį su `kind = equipment`.
+
+Nauda: vienas šablonas galėtų sudėti ir modulius, ir spaustukus; montuotojas
+faktą vestų vienoje vietoje; nurašymo eksportas savaime apimtų viską. Kaina —
+duomenų perkėlimas iš jsonb į eilutes.
+
 ## Atvirų klausimų nebeliko
 
 Viskas, ko reikia 1 ir 2 etapui, sutarta. Prie likusių sprendimų
