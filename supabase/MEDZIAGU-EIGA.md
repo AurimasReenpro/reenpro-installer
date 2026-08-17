@@ -354,6 +354,10 @@ Ne visa grandinė iš karto.
 **1. Katalogas ir žiniaraštis.** `unit`, `code`, eilutės, šablonai su `basis`.
 Be eigos. Jau naudinga: inžinierius nustoja dirbti Excelyje.
 
+> **Migracija parašyta ir laukia paleidimo:**
+> `supabase/migrations/20260817120000_materials_catalog_and_lists.sql`.
+> Ji apima tik schemą ir RLS; sąsaja ir API — kitas žingsnis po jos paleidimo.
+
 **2. Fakto suvedimas mobiliojoje dalyje** su offline eile, kartu su pirkinių
 forma ir čekio nuotrauka. **Čia didžiausia grąža** — miršta popierinis
 žingsnis „montuotojai ranka pakoreguoja MŽ lape", kur ir dingsta duomenų
