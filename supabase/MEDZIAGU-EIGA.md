@@ -113,6 +113,30 @@ grąžinama   = 220   → `return` judėjimas atgal į sandėlį
 Be atskirų stulpelių nurašytum visą ritę, ir likutis pradėtų meluoti nuo
 pirmo objekto.
 
+### Išduoti galima daugiau, nei suplanuota
+
+Patvirtinta 2026-08-17: jei sandėlyje yra ritė, jos nepjaustysime iki
+nelogiško kiekio — išduodama visa. Todėl `qty_issued > qty_planned` yra
+**normalu, ne klaida**, ir jokios patikros to riboti neturi.
+
+### Likutis, kuris dar negrįžo
+
+Iš to seka spraga, kurią verta įvardyti iš karto. Automobiliuose likučių
+nesekame, tad `qty_issued − qty_actual` skirtumas nėra nei sunaudotas, nei
+grąžintas — jis kažkur pakeliui.
+
+Sprendimas: tas skirtumas laikomas **atviru likučiu objektui**, kol sandėlys
+užfiksuoja `return` judėjimą. Iki tol žurnalas rodo tiesą — „išduota, dar
+negrąžinta" — o ne apsimeta, kad ritė jau lentynoje.
+
+Šalutinė nauda: iš to savaime gaunasi sąrašas **„kas išduota ir negrįžo"**,
+kurio sandėlys dabar neturi. Tai bene naudingiausias vienas rodinys visoje
+atsargų dalyje, ir jis nieko papildomo nekainuoja.
+
+Automatiškai grąžinimo **neįrašinėjame**. Prielaida „tikriausiai parvežė"
+sugadintų likutį tyliai, o būtent tyliai gendantis skaičius yra blogiausia,
+kas gali nutikti sandėlio apskaitoje.
+
 **`site_material_events`** — perėjimų žurnalas: iš kokios būsenos, į kokią,
 kas, kada, komentaras. **Niekada nekeičiamas, tik pildomas.**
 
@@ -341,13 +365,23 @@ Antra dalis (2026-08-17):
 - **Žiniaraštį galima pateikti be visų kiekių** (DC kabelis), bet faktas
   privalo būti užpildytas visose eilutėse.
 
-## Likę atviri klausimai
+Trečia dalis (2026-08-17):
 
-1. **Ar kompensacija montuotojui skaičiuojama programoje, ar tik pažymima?**
-   `paid_by = 'employee'` faktą užfiksuoja, bet kas toliau — ar programa
-   sumuoja skolą žmogui, ar tai perima buhalterija iš eksporto? Skubos nėra:
-   laukas jau bus, tad sprendimą galima priimti ir vėliau.
-2. **Ar sandėlys gali išduoti daugiau, nei suplanuota** (visa ritė vietoj
-   80 m), ar išdavimas turi atitikti planą? Faktinis kabelio srautas siūlo
-   pirmą variantą, ir modelis jam paruoštas, bet tai verta patvirtinti su
-   sandėliu.
+- **Išduoti daugiau, nei suplanuota, galima** — ritės nepjaustome.
+- Skirtumas tarp išduota ir sunaudota lieka **atviru likučiu**, kol sandėlys
+  užfiksuoja grąžinimą. Automatiškai neįrašinėjame.
+
+## Likęs atviras klausimas
+
+**Kai montuotojas perka savo pinigais — kaip jis tuos pinigus atgauna?**
+
+`paid_by = 'employee'` faktą užfiksuoja, bet neaišku, kas vyksta toliau:
+
+- **A.** Programa sumuoja skolą žmogui ir žymi, kada grąžinta. Reikia atskiros
+  apskaitos ir „grąžinta" būsenos.
+- **B.** Programa tik užfiksuoja faktą su čekiu, o pinigus tvarko buhalterija
+  už programos ribų.
+
+**B paprastesnis, ir greičiausiai jo užtenka.** Sprendimo skuba nedidelė —
+`paid_by` laukas jau bus, tad pasirinkti galima ir po pirmo etapo, nieko
+neperrašinėjant.
