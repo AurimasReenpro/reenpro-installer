@@ -8,6 +8,7 @@ import {
   catalogItemLabel, lineLabel,
   type MaterialLine,
 } from '../../../api/materials';
+import { normalizeSiteType, siteTypeLabel } from '../../../lib/siteTypes';
 import type { SiteWithTeam } from './types';
 
 export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; siteId: string }) {
@@ -127,6 +128,13 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
       || (l.catalog?.code ?? '').toLowerCase().includes(p);
     return pagalRusi && pagalPaieska;
   });
+
+  // Šablonai skiriami į tinkamus šiam objektui ir kitus. Netinkami nedingsta,
+  // bet nustumiami į atskirą grupę — tipas turi apsaugoti nuo klaidingo
+  // pasirinkimo, o ne tik gražiai sudėlioti sąrašą.
+  const objektoTipas = normalizeSiteType(site.site_type);
+  const tinkami   = (sablonai ?? []).filter((s) => s.site_type == null || s.site_type === objektoTipas);
+  const netinkami = (sablonai ?? []).filter((s) => s.site_type != null && s.site_type !== objektoTipas);
 
   // Grupuojama pagal kategoriją: su 60 eilučių matai 6 antraštes, ne 60 eilučių.
   const grupes = new Map<string, MaterialLine[]>();
@@ -324,9 +332,20 @@ export default function MaterialsTab({ site, siteId }: { site: SiteWithTeam; sit
               className="flex-1 min-w-[220px] h-[36px] px-2 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary cursor-pointer"
             >
               <option value="">— pasirinkti šabloną —</option>
-              {(sablonai ?? []).map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+              {tinkami.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}{s.system_type ? ` · ${s.system_type}` : ''}
+                </option>
               ))}
+              {netinkami.length > 0 && (
+                <optgroup label="Kitiems objektų tipams">
+                  {netinkami.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} · {siteTypeLabel(s.site_type)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             <button
               onClick={() => isSablono.mutate()}

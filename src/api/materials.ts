@@ -178,6 +178,32 @@ export async function getAllMaterialTemplates(): Promise<MaterialTemplate[]> {
   return data ?? [];
 }
 
+/**
+ * Šablonų turinio rodyklė paieškai: `templateId → "Sunpower P7 555W Huawei…"`.
+ *
+ * Reikalinga tam, kad įvedus „Sigenergy" būtų randami šablonai, kuriuose ta
+ * įranga YRA eilutėse, o ne tik tie, kurių pavadinime toks žodis. Įranga
+ * keičiasi dažniau nei objektų tipai, tad ieškoti turinyje praktiškiau nei
+ * kurti jai atskirą klasifikaciją.
+ *
+ * Viena užklausa visiems šablonams — jų dešimtys, ne tūkstančiai.
+ */
+export async function getTemplateContentsIndex(): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('material_template_lines')
+    .select('template_id, catalog:equipment_catalog(brand, model, code)');
+  if (error) throw error;
+
+  const rodykle: Record<string, string> = {};
+  for (const row of data ?? []) {
+    const c = row.catalog as unknown as { brand: string; model: string; code: string | null } | null;
+    if (!c) continue;
+    const tekstas = [c.brand, c.model, c.code].filter(Boolean).join(' ').toLowerCase();
+    rodykle[row.template_id] = `${rodykle[row.template_id] ?? ''} ${tekstas}`.trim();
+  }
+  return rodykle;
+}
+
 export async function createMaterialTemplate(
   input: { name: string; site_type?: string | null; system_type?: string | null },
 ): Promise<MaterialTemplate> {

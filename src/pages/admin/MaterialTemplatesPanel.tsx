@@ -8,8 +8,9 @@ import { useConfirm } from '../../hooks/useConfirm';
 import {
   getAllMaterialTemplates, createMaterialTemplate, updateMaterialTemplate, deleteMaterialTemplate,
   getTemplateLines, addTemplateLine, updateTemplateLine, deleteTemplateLine,
-  getMaterialCatalog, catalogItemLabel,
+  getMaterialCatalog, catalogItemLabel, getTemplateContentsIndex,
 } from '../../api/materials';
+import { SITE_TYPE_OPTIONS, siteTypeLabel } from '../../lib/siteTypes';
 import {
   TEMPLATE_BASES, BASIS_LABELS, BASIS_HINTS, basisExample, type TemplateBasis,
 } from '../../lib/materialTemplates';
@@ -200,16 +201,33 @@ function TemplateLines({ templateId }: { templateId: string }) {
   );
 }
 
+/** Skirtukai tokie patys kaip Kontroliniuose sąrašuose — ta pati kalba. */
+const TIPO_SKIRTUKAI = [
+  { id: 'all',     label: 'Visi'     },
+  { id: 'b2c',     label: 'B2C'      },
+  { id: 'b2b',     label: 'B2B'      },
+  { id: 'service', label: 'Servisas' },
+] as const;
+type TipoSkirtukas = (typeof TIPO_SKIRTUKAI)[number]['id'];
+
 export default function MaterialTemplatesPanel() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [paieska, setPaieska] = useState('');
   const [atidarytas, setAtidarytas] = useState<string | null>(null);
   const [naujoVardas, setNaujoVardas] = useState('');
+  const [naujoTipas, setNaujoTipas] = useState<string>('');
+  const [naujoSistema, setNaujoSistema] = useState<string>('');
+  const [tipas, setTipas] = useState<TipoSkirtukas>('all');
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['material_templates_all'],
     queryFn: getAllMaterialTemplates,
+  });
+
+  const { data: turinys } = useQuery({
+    queryKey: ['material_template_contents'],
+    queryFn: getTemplateContentsIndex,
   });
 
   const atnaujinti = () => {
@@ -218,8 +236,16 @@ export default function MaterialTemplatesPanel() {
   };
 
   const kurti = useMutation({
-    mutationFn: () => createMaterialTemplate({ name: naujoVardas.trim() }),
-    onSuccess: (t) => { atnaujinti(); setNaujoVardas(''); setAtidarytas(t.id); toast.success('Šablonas sukurtas.'); },
+    mutationFn: () => createMaterialTemplate({
+      name: naujoVardas.trim(),
+      // Tuščias tipas reiškia „tinka visiems“ — sąmoningai leidžiama.
+      site_type: naujoTipas || null,
+      system_type: naujoSistema || null,
+    }),
+    onSuccess: (t) => {
+      atnaujinti(); setNaujoVardas(''); setNaujoSistema('');
+      setAtidarytas(t.id); toast.success('Šablonas sukurtas.');
+    },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Klaida'),
   });
 
@@ -236,11 +262,33 @@ export default function MaterialTemplatesPanel() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Klaida'),
   });
 
-  const rasti = (templates ?? []).filter((t) =>
-    !paieska || t.name.toLowerCase().includes(paieska.toLowerCase()));
+  const p = paieska.trim().toLowerCase();
+  const rasti = (templates ?? []).filter((t) => {
+    // Šablonas be tipo tinka visiems, tad rodomas kiekviename skirtuke.
+    const pagalTipa = tipas === 'all' || t.site_type == null || t.site_type === tipas;
+    const pagalPaieska = !p
+      || t.name.toLowerCase().includes(p)
+      || (turinys?.[t.id] ?? '').includes(p);
+    return pagalTipa && pagalPaieska;
+  });
 
   return (
     <div className="space-y-4">
+      {/* Skirtukai pagal objekto tipą */}
+      <div className="inline-flex rounded-card bg-surface-2 p-1">
+        {TIPO_SKIRTUKAI.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setTipas(s.id)}
+            className={`h-[32px] px-4 rounded-btn text-[13px] font-semibold transition-colors cursor-pointer ${
+              tipas === s.id ? 'bg-surface text-primary dark:text-primary-ink shadow-sm' : 'text-subtle hover:text-text'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
       {/* Paieška + naujas */}
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -249,7 +297,8 @@ export default function MaterialTemplatesPanel() {
             type="text"
             value={paieska}
             onChange={(e) => setPaieska(e.target.value)}
-            placeholder="Ieškoti šablono..."
+            placeholder="Ieškoti pagal pavadinimą arba įrangą..."
+            title="Randa ir pagal tai, kas yra šablono eilutėse"
             className="w-full h-[40px] pl-9 pr-4 bg-surface border border-border rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
@@ -258,8 +307,29 @@ export default function MaterialTemplatesPanel() {
           value={naujoVardas}
           onChange={(e) => setNaujoVardas(e.target.value)}
           placeholder="Naujo šablono pavadinimas"
-          className="h-[40px] px-3 min-w-[220px] bg-surface border border-border rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary"
+          className="h-[40px] px-3 min-w-[200px] bg-surface border border-border rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary"
         />
+        <select
+          value={naujoTipas}
+          onChange={(e) => setNaujoTipas(e.target.value)}
+          title="Kuriems objektams šablonas tinka"
+          className="h-[40px] px-2 bg-surface border border-border rounded-card text-[14px] text-text focus:outline-none focus:border-primary cursor-pointer"
+        >
+          <option value="">Visiems tipams</option>
+          {SITE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <input
+          type="text"
+          list="template-system-types"
+          value={naujoSistema}
+          onChange={(e) => setNaujoSistema(e.target.value)}
+          placeholder="Sistema"
+          className="h-[40px] px-3 w-[130px] bg-surface border border-border rounded-card text-[14px] text-text placeholder-subtle focus:outline-none focus:border-primary"
+        />
+        <datalist id="template-system-types">
+          <option value="PV" />
+          <option value="PV+BESS" />
+        </datalist>
         <button
           onClick={() => kurti.mutate()}
           disabled={!naujoVardas.trim() || kurti.isPending}
@@ -305,6 +375,19 @@ export default function MaterialTemplatesPanel() {
                     <span className={`font-semibold text-[14px] truncate ${t.is_active ? 'text-text' : 'text-subtle line-through'}`}>
                       {t.name}
                     </span>
+
+                    {/* Sistemos tipas — ženklelis, ne skirtukas: reikšmių tik
+                        dvi, o skirtukai su vienu įrašu tik trukdytų. */}
+                    {t.site_type && (
+                      <span className="shrink-0 rounded-[6px] border border-border px-1.5 py-0.5 text-[10px] font-bold text-muted">
+                        {siteTypeLabel(t.site_type)}
+                      </span>
+                    )}
+                    {t.system_type && (
+                      <span className="shrink-0 rounded-[6px] bg-primary-fixed px-1.5 py-0.5 text-[10px] font-bold text-on-primary-fixed">
+                        {t.system_type}
+                      </span>
+                    )}
                   </button>
 
                   <button
