@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  Package, Plus, Trash2, Loader2, X, Search, ChevronDown,
+  Package, Plus, Trash2, Loader2, X, Search, ChevronDown, ChevronRight,
   Cpu, LayoutGrid, BatteryCharging, Wrench, Cable, ShieldCheck,
-  Pencil, Settings2, Check,
+  Pencil, Settings2, Check, EyeOff,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import MaterialTemplatesPanel from './MaterialTemplatesPanel';
 import {
   getCatalogItems, createCatalogItem, updateCatalogItem, deleteCatalogItem,
+  getCatalogItemUsage, CatalogItemInUseError,
   getEquipmentCategories, createEquipmentCategory,
   updateEquipmentCategory, deleteEquipmentCategory,
 } from '../../api/catalog';
@@ -112,6 +113,22 @@ const KIND_FILTRAI = [
 ] as const;
 type KindFiltras = (typeof KIND_FILTRAI)[number]['id'];
 
+/**
+ * Iki tiek įrašų kategorijos rodomos išskleistos.
+ *
+ * Su keliais įrašais suskleidimas tik trukdo, o su keliais šimtais be jo matai
+ * vien slinkties juostą. Riba, ne jungiklis, nes teisingas atsakymas priklauso
+ * nuo to, kiek prekių yra, o ne nuo to, ką žmogus kartą pasirinko.
+ */
+const IŠSKLEIDIMO_RIBA = 40;
+
+/** Vienas laukas įrašo redagavimo formoje — kad TS nesileistų į `any`. */
+type ItemForm = {
+  category: string; brand: string; model: string; specifications: string;
+  capacity_kwh: string; unit: string; code: string; kind: CatalogKind;
+  is_active: boolean;
+};
+
 export default function EquipmentCatalog() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
@@ -123,6 +140,14 @@ export default function EquipmentCatalog() {
   const [form, setForm] = useState<NewItemForm>(TUSCIA_FORMA);
   const [kindFiltras, setKindFiltras] = useState<KindFiltras>('all');
   const [rodinys, setRodinys] = useState<'catalog' | 'templates'>('catalog');
+  const [rodytiNeaktyvius, setRodytiNeaktyvius] = useState(false);
+
+  // Įrašo redagavimas vietoje — atveriamas paspaudus eilutę.
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [itemForm, setItemForm] = useState<ItemForm | null>(null);
+  // Rankiniu būdu suskleistos/išskleistos kategorijos. Kol kategorijos čia
+  // nėra, galioja `IŠSKLEIDIMO_RIBA`.
+  const [perjungtos, setPerjungtos] = useState<Record<string, boolean>>({});
 
   // Category management state
   const [showCatMgmt, setShowCatMgmt] = useState(false);
@@ -178,8 +203,22 @@ export default function EquipmentCatalog() {
     mutationFn: deleteCatalogItem,
     onSuccess: () => {
       toast.success('Įrašas ištrintas iš katalogo.');
+      setEditingItemId(null);
       void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] });
     },
+    onError: (err: unknown) => {
+      if (err instanceof CatalogItemInUseError) {
+        toast.error('Prekė buvo panaudota — ištrinti nebegalima. Išjunkite ją.');
+        return;
+      }
+      toast.error(err instanceof Error ? err.message : 'Klaida');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateCatalogItem>[1] }) =>
+      updateCatalogItem(id, patch),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] }),
     onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
   });
 
@@ -216,13 +255,94 @@ export default function EquipmentCatalog() {
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
+  const itemLabel = (item: CatalogItem) =>
+    [item.brand, item.model].filter(Boolean).join(' ').trim();
+
+  /**
+   * Trynimas arba išjungimas — sprendžia panaudojimas, ne mygtukas.
+   *
+   * Bazė panaudotos prekės ištrinti neleidžia (`ON DELETE RESTRICT`), ir tai
+   * teisinga: senas žiniaraštis turi likti skaitomas. Bet klaidos pranešimas
+   * apie svetimą raktą žmogui nieko nesako, tad panaudojimas tikrinamas
+   * pirmiau ir siūlomas išjungimas — prekė dingsta iš rinkiklių, o senose
+   * eilutėse lieka.
+   */
   const handleDelete = async (item: CatalogItem) => {
+    const { ziniarasciai, sablonai } = await getCatalogItemUsage(item.id);
+    const panaudota = ziniarasciai + sablonai;
+
+    if (panaudota === 0) {
+      const ok = await confirm({
+        title: 'Ištrinti iš katalogo?',
+        message: `Ar tikrai norite ištrinti „${itemLabel(item)}"? Ši prekė niekur nenaudojama.`,
+        variant: 'danger',
+      });
+      if (ok) deleteMutation.mutate(item.id);
+      return;
+    }
+
+    if (!item.is_active) {
+      toast.error(`„${itemLabel(item)}" jau išjungta, o ištrinti negalima — naudojama ${panaudota} vietoje.`);
+      return;
+    }
+
+    const kur = [
+      ziniarasciai > 0 ? `${ziniarasciai} žiniaraščio eilutėse` : null,
+      sablonai > 0 ? `${sablonai} šablono eilutėse` : null,
+    ].filter(Boolean).join(' ir ');
+
     const ok = await confirm({
-      title: 'Ištrinti iš katalogo?',
-      message: `Ar tikrai norite ištrinti „${item.brand ? item.brand + ' ' : ''}${item.model}"?`,
+      title: 'Ištrinti negalima',
+      message: `„${itemLabel(item)}" naudojama ${kur}, tad ištrynus seni žiniaraščiai liktų be pavadinimo. Ar išjungti? Prekė dings iš rinkiklių, bet senose eilutėse liks.`,
       variant: 'danger',
     });
-    if (ok) deleteMutation.mutate(item.id);
+    if (ok) {
+      updateMutation.mutate(
+        { id: item.id, patch: { is_active: false } },
+        { onSuccess: () => { toast.success('Prekė išjungta.'); setEditingItemId(null); } },
+      );
+    }
+  };
+
+  // ── Įrašo redagavimas ────────────────────────────────────────────────────────
+  const startEditItem = (item: CatalogItem) => {
+    setEditingItemId(item.id);
+    setItemForm({
+      category: item.category,
+      brand: item.brand,
+      model: item.model,
+      specifications: item.specifications ?? '',
+      capacity_kwh: item.capacity_kwh?.toString() ?? '',
+      unit: item.unit,
+      code: item.code ?? '',
+      kind: item.kind,
+      is_active: item.is_active,
+    });
+  };
+
+  const saveEditItem = (item: CatalogItem) => {
+    if (!itemForm) return;
+    if (!itemForm.model.trim()) { toast.error('Pavadinimas negali būti tuščias.'); return; }
+
+    const patch: Parameters<typeof updateCatalogItem>[1] = {
+      category: itemForm.category,
+      brand: itemForm.brand.trim(),
+      model: itemForm.model.trim(),
+      specifications: itemForm.specifications.trim() || null,
+      unit: itemForm.unit.trim() || 'vnt.',
+      // Tuščias kodas rašomas kaip NULL — unikalumo indeksas NULL netikrina,
+      // tad kelias prekes be kodo turėti galima, o kelias su "" — ne.
+      code: itemForm.code.trim() || null,
+      kind: itemForm.kind,
+      is_active: itemForm.is_active,
+    };
+    if (isBatteryCategory(itemForm.category)) {
+      patch.capacity_kwh = itemForm.capacity_kwh === '' ? null : parseFloat(itemForm.capacity_kwh);
+    }
+
+    updateMutation.mutate({ id: item.id, patch }, {
+      onSuccess: () => { toast.success('Išsaugota.'); setEditingItemId(null); },
+    });
   };
 
   const handleDeleteCat = async (cat: EquipmentCategoryDef) => {
@@ -251,13 +371,6 @@ export default function EquipmentCatalog() {
 
   const catMap = Object.fromEntries(categories.map(c => [c.name, c]));
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateCatalogItem>[1] }) =>
-      updateCatalogItem(id, patch),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['equipment_catalog'] }),
-    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Klaida'),
-  });
-
   const filtered = items.filter((item) => {
     const matchesSearch =
       !search ||
@@ -268,8 +381,13 @@ export default function EquipmentCatalog() {
       (item.code ?? '').toLowerCase().includes(search.toLowerCase());
     const matchesCategory = filterCategory === 'Visos' || item.category === filterCategory;
     const matchesKind = kindFiltras === 'all' || item.kind === kindFiltras;
-    return matchesSearch && matchesCategory && matchesKind;
+    // Išjungtos prekės slepiamos, kol jų neprašoma — bet redaguojamą įrašą
+    // reikia matyti, kitaip išjungus jis dingtų iš po pirštų.
+    const matchesActive = rodytiNeaktyvius || item.is_active || item.id === editingItemId;
+    return matchesSearch && matchesCategory && matchesKind && matchesActive;
   });
+
+  const neaktyvuSkaicius = items.filter((i) => !i.is_active).length;
 
   const grouped = catNames.reduce<Record<string, CatalogItem[]>>((acc, name) => {
     const catItems = filtered.filter(i => i.category === name);
@@ -279,6 +397,13 @@ export default function EquipmentCatalog() {
   const knownNames = new Set(catNames);
   const otherItems = filtered.filter(i => !knownNames.has(i.category));
   if (otherItems.length > 0) grouped['Kita'] = otherItems;
+
+  // Ieškant visada išskleista — paslėptas atitikmuo yra tas pats, kas nerastas.
+  const numatytaiIšskleista = !!search || filtered.length <= IŠSKLEIDIMO_RIBA;
+  const arIšskleista = (kategorija: string) =>
+    perjungtos[kategorija] ?? numatytaiIšskleista;
+  const perjungti = (kategorija: string) =>
+    setPerjungtos((p) => ({ ...p, [kategorija]: !arIšskleista(kategorija) }));
 
   const defaultCatForForm = categories[0]?.name ?? '';
 
@@ -438,9 +563,6 @@ export default function EquipmentCatalog() {
                       placeholder="vnt."
                       className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                     />
-                    <datalist id="catalog-units">
-                      {EQUIPMENT_UNITS.map((u) => <option key={u} value={u} />)}
-                    </datalist>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Rivilės kodas</label>
@@ -711,7 +833,28 @@ export default function EquipmentCatalog() {
           </select>
           <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle dark:text-subtle pointer-events-none" />
         </div>
+
+        {/* Išjungtų nerodome, kol jų nėra — tuščias jungiklis būtų triukšmas. */}
+        {neaktyvuSkaicius > 0 && (
+          <button
+            onClick={() => setRodytiNeaktyvius(v => !v)}
+            className={`flex items-center gap-2 h-[40px] px-4 rounded-card border text-[13px] font-medium transition-colors cursor-pointer ${
+              rodytiNeaktyvius
+                ? 'border-primary text-primary dark:text-primary-ink bg-primary/10'
+                : 'border-border text-muted dark:text-subtle bg-surface hover:bg-surface-2'
+            }`}
+          >
+            <EyeOff size={15} />
+            Išjungtos ({neaktyvuSkaicius})
+          </button>
+        )}
       </div>
+
+      {/* Mato pasiūlymai reikalingi ir eilutės redaktoriui, tad sąrašas gyvena
+          čia, o ne pridėjimo lange, kuris rodomas tik atidarius. */}
+      <datalist id="catalog-units">
+        {EQUIPMENT_UNITS.map((u) => <option key={u} value={u} />)}
+      </datalist>
 
       {/* ── Content ── */}
       {isLoading ? (
@@ -734,10 +877,11 @@ export default function EquipmentCatalog() {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {Object.entries(grouped).map(([category, catItems]) => {
             const Icon = getCatIcon(category);
             const cat = catMap[category];
+            const išskleista = arIšskleista(category);
             return (
               <motion.div
                 key={category}
@@ -745,86 +889,226 @@ export default function EquipmentCatalog() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-surface border border-border rounded-card shadow-sm dark:shadow-none overflow-hidden"
               >
-                {/* Category header */}
-                <div className="px-5 py-3.5 border-b border-border bg-surface-2/50 dark:bg-surface-2 flex items-center gap-2">
+                {/* Kategorijos antraštė — ji pati yra suskleidimo mygtukas. */}
+                <button
+                  type="button"
+                  onClick={() => perjungti(category)}
+                  className="w-full px-5 py-3.5 bg-surface-2/50 dark:bg-surface-2 flex items-center gap-2 text-left hover:bg-surface-2 transition-colors cursor-pointer"
+                >
+                  {išskleista
+                    ? <ChevronDown size={15} className="text-subtle dark:text-subtle shrink-0" />
+                    : <ChevronRight size={15} className="text-subtle dark:text-subtle shrink-0" />}
                   <div
-                    className="w-7 h-7 rounded-[8px] flex items-center justify-center"
+                    className="w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0"
                     style={cat ? { background: cat.bg_color, color: cat.text_color } : { background: '#F3F4F6', color: '#6B7280' }}
                   >
                     <Icon size={15} />
                   </div>
                   <h3 className="font-bold text-[14px] text-text">{category}</h3>
                   <span className="ml-auto text-[12px] font-semibold text-subtle dark:text-subtle">{catItems.length} vnt.</span>
-                </div>
+                </button>
 
-                {/* Items table */}
-                <table className="w-full text-left">
+                {išskleista && (
+                <table className="w-full text-left border-t border-border">
                   <thead>
                     <tr className="border-b border-border bg-surface-2/50 dark:bg-surface-2">
-                      <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider">Gamintojas</th>
-                      <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider">Modelis</th>
-                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[130px]">Rivilės kodas</th>
-                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[90px]">Vnt.</th>
+                      <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider">Pavadinimas</th>
+                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[140px]">Rivilės kodas</th>
+                      <th className="py-2.5 px-3 text-[11px] font-bold text-subtle uppercase tracking-wider w-[80px]">Vnt.</th>
                       <th className="py-2.5 px-5 text-[11px] font-bold text-subtle uppercase tracking-wider hidden lg:table-cell">Specifikacijos</th>
-                      <th className="py-2.5 px-5 w-12" />
+                      <th className="py-2.5 px-5 w-10" />
                     </tr>
                   </thead>
                   <tbody>
-                    {catItems.map((item) => (
-                      <tr key={item.id} className="border-b border-border dark:border-white/5 last:border-none hover:bg-surface-2/50 dark:hover:bg-surface-2 transition-colors group">
-                        <td className="py-3 px-5 text-[13px] font-semibold text-text">
-                          {item.brand || <span className="text-subtle dark:text-muted">—</span>}
-                        </td>
-                        <td className="py-3 px-5 text-[13px] text-text">
-                          {item.model}
-                          {item.capacity_kwh != null && (
-                            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-info-bg text-info border border-info/30 align-middle">
-                              <BatteryCharging size={11} /> {item.capacity_kwh} kWh
-                            </span>
-                          )}
-                        </td>
-                        {/* Kodas ir matas redaguojami vietoje: seni įrašai jų
-                            neturi, o be kodo nurašymo eksportas lieka rankinis.
-                            Atskira forma tokiam užpildymui būtų per lėta. */}
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            defaultValue={item.code ?? ''}
-                            placeholder="—"
-                            onBlur={(e) => {
-                              const v = e.target.value.trim() || null;
-                              if (v !== (item.code ?? null)) updateMutation.mutate({ id: item.id, patch: { code: v } });
-                            }}
-                            className="w-full h-[30px] px-2 tabular-nums bg-surface-2 border border-border rounded-input text-[12px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            defaultValue={item.unit}
-                            onBlur={(e) => {
-                              const v = e.target.value.trim() || 'vnt.';
-                              if (v !== item.unit) updateMutation.mutate({ id: item.id, patch: { unit: v } });
-                            }}
-                            className="w-full h-[30px] px-2 bg-surface-2 border border-border rounded-input text-[12px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
-                          />
-                        </td>
-                        <td className="py-3 px-5 text-[13px] text-muted dark:text-subtle hidden lg:table-cell">
-                          {item.specifications || <span className="text-subtle dark:text-muted">—</span>}
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <button
-                            onClick={() => void handleDelete(item)}
-                            disabled={deleteMutation.isPending}
-                            className="w-7 h-7 flex items-center justify-center rounded-[6px] text-subtle dark:text-muted hover:text-danger hover:bg-danger/10 dark:hover:bg-danger/30 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer disabled:opacity-30"
-                          >
-                            {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {catItems.map((item) => {
+                      const redaguojama = editingItemId === item.id;
+                      return (
+                      <Fragment key={item.id}>
+                        {/* Visa eilutė yra mygtukas: pavadinimas taisomas
+                            paspaudus ant prekės, be atskiro pieštuko. */}
+                        <tr
+                          onClick={() => redaguojama ? setEditingItemId(null) : startEditItem(item)}
+                          className={`border-b border-border dark:border-white/5 last:border-none transition-colors cursor-pointer ${
+                            redaguojama ? 'bg-surface-2 dark:bg-surface-2' : 'hover:bg-surface-2/50 dark:hover:bg-surface-2'
+                          } ${item.is_active ? '' : 'opacity-55'}`}
+                        >
+                          <td className="py-3 px-5 text-[13px] text-text">
+                            {itemLabel(item) || <span className="text-subtle dark:text-muted">—</span>}
+                            {item.capacity_kwh != null && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-info-bg text-info border border-info/30 align-middle">
+                                <BatteryCharging size={11} /> {item.capacity_kwh} kWh
+                              </span>
+                            )}
+                            {!item.is_active && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-subtle border border-border align-middle">
+                                <EyeOff size={11} /> Išjungta
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-[12px] tabular-nums text-muted dark:text-subtle">
+                            {item.code || <span className="text-subtle dark:text-muted">—</span>}
+                          </td>
+                          <td className="py-3 px-3 text-[12px] text-muted dark:text-subtle">{item.unit}</td>
+                          <td className="py-3 px-5 text-[13px] text-muted dark:text-subtle hidden lg:table-cell">
+                            {item.specifications || <span className="text-subtle dark:text-muted">—</span>}
+                          </td>
+                          <td className="py-3 px-5 text-right">
+                            <Pencil size={13} className="inline text-subtle dark:text-muted" />
+                          </td>
+                        </tr>
+
+                        {redaguojama && itemForm && (
+                          <tr className="border-b border-border dark:border-white/5">
+                            <td colSpan={5} className="p-0">
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-5 py-4 bg-surface border-l-2 border-primary space-y-3"
+                              >
+                                <div>
+                                  <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Pavadinimas *</label>
+                                  <input
+                                    type="text"
+                                    value={itemForm.model}
+                                    autoFocus
+                                    onChange={(e) => setItemForm(f => f && ({ ...f, model: e.target.value }))}
+                                    className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Kategorija</label>
+                                    <select
+                                      value={itemForm.category}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, category: e.target.value }))}
+                                      className="w-full h-[38px] px-2 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                                    >
+                                      {!catNames.includes(itemForm.category) && (
+                                        <option value={itemForm.category}>{itemForm.category}</option>
+                                      )}
+                                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Rūšis</label>
+                                    <select
+                                      value={itemForm.kind}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, kind: e.target.value as CatalogKind }))}
+                                      className="w-full h-[38px] px-2 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                                    >
+                                      {CATALOG_KINDS.map(k => <option key={k} value={k}>{CATALOG_KIND_LABELS[k]}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Matas</label>
+                                    <input
+                                      type="text"
+                                      list="catalog-units"
+                                      value={itemForm.unit}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, unit: e.target.value }))}
+                                      className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Rivilės kodas</label>
+                                    <input
+                                      type="text"
+                                      value={itemForm.code}
+                                      placeholder="—"
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, code: e.target.value }))}
+                                      className="w-full h-[38px] px-3 tabular-nums bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Gamintojas</label>
+                                    <input
+                                      type="text"
+                                      value={itemForm.brand}
+                                      placeholder="neprivalomas"
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, brand: e.target.value }))}
+                                      className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">Specifikacijos</label>
+                                    <input
+                                      type="text"
+                                      value={itemForm.specifications}
+                                      placeholder="Pvz.: 10 kW, 3 fazės"
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, specifications: e.target.value }))}
+                                      className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                  </div>
+                                </div>
+
+                                {isBatteryCategory(itemForm.category) && (
+                                  <div className="md:w-1/2">
+                                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">
+                                      <BatteryCharging size={13} /> Talpa vienetui (kWh)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={0.01}
+                                      value={itemForm.capacity_kwh}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, capacity_kwh: e.target.value }))}
+                                      className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-3 flex-wrap pt-1">
+                                  <label className="flex items-center gap-2 text-[13px] text-muted dark:text-subtle cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={itemForm.is_active}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, is_active: e.target.checked }))}
+                                      className="w-4 h-4 accent-primary cursor-pointer"
+                                    />
+                                    Rodyti rinkikliuose
+                                  </label>
+
+                                  <div className="flex-1" />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDelete(item)}
+                                    disabled={deleteMutation.isPending}
+                                    className="flex items-center gap-1.5 h-[36px] px-3 rounded-btn text-danger text-[13px] font-medium hover:bg-danger/10 dark:hover:bg-danger/30 transition-colors cursor-pointer disabled:opacity-40"
+                                  >
+                                    {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                    Ištrinti
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItemId(null)}
+                                    className="h-[36px] px-4 rounded-btn border border-border text-muted dark:text-subtle font-medium text-[13px] hover:bg-surface-2 transition-colors cursor-pointer"
+                                  >
+                                    Atšaukti
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => saveEditItem(item)}
+                                    disabled={updateMutation.isPending}
+                                    className="flex items-center gap-1.5 h-[36px] px-4 rounded-btn bg-primary text-white font-medium text-[13px] hover:opacity-90 transition-all disabled:opacity-60 cursor-pointer"
+                                  >
+                                    {updateMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                                    Išsaugoti
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
+                )}
               </motion.div>
             );
           })}

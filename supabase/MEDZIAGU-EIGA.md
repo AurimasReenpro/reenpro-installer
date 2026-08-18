@@ -65,6 +65,10 @@ Pridedama:
 perdavimas buhalterijai amžinai liks rankinis; su juo eksportas įkeliamas
 tiesiai.
 
+Katalogas užpildytas 2026-08-18 iš Rivilės — 341 prekė. Kas ten svarbaus ir ko
+NEDAROME (sinchronizavimo, `system` stulpelio), žr. skyrių
+„Katalogas užpildytas iš Rivilės".
+
 ### Žiniaraštis
 
 **`site_material_lists`** — antraštė: objektas, būsena, versija, kūrėjas,
@@ -403,25 +407,65 @@ Ketvirta dalis (2026-08-17):
   Tai panaikino visą atsargų posistemę: nebereikia nei `stock_movements`
   žurnalo, nei rezervacijų, nei prekių gavimo fiksavimo, nei viso 4 etapo.
 
+## Katalogas užpildytas iš Rivilės (2026-08-18)
+
+**Sinchronizavimo nebus.** Katalogas užpildytas VIENĄ kartą
+(`20260818120000_seed_catalog_from_rivile.sql`, 341 prekė, 19 kategorijų), o
+toliau gyvena programoje: prekės pridedamos, taisomos ir trinamos ranka.
+Sprendimas naudotojo — kartotinis importas reikštų nuolatinį dviejų sąrašų
+derinimą, o Rivilė ir taip lieka apskaitos tiesa.
+
+Tai **atšaukia ankstesnį reikalavimą** importui remtis `code` kaip raktu.
+Dalinis unikalumo indeksas lieka, bet dabar jis saugo nuo dublikatų vedant
+ranka, o ne nuo pakartotinio įkėlimo.
+
+**Kodai eksporte buvo nukirsti ties 12 simbolių.** Failas buvo spausdinama
+ataskaita „Prekių likučiai", ne duomenų eksportas: 29 kodai stovi lygiai ties
+riba, keli matomai nutrūkę (`R_LY 4,2X19-`, `R_28X85 WK-D`, `R_M6X25-BI-M`).
+Vienkartinei sėklai tai nėra kliūtis — kodas yra nuoroda žmogui, ne jungimo
+raktas, — bet **tie 29 kodai bazėje yra neteisingi**, kol jų niekas nepataisė
+katalogo kortelėje.
+
+**Trijose eilutėse buvo U+009A** (`R00001889`, `R00001912`, `R00004381`) —
+CP1252 baitas raidei „š", likęs šalia teisingai užkoduotos raidės po dvigubo
+perkodavimo. Išvalytas prieš įrašant. Jei kada bus importuojama daugiau,
+valymas nuo C1 valdymo simbolių privalomas: jie nematomi ir tyliai gadina
+pavadinimus bei paiešką.
+
+**`brand` paliktas tuščias, visas pavadinimas — `model` lauke.** Rivilė duoda
+vieną eilutę („Kabelis FACAB SOLAR + H1Z2Z2-K 1x70 1kV juodas"); skaidyti ją į
+gamintoją ir modelį būtų spėjimas. Klaidingas gamintojas blogiau nei tuščias
+laukas, o pavadinimą bet kada galima pataisyti. Todėl sąraše rodomas vienas
+stulpelis „Pavadinimas" (`brand` + `model`), o ne du.
+
+**Seni 5 įrašai nesujungti su importuotais.** Keturi turi atitikmenis
+(`Sunpower P7 555W` = `P7-555-COM`, `Trina 460W` = `NEG9R.28460`,
+`SigenBAT 10.0` = `11130012`), o `Sigenergy TP2` atitinka **du** Rivilės
+įrašus — `11010185` (10.0 TP2) ir `11010186` (12.0 TP2), tad kuris, neaišku.
+Būtent dėl to vakarykštėje migracijoje liko nesusieta eilutė objekte 3220. Jie
+susieti su objektų žiniaraščiais, tad sujungimas yra žmogaus sprendimas
+kataloge, ne spėjimas migracijoje.
+
+**Konstrukcijų hierarchija — kategorijomis, ne nauja schema.** Buvo svarstyta
+pridėti `system` stulpelį (Enerack, Enzeit, 70xxxx šeima, Eyecatcher — 99 iš
+341 prekės). Atsisakyta: dangos tipas (čerpė, trapecija, falcas, plokščias,
+žemė) **nėra prekės savybė** — profilis `R705100-3550` tinka kelioms dangoms,
+tad stulpelis verstų jį dubliuoti. Dangos tipas gyvena **šablone**, kuris ir
+yra komplektacija. Sistemai užtenka kategorijos, o kategorijas galima kurti ir
+pervadinti sąsajoje.
+
+### Trynimas: „ištrinti" ir „išjungti" nėra tas pats
+
+`site_material_lines` ir `material_template_lines` ryšiai yra
+`ON DELETE RESTRICT`, tad panaudotos prekės bazė ištrinti neleidžia — ir
+teisingai: senas žiniaraštis turi likti skaitomas. Sąsaja tikrina panaudojimą
+**prieš** trynimą ir pasako skaičių („naudojama 3 žiniaraščio eilutėse"), o
+vietoje trynimo siūlo `is_active = false`. Nenaudojama prekė trinama tikrai.
+
 ## Laukia 2 etape
 
-**Katalogo importas iš Rivilės.** Planuojama išsieksportuoti medžiagų sąrašą
-ir įkelti iš karto, o ne vesti po vieną. Tai keičia `code` lauko svarbą:
-importas turi remtis juo kaip raktu (yra — atnaujinam, nėra — kuriam), kitaip
-pakartotinis įkėlimas pridurs dublikatus. Dalinis unikalumo indeksas tam jau
-paruoštas.
-
-Prieš darant reikia pamatyti **tikrą eksporto failą** — stulpelių vardus,
-skyriklį ir koduotę. Formato spėlioti neverta.
-
-**Objekto kortelės „Įranga" ir „Medžiagos" sujungimas.** Dabar tai du
-skirtukai apie tą patį — kas patenka į objektą. Įranga guli
-`sites.equipment_details` jsonb lauke, medžiagos — `site_material_lines`.
-Sujungus, įrangos eilutės pereitų į tą patį žiniaraštį su `kind = equipment`.
-
-Nauda: vienas šablonas galėtų sudėti ir modulius, ir spaustukus; montuotojas
-faktą vestų vienoje vietoje; nurašymo eksportas savaime apimtų viską. Kaina —
-duomenų perkėlimas iš jsonb į eilutes.
+Nieko iš katalogo dalies — ji baigta. Toliau: montuotojo fakto suvedimas su
+offline eile ir `site_purchases` su čekio nuotrauka.
 
 ## Atvirų klausimų nebeliko
 

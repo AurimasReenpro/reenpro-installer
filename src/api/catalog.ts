@@ -42,11 +42,46 @@ export async function updateCatalogItem(
 }
 
 // ── Delete a catalog item ────────────────────────────────────────────────────
+
+/**
+ * Prekė naudojama objekto žiniaraštyje arba šablone.
+ *
+ * Abu ryšiai yra `ON DELETE RESTRICT`, tad bazė trynimą uždraudžia pati. Ši
+ * klaida tą paverčia sprendimu: ištrinti negalima, bet galima išjungti.
+ */
+export class CatalogItemInUseError extends Error {
+  constructor() {
+    super('Prekė naudojama žiniaraštyje arba šablone.');
+    this.name = 'CatalogItemInUseError';
+  }
+}
+
+/**
+ * Kiek kartų prekė panaudota. Tikrinama PRIEŠ trynimą, kad žmogui būtų galima
+ * pasakyti skaičių, o ne tik „negalima".
+ */
+export async function getCatalogItemUsage(
+  id: string,
+): Promise<{ ziniarasciai: number; sablonai: number }> {
+  const [eilutes, sablonai] = await Promise.all([
+    supabase.from('site_material_lines')
+      .select('id', { count: 'exact', head: true }).eq('catalog_item_id', id),
+    supabase.from('material_template_lines')
+      .select('id', { count: 'exact', head: true }).eq('catalog_item_id', id),
+  ]);
+  if (eilutes.error) throw new Error(eilutes.error.message);
+  if (sablonai.error) throw new Error(sablonai.error.message);
+  return { ziniarasciai: eilutes.count ?? 0, sablonai: sablonai.count ?? 0 };
+}
+
 export async function deleteCatalogItem(id: string): Promise<void> {
   const { error } = await supabase
     .from('equipment_catalog')
     .delete()
     .eq('id', id);
+  // 23503 — foreign_key_violation. Naudojimas tikrinamas ir prieš trynimą, bet
+  // tarp patikros ir trynimo prekė gali būti panaudota, tad reikia ir čia.
+  if (error?.code === '23503') throw new CatalogItemInUseError();
   if (error) throw new Error(error.message);
 }
 
