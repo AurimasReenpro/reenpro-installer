@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Package, Plus, Trash2, Loader2, X, Search, ChevronDown, ChevronRight,
   Cpu, LayoutGrid, BatteryCharging, Wrench, Cable, ShieldCheck,
-  Pencil, Settings2, Check, EyeOff,
+  Pencil, Settings2, Check, EyeOff, Zap,
 } from 'lucide-react';
 import { useConfirm } from '../../hooks/useConfirm';
 import MaterialTemplatesPanel from './MaterialTemplatesPanel';
@@ -19,6 +19,7 @@ import type { CatalogItem, CatalogKind, EquipmentCategoryDef } from '../../types
 import {
   isBatteryCategory, CATALOG_KINDS, CATALOG_KIND_LABELS, EQUIPMENT_UNITS,
 } from '../../types/equipment.types';
+import { isModuleCategory } from '../../lib/materialTotals';
 
 // ── Icon fallback map (icons are a UI concern, not stored in DB) ─────────────
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -95,6 +96,7 @@ interface NewItemForm {
   model: string;
   specifications: string;
   capacity_kwh: string;
+  power_w: string;
   unit: string;
   code: string;
   kind: CatalogKind;
@@ -102,7 +104,7 @@ interface NewItemForm {
 
 const TUSCIA_FORMA: NewItemForm = {
   category: '', brand: '', model: '', specifications: '', capacity_kwh: '',
-  unit: 'vnt.', code: '', kind: 'material',
+  power_w: '', unit: 'vnt.', code: '', kind: 'material',
 };
 
 /** Rūšies filtras: viena vieta, du rodiniai. */
@@ -125,7 +127,7 @@ const IŠSKLEIDIMO_RIBA = 40;
 /** Vienas laukas įrašo redagavimo formoje — kad TS nesileistų į `any`. */
 type ItemForm = {
   category: string; brand: string; model: string; specifications: string;
-  capacity_kwh: string; unit: string; code: string; kind: CatalogKind;
+  capacity_kwh: string; power_w: string; unit: string; code: string; kind: CatalogKind;
   is_active: boolean;
 };
 
@@ -182,13 +184,17 @@ export default function EquipmentCatalog() {
         code: form.code.trim() || null,
         kind: form.kind,
       };
-      // Only attach capacity_kwh when it's an energy-storage item with a value —
-      // omitting the key entirely keeps inserts working even if the column
-      // hasn't been migrated yet (avoids the schema-cache 400).
-      const includeCapacity = isBatteryCategory(category) && form.capacity_kwh !== '';
-      return createCatalogItem(
-        includeCapacity ? { ...base, capacity_kwh: parseFloat(form.capacity_kwh) } : base,
-      );
+      // Only attach capacity_kwh / power_w when the category calls for it and a
+      // value was given — omitting the key entirely keeps inserts working even
+      // if the column hasn't been migrated yet (avoids the schema-cache 400).
+      const withSpec = {
+        ...base,
+        ...(isBatteryCategory(category) && form.capacity_kwh !== ''
+          ? { capacity_kwh: parseFloat(form.capacity_kwh) } : {}),
+        ...(isModuleCategory(category) && form.power_w !== ''
+          ? { power_w: parseFloat(form.power_w) } : {}),
+      };
+      return createCatalogItem(withSpec);
     },
     onSuccess: () => {
       toast.success('Įrašas pridėtas į katalogą!');
@@ -313,6 +319,7 @@ export default function EquipmentCatalog() {
       model: item.model,
       specifications: item.specifications ?? '',
       capacity_kwh: item.capacity_kwh?.toString() ?? '',
+      power_w: item.power_w?.toString() ?? '',
       unit: item.unit,
       code: item.code ?? '',
       kind: item.kind,
@@ -338,6 +345,9 @@ export default function EquipmentCatalog() {
     };
     if (isBatteryCategory(itemForm.category)) {
       patch.capacity_kwh = itemForm.capacity_kwh === '' ? null : parseFloat(itemForm.capacity_kwh);
+    }
+    if (isModuleCategory(itemForm.category)) {
+      patch.power_w = itemForm.power_w === '' ? null : parseFloat(itemForm.power_w);
     }
 
     updateMutation.mutate({ id: item.id, patch }, {
@@ -604,6 +614,24 @@ export default function EquipmentCatalog() {
                       className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
                     />
                     <p className="text-[11px] text-subtle dark:text-subtle mt-1">Bazinė talpa už vieną vienetą — bus padauginta iš kiekio objekte.</p>
+                  </div>
+                )}
+
+                {isModuleCategory(form.category) && (
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">
+                      <Zap size={13} /> Galia vienetui (W)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={form.power_w}
+                      onChange={(e) => setForm(f => ({ ...f, power_w: e.target.value }))}
+                      placeholder="Pvz.: 555"
+                      className="w-full h-[42px] px-3 bg-surface-2 border border-transparent dark:border-white/10 rounded-card text-[14px] text-text dark:text-white focus:outline-none focus:bg-surface dark:focus:bg-surface-2 focus:ring-2 focus:ring-primary transition-all"
+                    />
+                    <p className="text-[11px] text-subtle dark:text-subtle mt-1">Vieno modulio galia — bus padauginta iš kiekio objekte.</p>
                   </div>
                 )}
 
@@ -939,6 +967,11 @@ export default function EquipmentCatalog() {
                                 <BatteryCharging size={11} /> {item.capacity_kwh} kWh
                               </span>
                             )}
+                            {item.power_w != null && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-info-bg text-info border border-info/30 align-middle">
+                                <Zap size={11} /> {item.power_w} W
+                              </span>
+                            )}
                             {!item.is_active && (
                               <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-subtle border border-border align-middle">
                                 <EyeOff size={11} /> Išjungta
@@ -1044,6 +1077,9 @@ export default function EquipmentCatalog() {
                                   </div>
                                 </div>
 
+                                {/* Galia ir talpa — vienam vienetui. Iš jų
+                                    skaičiuojami objekto kWp ir kWh, tad
+                                    pavadinime jų ieškoti nebereikia. */}
                                 {isBatteryCategory(itemForm.category) && (
                                   <div className="md:w-1/2">
                                     <label className="flex items-center gap-1.5 text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">
@@ -1057,6 +1093,26 @@ export default function EquipmentCatalog() {
                                       onChange={(e) => setItemForm(f => f && ({ ...f, capacity_kwh: e.target.value }))}
                                       className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
                                     />
+                                  </div>
+                                )}
+
+                                {isModuleCategory(itemForm.category) && (
+                                  <div className="md:w-1/2">
+                                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-subtle uppercase tracking-wider mb-1.5">
+                                      <Zap size={13} /> Galia vienetui (W)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={1}
+                                      value={itemForm.power_w}
+                                      onChange={(e) => setItemForm(f => f && ({ ...f, power_w: e.target.value }))}
+                                      placeholder="Pvz.: 555"
+                                      className="w-full h-[38px] px-3 bg-surface-2 border border-border rounded-input text-[13px] text-text focus:outline-none focus:border-primary focus:bg-surface transition-colors"
+                                    />
+                                    <p className="text-[11px] text-subtle mt-1">
+                                      Iš jos skaičiuojamas objekto kWp — pavadinime galios ieškoti nebereikia.
+                                    </p>
                                   </div>
                                 )}
 

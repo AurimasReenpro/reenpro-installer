@@ -19,13 +19,17 @@ export interface MaterialCatalogItem {
   code: string | null;
   kind: 'equipment' | 'material';
   is_active: boolean;
+  /** Modulio galia vatais vienam vienetui. */
+  power_w: number | null;
+  /** Kaupiklio talpa kWh vienam vienetui. */
+  capacity_kwh: number | null;
 }
 
 /** Katalogo įrašai rinkikliui. Neaktyvūs nerodomi, bet senose eilutėse lieka. */
 export async function getMaterialCatalog(): Promise<MaterialCatalogItem[]> {
   const { data, error } = await supabase
     .from('equipment_catalog')
-    .select('id, category, brand, model, unit, code, kind, is_active')
+    .select('id, category, brand, model, unit, code, kind, is_active, power_w, capacity_kwh')
     .eq('is_active', true)
     .order('category')
     .order('brand');
@@ -54,7 +58,23 @@ export interface MaterialLine {
   qty_returned: number | null;
   note: string | null;
   sort_order: number;
-  catalog: { brand: string; model: string; category: string; code: string | null } | null;
+  catalog: {
+    brand: string;
+    model: string;
+    category: string;
+    code: string | null;
+    /** Rūšis imama iš jungties, o ne atskira katalogo užklausa — katalogas
+     *  jau 346 įrašų, o objekto kortelei reikia tik jos eilučių. */
+    kind: 'equipment' | 'material';
+    /** Galia ir talpa VIENAM vienetui — iš jų skaičiuojami objekto kWp ir kWh. */
+    power_w: number | null;
+    capacity_kwh: number | null;
+  } | null;
+}
+
+/** Ar eilutė yra įranga. Ranka įvestos eilutės laikomos medžiagomis. */
+export function lineIsEquipment(line: MaterialLine): boolean {
+  return line.catalog?.kind === 'equipment';
 }
 
 export interface MaterialList {
@@ -94,7 +114,7 @@ export async function getSiteMaterialList(siteId: string): Promise<MaterialList 
     .select(`
       id, list_id, catalog_item_id, name, unit,
       qty_planned, qty_issued, qty_actual, qty_returned, note, sort_order,
-      catalog:equipment_catalog(brand, model, category, code)
+      catalog:equipment_catalog(brand, model, category, code, kind, power_w, capacity_kwh)
     `)
     .eq('list_id', list.id)
     .order('sort_order')
@@ -144,6 +164,33 @@ export async function updateMaterialLine(
 
 export async function deleteMaterialLine(id: string): Promise<void> {
   const { error } = await supabase.from('site_material_lines').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Galia arba talpa katalogo įraše, keičiama iš objekto žiniaraščio.
+ *
+ * Rašoma į KATALOGĄ, ne į eilutę: galia yra prekės savybė, o ne šio objekto
+ * dydis. Todėl pakeitimas galioja visiems objektams — sąsajoje tai pasakoma
+ * atvirai, nes kitaip būtų netikėta.
+ */
+export async function updateCatalogSpec(
+  catalogItemId: string,
+  patch: { power_w?: number | null; capacity_kwh?: number | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from('equipment_catalog')
+    .update(patch)
+    .eq('id', catalogItemId);
+  if (error) throw error;
+}
+
+/** Objekto kWp ir kWh, įrašomi iš žiniaraščio suvestinės. */
+export async function updateSiteCapacity(
+  siteId: string,
+  patch: { kwp?: number | null; kwh?: number | null },
+): Promise<void> {
+  const { error } = await supabase.from('sites').update(patch).eq('id', siteId);
   if (error) throw error;
 }
 

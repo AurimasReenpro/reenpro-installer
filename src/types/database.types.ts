@@ -132,6 +132,7 @@ export type Database = {
           model: string
           specifications: string | null
           capacity_kwh: number | null
+          power_w: number | null
           created_at: string
           unit: string
           code: string | null
@@ -145,6 +146,7 @@ export type Database = {
           model: string
           specifications?: string | null
           capacity_kwh?: number | null
+          power_w?: number | null
           created_at?: string
           unit?: string
           code?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           model?: string
           specifications?: string | null
           capacity_kwh?: number | null
+          power_w?: number | null
           created_at?: string
           unit?: string
           code?: string | null

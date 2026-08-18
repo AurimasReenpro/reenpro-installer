@@ -42,6 +42,13 @@ export interface CatalogItem {
   specifications: string | null;
   /** Base battery capacity per unit (kWh) — only for energy-storage items. */
   capacity_kwh: number | null;
+  /**
+   * Modulio galia vatais VIENAM vienetui.
+   *
+   * Pavadinime galios nėra (`Modulis P7-555-COM`), tad jos lukštenimas iš
+   * teksto duodavo tylią klaidą — dalis modulių iškrisdavo iš sumos.
+   */
+  power_w: number | null;
   created_at: string;
   /** Mato vienetas. Be jo žiniaraščio kiekiai beprasmiai. */
   unit: string;

@@ -462,10 +462,86 @@ teisingai: senas žiniaraštis turi likti skaitomas. Sąsaja tikrina panaudojim�
 **prieš** trynimą ir pasako skaičių („naudojama 3 žiniaraščio eilutėse"), o
 vietoje trynimo siūlo `is_active = false`. Nenaudojama prekė trinama tikrai.
 
+## Eiga sąsajoje (2026-08-18)
+
+`src/lib/materialFlow.ts` — vienintelė vieta, kur gyvena būsenų prasmė:
+etiketės, kas laukiama toliau, kurie kiekių stulpeliai rodomi ir ar
+žiniaraštį dar galima keisti. Naudoja ir objekto kortelė, ir montuotojo
+ekranas, tad abu rodo tą patį.
+
+**Perėjimų šis failas nedaro.** Jiems reikia `site_material_events` ir
+`SECURITY DEFINER` procedūros; paprastas `update` iš naršyklės paliktų eigą be
+pėdsakų. Kol jų nėra, būsena rodoma, bet nekeičiama.
+
+**Taisyklė „po pateikimo nebekeičiama" tapo matoma.** Kai būsena ne
+`rengiamas` ir ne `grazinta_taisyti`, kiekių laukeliai virsta tekstu, dingsta
+trynimo mygtukas, naujos eilutės forma ir šablonų kortelė. Anksčiau tai buvo
+tik dokumente.
+
+**`truksta` ir `grazinta_taisyti` neturi vietos žingsnių eilėje** — tai
+grįžimai atgal, o ne pažanga. Etiketes turi, „3 iš 7" — ne.
+
+### Montuotojai matė užšaldytą kopiją
+
+Sujungus įrangą su medžiagomis (2026-08-17), `sites.equipment_details` nustojo
+būti atnaujinamas: jį rašė tik `updateEquipment`, kviečiamas iš nebemaršruti-
+zuoto `EquipmentTab`. Montuotojo „Įranga" skaitė būtent tą lauką, tad viskas,
+kas suvesta į Žiniaraštį po sujungimo, jiems buvo **nematoma**. Ištaisyta —
+skaitoma iš `site_material_lines`, eilutės skiriamos į Įrangą ir Medžiagas.
+
+Atsarginio kelio į seną jsonb nedarome: patikrinta, visi 6 objektai su jsonb
+įrašais turi ne mažiau žiniaraščio eilučių, tad nieko nepamesta.
+
+### Kas dar skaito tą patį užšaldytą lauką
+
+Struktūriškai pasenę, bet **šiandien tyli**, nes nė vienas objektas neturi
+optimizatorių eilučių, o BESS aptinkamas per `sites.kwh` ir `system_type`,
+kurie gyvi:
+
+- `siteListModel.summarizeEquipment` — optimizatorių skaičius objektų sąraše
+- `scheduleModel` — optimizatoriai ir BESS talpa grafiko langelyje
+- `scheduleWarnings.siteClearlyHasBess` — turi du veikiančius atsarginius kelius
+
+**Meluoti pradės tą dieną, kai kas nors į Žiniaraštį įves optimizatorių.**
+Taisymas reikalauja žiniaraščio eilučių sąrašo ir grafiko užklausose, tad tai
+atskiras darbas.
+
+### Galia ir talpa — laukai kataloge, ne spėjimas iš pavadinimo
+
+`kwp` ir `kwh` išvesdavo `updateEquipment`, kartu su tuo pačiu nebekviečiamu
+keliu. Bet grąžinti seno būdo nebuvo galima: jis galią lukšteno **iš
+pavadinimo** reguliariuoju reiškiniu, o iš 21 katalogo modulio tik 5 turi „W"
+pavadinime (`Modulis P7-555-COM` neturi). Tai tyli klaida — dalis modulių
+neįskaičiuojami, o suma vis tiek atrodo teisinga.
+
+Todėl `equipment_catalog` gavo **`power_w`** (migracija
+`20260818140000_catalog_power_w.sql`). `capacity_kwh` jau buvo. Abu reiškia
+reikšmę **vienam vienetui**; tai užrašyta kaip `comment on column`, nes senoji
+jsonb logika `capacity_kwh` laikė jau sudauginta eilutės suma.
+
+**Laukas kataloge, o vedamas iš žiniaraščio.** Galia yra prekės savybė —
+modulis P7-555-COM visur yra 555 W. Eilutėje ją tektų vesti kiekviename
+objekte iš naujo, o suklydus viename kiti liktų teisingi ir klaida
+nepasimatytų. Todėl žiniaraščio eilutėje šalia pavadinimo stovi mažas
+laukelis, bet įrašo jis **į katalogą** — įvedus vieną kartą reikšmė atsiranda
+visur. Tuščias laukelis geltonas, o antraštėje rodoma „2 modul. be galios",
+kad nepilna suma nemeluotų tyliai.
+
+**`sites.kwp` ir `kwh` NEPERRAŠOMI automatiškai.** Nepilnas žiniaraštis duotų
+mažesnį kWp ir tyliai ištrintų ranka suvestą teisingą reikšmę. Vietoje to
+antraštėje rodoma „Pagal žiniaraštį: 5.55 kWp · objekte 4.44 kWp" su mygtuku
+„Įrašyti į objektą". Skirtumas matomas kaskart, kol jo neišsprendi.
+
+Importuotiems moduliams `power_w` **neužpildytas** — sąmoningai. Užpildyti jį
+spėjant iš pavadinimo reikštų grįžti prie to paties būdo, kuris ir buvo
+problema; 21 modulis suvedamas ranka per kelias minutes, o kiekvieną skaičių
+tada bus patikrinęs žmogus.
+
 ## Laukia 2 etape
 
-Nieko iš katalogo dalies — ji baigta. Toliau: montuotojo fakto suvedimas su
-offline eile ir `site_purchases` su čekio nuotrauka.
+Montuotojo fakto suvedimas su offline eile ir `site_purchases` su čekio
+nuotrauka. Prieš tai — `site_material_events` ir perėjimų procedūra, be kurios
+būsenos lieka tik rodomos.
 
 ## Atvirų klausimų nebeliko
 

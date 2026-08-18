@@ -155,7 +155,7 @@ export default function SiteDetail() {
 
       {activeTab === 'Įranga' && (
         <OverviewTab
-          equipmentDetails={site.equipment_details}
+          siteId={site.id}
           kwp={site.kwp}
           kwh={site.kwh}
         />

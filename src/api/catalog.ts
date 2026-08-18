@@ -19,8 +19,15 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
 // capacity_kwh is OPTIONAL in the payload: it's only sent when a value is given,
 // so adding non-battery items still works before the capacity_kwh column exists.
 export async function createCatalogItem(
-  item: Omit<CatalogItem, 'id' | 'created_at' | 'capacity_kwh' | 'unit' | 'code' | 'kind' | 'is_active'>
-    & { capacity_kwh?: number | null; unit?: string; code?: string | null; kind?: CatalogItem['kind'] }
+  item: Omit<CatalogItem, 'id' | 'created_at' | 'capacity_kwh' | 'power_w' | 'unit' | 'code' | 'kind' | 'is_active'>
+    & {
+      capacity_kwh?: number | null;
+      /** Kaip ir talpa — siunčiama tik kai reikšmė yra, kad senos schemos neužkliūtų. */
+      power_w?: number | null;
+      unit?: string;
+      code?: string | null;
+      kind?: CatalogItem['kind'];
+    }
 ): Promise<void> {
   const { error } = await supabase.from('equipment_catalog').insert(item);
   if (error) throw new Error(error.message);
@@ -35,7 +42,7 @@ export async function createCatalogItem(
 export async function updateCatalogItem(
   id: string,
   patch: Partial<Pick<CatalogItem, 'category' | 'brand' | 'model' | 'specifications'
-    | 'capacity_kwh' | 'unit' | 'code' | 'kind' | 'is_active'>>,
+    | 'capacity_kwh' | 'power_w' | 'unit' | 'code' | 'kind' | 'is_active'>>,
 ): Promise<void> {
   const { error } = await supabase.from('equipment_catalog').update(patch).eq('id', id);
   if (error) throw new Error(error.message);
