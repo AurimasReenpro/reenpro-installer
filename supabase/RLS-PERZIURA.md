@@ -267,6 +267,55 @@ atsisuka.
 
 Laukiama: atviro rašymo 11 → **10**, dublikatų 21 → 21.
 
+### 2–5 etapai — PRITAIKYTA 2026-08-19
+
+Dvi migracijos. Priežastis daryti dabar: **montuotojai gaus atskiras Supabase
+paskyras.** Kol jų buvo vienas, atviro rašymo politikos buvo teorija; atsiradus
+keliems, jos tampa atsitiktinumo klausimu.
+
+**Svarbu neperdėti.** Prieš rašant patikrinta, ar iš montuotojo paskyros galima
+prasiplėsti iki svetimų objektų — **negalima**:
+`guard_user_profile_columns` neleidžia keisti savo `team_id`, o `sites`
+politikų `with_check` neleidžia persikelti objekto į kitą komandą. Tai tvarkos,
+ne skylės taisymas.
+
+`20260818160000_rls_stage2_drop_duplicate_policies.sql` — 23 perteklinės
+politikos iš 21 grupės. Elgsena nesikeičia iš principo.
+
+`20260818170000_rls_close_open_writes.sql` — 7 atviro rašymo politikos:
+
+| Lentelė | Ką leido bet kuriam prisijungusiam | Kas lieka |
+|---|---|---|
+| `teams` | ištrinti komandą | `teams_admin`, `teams_select` |
+| `user_profiles` | redaguoti kolegos vardą, telefoną | `up_update_self`, `p1_profiles_update` |
+| `equipment_categories` | trinti ir keisti kategorijas | naujas `eq_cat_write` (is_admin) |
+| `site_extra_materials` | skaityti ir keisti visų objektų | `sem_select`, `sem_insert`, `sem_admin_all` |
+
+Būklė po jų turi būti: **0 atviro rašymo, 0 dublikatų grupių, 1 storage be
+tapatybės, 0 anoniminio rašymo.**
+
+**`site_extra_materials` rizika išspręsta patikrinimu, ne spėjimu.** Planas ją
+vadino rizikingiausia vieta, nes eilutės kuriamos neprisijungus ir siunčiamos
+vėliau. Patikrinta kode: daromas tik `insert` ir `delete`, **`update` nėra
+niekur** (`offlineMutations.ts`, `useExtraWorks.ts`). Todėl atviros UPDATE
+politikos atėmimas nieko nelaužo.
+
+Papildomai pridėtas `sem_insert_assigned` (`is_assigned_to_site`), kad
+įterpimas taptų simetriškas trynimui — anksčiau vardiniu būdu priskirtas
+montuotojas eilutę galėjo ištrinti, bet ne sukurti. `site_assignments` turi
+0 eilučių, tad šiandien tai niekam nekeičia elgsenos.
+
+**Ko šios migracijos NELIEČIA ir kodėl:**
+
+- `equipment_catalog.catalog_write_admin` atrodo kaip `ec_admin` dublikatas,
+  bet nėra: jis rašo `EXISTS (SELECT … user_profiles …)` tiesiai, o
+  `is_admin()` yra `SECURITY DEFINER`. Šiandien duoda tą patį; sugriežtinus
+  `user_profiles` skaitymą — nebeduotų.
+- `user_profiles` atviras `SELECT` lieka. Tai sąmoningas sprendimas vardų
+  sąrašams, bet kartu reiškia, kad **`hourly_rate` matomas visiems
+  prisijungusiems** (radinys nr. 3). Prieš įvedant tiekimo rolę tai reikės
+  spręsti — tada ir keisis elgsena, tad reikės sąsajos patikros.
+
 ### 2 etapas — tikslūs dublikatai
 
 21 grupė, apie 24 perteklinės politikos iš 128. Ta pati lentelė, komanda,
