@@ -126,9 +126,22 @@ nei mato vieneto, nei prekės kodo.
      `company_settings.iban` rašymą ne adminams.
 
    Matuoklis — `supabase/tests/rls_policy_invariants.sql`: struktūrinė
-   patikra be fixture'ų, veikia ir per read-only MCP. Būsena **po** jų:
+   patikra be fixture'ų, veikia ir per read-only MCP. Būsena tuo metu:
    **0 anoniminio rašymo, 1 storage be tapatybės, 10 atviro rašymo,
    21 dublikatų grupė, 0 lentelių be politikų.**
+
+   **2–5 etapai pritaikyti 2026-08-19** (parašyti 08-18):
+   `20260818160000_rls_stage2_drop_duplicate_policies.sql` pašalino 23
+   perteklinius dublikatus iš 21 grupės — elgsena nesikeitė iš principo, nes
+   permissive politikos jungiamos per `OR`, o `X OR X = X`.
+   `20260818170000_rls_close_open_writes.sql` uždarė 7 atviro rašymo politikas
+   (`teams`, `user_profiles`, `equipment_categories`, `site_extra_materials`).
+   Priežastis daryti dabar: **montuotojai gaus atskiras Supabase paskyras** —
+   kol jų buvo vienas, tos politikos buvo teorija.
+
+   Laukiama būklė: **0 atviro rašymo, 0 dublikatų grupių, 1 storage be
+   tapatybės, 0 anoniminio rašymo.** Matuoklis po paleidimo dar nepaleistas —
+   **paleisti ir įrašyti tikrus skaičius čia.**
 
    **Dar dvi migracijos parašytos ir laukia paleidimo** (2026-08-16):
    `20260816140000_photo_delete_and_annotation_rules.sql` ir
